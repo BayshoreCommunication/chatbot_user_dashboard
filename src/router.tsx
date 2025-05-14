@@ -89,6 +89,12 @@ const router = createBrowserRouter([
         }),
       },
       {
+        path: 'user-settings',
+        lazy: async () => ({
+          Component: (await import('@/pages/settings/accountSetting/index.tsx')).default,
+        }),
+      },
+      {
         path: 'settings',
         lazy: async () => ({
           Component: (await import('./pages/settings')).default,

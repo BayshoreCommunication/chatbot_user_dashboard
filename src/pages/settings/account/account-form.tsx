@@ -1,34 +1,21 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { CalendarIcon, CaretSortIcon, CheckIcon } from '@radix-ui/react-icons'
+import { PlusIcon } from '@radix-ui/react-icons'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
-import dayjs from 'dayjs'
-import { cn } from '@/lib/utils'
 import { Button } from '@/components/custom/button'
-import { Calendar } from '@/components/ui/calendar'
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-} from '@/components/ui/command'
 import {
   Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
   FormLabel,
-  FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover'
-import { toast } from '@/components/ui/use-toast'
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Separator } from '@/components/ui/separator'
 
 const languages = [
   { label: 'English', value: 'en' },
@@ -42,175 +29,202 @@ const languages = [
   { label: 'Chinese', value: 'zh' },
 ] as const
 
-const accountFormSchema = z.object({
-  name: z
-    .string()
-    .min(2, {
-      message: 'Name must be at least 2 characters.',
-    })
-    .max(30, {
-      message: 'Name must not be longer than 30 characters.',
-    }),
-  dob: z.date({
-    required_error: 'A date of birth is required.',
-  }),
-  language: z.string({
-    required_error: 'Please select a language.',
-  }),
+const countries = [
+  { label: 'United States', value: 'us' },
+  { label: 'United Kingdom', value: 'uk' },
+  { label: 'Canada', value: 'ca' },
+  { label: 'Germany', value: 'de' },
+  { label: 'France', value: 'fr' },
+  { label: 'Japan', value: 'jp' },
+  { label: 'Australia', value: 'au' },
+  { label: 'India', value: 'in' },
+  { label: 'Brazil', value: 'br' },
+] as const
+
+const timeZones = [
+  { label: 'Pacific Time (PT)', value: 'America/Los_Angeles' },
+  { label: 'Mountain Time (MT)', value: 'America/Denver' },
+  { label: 'Central Time (CT)', value: 'America/Chicago' },
+  { label: 'Eastern Time (ET)', value: 'America/New_York' },
+  { label: 'Greenwich Mean Time (GMT)', value: 'Europe/London' },
+  { label: 'Central European Time (CET)', value: 'Europe/Paris' },
+  { label: 'Japan Standard Time (JST)', value: 'Asia/Tokyo' },
+  { label: 'Australian Eastern Time (AET)', value: 'Australia/Sydney' },
+] as const
+
+const genders = [
+  { label: 'Male', value: 'male' },
+  { label: 'Female', value: 'female' },
+  { label: 'Non-binary', value: 'non-binary' },
+  { label: 'Prefer not to say', value: 'not-specified' },
+] as const
+
+const profileFormSchema = z.object({
+  fullName: z.string().optional(),
+  nickName: z.string().optional(),
+  gender: z.string().optional(),
+  country: z.string().optional(),
+  language: z.string().optional(),
+  timeZone: z.string().optional(),
+  email: z.string().email().optional(),
 })
 
-type AccountFormValues = z.infer<typeof accountFormSchema>
+type ProfileFormValues = z.infer<typeof profileFormSchema>
 
 // This can come from your database or API.
-const defaultValues: Partial<AccountFormValues> = {
-  // name: "Your name",
-  // dob: new Date("2023-01-23"),
+const defaultValues: Partial<ProfileFormValues> = {
+  // These would be populated from user data
 }
 
 export function AccountForm() {
-  const form = useForm<AccountFormValues>({
-    resolver: zodResolver(accountFormSchema),
+  const form = useForm<ProfileFormValues>({
+    resolver: zodResolver(profileFormSchema),
     defaultValues,
   })
 
-  function onSubmit(data: AccountFormValues) {
-    toast({
-      title: 'You submitted the following values:',
-      description: (
-        <pre className='mt-2 w-[340px] rounded-md bg-slate-950 p-4'>
-          <code className='text-white'>{JSON.stringify(data, null, 2)}</code>
-        </pre>
-      ),
-    })
-  }
-
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-8'>
-        <FormField
-          control={form.control}
-          name='name'
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Name</FormLabel>
-              <FormControl>
-                <Input placeholder='Your name' {...field} />
-              </FormControl>
-              <FormDescription>
-                This is the name that will be displayed on your profile and in
-                emails.
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name='dob'
-          render={({ field }) => (
-            <FormItem className='flex flex-col'>
-              <FormLabel>Date of birth</FormLabel>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <FormControl>
-                    <Button
-                      variant={'outline'}
-                      className={cn(
-                        'w-[240px] pl-3 text-left font-normal',
-                        !field.value && 'text-muted-foreground'
-                      )}
-                    >
-                      {field.value ? (
-                        dayjs(field.value).format('MMM D, YYYY')
-                      ) : (
-                        <span>Pick a date</span>
-                      )}
-                      <CalendarIcon className='ml-auto h-4 w-4 opacity-50' />
-                    </Button>
-                  </FormControl>
-                </PopoverTrigger>
-                <PopoverContent className='w-auto p-0' align='start'>
-                  <Calendar
-                    mode='single'
-                    selected={field.value}
-                    onSelect={field.onChange}
-                    disabled={(date: Date) =>
-                      date > new Date() || date < new Date('1900-01-01')
-                    }
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-              <FormDescription>
-                Your date of birth is used to calculate your age.
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name='language'
-          render={({ field }) => (
-            <FormItem className='flex flex-col'>
-              <FormLabel>Language</FormLabel>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <FormControl>
-                    <Button
-                      variant='outline'
-                      role='combobox'
-                      className={cn(
-                        'w-[200px] justify-between',
-                        !field.value && 'text-muted-foreground'
-                      )}
-                    >
-                      {field.value
-                        ? languages.find(
-                            (language) => language.value === field.value
-                          )?.label
-                        : 'Select language'}
-                      <CaretSortIcon className='ml-2 h-4 w-4 shrink-0 opacity-50' />
-                    </Button>
-                  </FormControl>
-                </PopoverTrigger>
-                <PopoverContent className='w-[200px] p-0'>
-                  <Command>
-                    <CommandInput placeholder='Search language...' />
-                    <CommandEmpty>No language found.</CommandEmpty>
-                    <CommandGroup>
-                      {languages.map((language) => (
-                        <CommandItem
-                          value={language.label}
-                          key={language.value}
-                          onSelect={() => {
-                            form.setValue('language', language.value)
-                          }}
-                        >
-                          <CheckIcon
-                            className={cn(
-                              'mr-2 h-4 w-4',
-                              language.value === field.value
-                                ? 'opacity-100'
-                                : 'opacity-0'
-                            )}
-                          />
-                          {language.label}
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-              <FormDescription>
-                This is the language that will be used in the dashboard.
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <Button type='submit'>Update account</Button>
-      </form>
-    </Form>
+    <div className="w-full space-y-6 ">
+      {/* User Profile Header */}
+      <div className="flex items-center gap-4">
+        <div className="h-16 w-16 overflow-hidden rounded-full bg-gray-200">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-full w-full text-gray-500">
+            <path d="M12 12C14.7614 12 17 9.76142 17 7C17 4.23858 14.7614 2 12 2C9.23858 2 7 4.23858 7 7C7 9.76142 9.23858 12 12 12Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M20.5899 22C20.5899 18.13 16.7399 15 11.9999 15C7.25991 15 3.40991 18.13 3.40991 22" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </div>
+        <div>
+          <h2 className="text-xl font-semibold">Bye Wind</h2>
+          <p className="text-sm text-muted-foreground">byewind@gmail.com</p>
+        </div>
+      </div>
+
+      <div className="mr-12">
+        <Form {...form}>
+          <form className="space-y-6">
+            {/* Full Name and Nick Name */}
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+              <div>
+                <FormLabel className="block text-sm font-medium mb-1.5">Full Name</FormLabel>
+                <Input className="w-full bg-muted/40 h-12" placeholder="Your First Name" />
+              </div>
+              <div>
+                <FormLabel className="block text-sm font-medium mb-1.5">Nick Name</FormLabel>
+                <Input className="w-full bg-muted/40 h-12" placeholder="Your First Name" />
+              </div>
+            </div>
+
+            {/* Gender and Country */}
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+              <div>
+                <FormLabel className="block text-sm font-medium mb-1.5">Gender</FormLabel>
+                <Select>
+                  <SelectTrigger className="w-full bg-muted/40 h-12">
+                    <SelectValue placeholder="Your First Name" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {genders.map((gender) => (
+                      <SelectItem key={gender.value} value={gender.value}>
+                        {gender.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <FormLabel className="block text-sm font-medium mb-1.5">Country</FormLabel>
+                <Select>
+                  <SelectTrigger className="w-full bg-muted/40 h-12">
+                    <SelectValue placeholder="Your First Name" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {countries.map((country) => (
+                      <SelectItem key={country.value} value={country.value}>
+                        {country.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Language and Time Zone */}
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+              <div>
+                <FormLabel className="block text-sm font-medium mb-1.5">Language</FormLabel>
+                <Select>
+                  <SelectTrigger className="w-full bg-muted/40 h-12">
+                    <SelectValue placeholder="Your First Name" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {languages.map((language) => (
+                      <SelectItem key={language.value} value={language.value}>
+                        {language.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <FormLabel className="block text-sm font-medium mb-1.5">Time Zone</FormLabel>
+                <Select>
+                  <SelectTrigger className="w-full bg-muted/40 h-12">
+                    <SelectValue placeholder="Your First Name" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {timeZones.map((timezone) => (
+                      <SelectItem key={timezone.value} value={timezone.value}>
+                        {timezone.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Email Address Section */}
+            <div className="mt-8">
+              <h3 className="text-base font-medium mb-4">My email Address</h3>
+              <div className="flex items-center gap-3">
+                <div className="flex-shrink-0">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M3 8L10.89 13.26C11.2187 13.4793 11.6049 13.5963 12 13.5963C12.3951 13.5963 12.7813 13.4793 13.11 13.26L21 8M5 19H19C19.5304 19 20.0391 18.7893 20.4142 18.4142C20.7893 18.0391 21 17.5304 21 17V7C21 6.46957 20.7893 5.96086 20.4142 5.58579C20.0391 5.21071 19.5304 5 19 5H5C4.46957 5 3.96086 5.21071 3.58579 5.58579C3.21071 5.96086 3 6.46957 3 7V17C3 17.5304 3.21071 18.0391 3.58579 18.4142C3.96086 18.7893 4.46957 19 5 19Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium">byewind@gmail.com</p>
+                  <p className="text-xs text-muted-foreground">1 month ago</p>
+                </div>
+              </div>
+              <div className="mt-4">
+                <Button variant="outline" size="sm" className="flex items-center gap-1 text-xs h-9 px-4 rounded">
+                  <PlusIcon className="h-3.5 w-3.5" />
+                  Add Email Address
+                </Button>
+              </div>
+            </div>
+          </form>
+        </Form>
+      </div>
+
+      {/* Footer with buttons */}
+      <div className="mt-auto pt-10">
+        <Separator className="mb-6" />
+        <div className="flex items-center justify-between">
+          <a href="#" className="text-sm text-blue-500">
+            Learn more about user profile
+          </a>
+          <div className="flex gap-4">
+            <Button variant="outline" className="px-6 h-10 rounded">
+              Cancel
+            </Button>
+            <Button className="bg-gray-900 px-6 h-10 rounded">
+              Save
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
   )
 }

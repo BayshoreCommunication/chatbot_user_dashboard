@@ -109,9 +109,9 @@ export const sidelinks: SideLink[] = [
         icon: <IconTruck size={18} />,
       },
       {
-        title: 'Cargos',
+        title: 'Account Settings',
         label: '',
-        href: '/cargos',
+        href: '/user-settings',
         icon: <IconBoxSeam size={18} />,
       },
     ],
