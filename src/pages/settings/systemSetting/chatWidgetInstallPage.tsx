@@ -1,13 +1,13 @@
 import ContentSection from '../components/content-section'
-import { ChatWidgetSetup } from './chatWidgetSetup'
+import { ChatWidgetInstall } from './chatWidgetInstall'
 
-export default function ChatWidgetSetupPage() {
+export default function ChatWidgetInstallPage() {
     return (
-        <div className='mx-6 mt-4 '>
+        <div className='mx-6 mt-4'>
             <ContentSection
                 title='System Setting'
             >
-                <ChatWidgetSetup />
+                <ChatWidgetInstall />
             </ContentSection>
         </div>
     )

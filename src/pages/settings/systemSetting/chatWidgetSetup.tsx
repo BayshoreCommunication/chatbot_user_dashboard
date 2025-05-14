@@ -37,21 +37,23 @@ export function ChatWidgetSetup() {
 
         // You would typically save these settings to your backend here
 
-        // Navigate back to system settings or to next step
-        navigate('/system-settings')
+        // Navigate to the installation page
+        navigate('/chat-widget-install')
     }
 
     return (
         <div className="w-full flex flex-col h-[calc(100vh-120px)]">
-            <div className="flex-1 overflow-y-auto pr-4 space-y-6 pb-6">
+            <div className="flex-1 overflow-y-auto space-y-6">
                 {/* Chat Widget Setup Section */}
                 <div>
-                    <h3 className="text-xl font-medium">Set up the chat widget</h3>
-                    <p className="text-sm text-muted-foreground mt-1 mb-6">
-                        Set up a chat widget to streamline communication, improve customer satisfaction, and drive conversions
-                        with real-time assistance.
-                    </p>
+                    <div>
+                        <h3 className="text-xl font-medium">Set up the chat widget</h3>
+                        <p className="text-sm text-muted-foreground  mt-1 mb-6">
+                            Set up a chat widget to streamline communication, improve customer satisfaction, and drive conversions
+                            with real-time assistance.
+                        </p>
 
+                    </div>
                     <div className="flex gap-8">
                         {/* Left side - Configuration */}
                         <div className="flex-1">
@@ -63,7 +65,9 @@ export function ChatWidgetSetup() {
                                                 1
                                             </div>
                                             <span className="ml-2 text-gray-500 text-sm">—</span>
-                                            <span className="ml-2 text-sm">2</span>
+                                            <div className="ml-2 flex items-center justify-center w-6 h-6 rounded-full border border-gray-300 text-gray-400 text-xs">
+                                                2
+                                            </div>
                                         </div>
                                         <h4 className="text-lg font-medium">Adjust appearance to suit your website</h4>
                                         <h3 className="text-xl font-bold">Configure your chat widget</h3>
@@ -192,15 +196,20 @@ export function ChatWidgetSetup() {
 
                                         {/* Chat input */}
                                         <div className="border-t p-4 flex items-center">
-                                            <input
-                                                type="text"
-                                                placeholder="Type your message here..."
-                                                className="flex-1 border-none outline-none bg-transparent"
-                                            />
-                                            <button className={`ml-2 ${selectedColor === 'black' ? 'text-black' : `text-${selectedColor}-500`}`}>
-                                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <div className="flex-1 flex items-center relative">
+                                                <svg className="h-5 w-5 text-gray-400 absolute left-2" viewBox="0 0 24 24" fill="none">
+                                                    <path d="M19 13C19 16.866 15.866 20 12 20C8.13401 20 5 16.866 5 13C5 9.13401 8.13401 6 12 6C15.866 6 19 9.13401 19 13Z" stroke="currentColor" strokeWidth="2" />
+                                                </svg>
+                                                <input
+                                                    type="text"
+                                                    placeholder="Type your message here..."
+                                                    className="flex-1 pl-8 pr-2 py-2 rounded-full border border-gray-200 outline-none text-sm"
+                                                />
+                                            </div>
+                                            <button className={`ml-2 w-8 h-8 rounded-full ${selectedColor === 'black' ? 'bg-black' : `bg-${selectedColor}-500`} text-white flex items-center justify-center`}>
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                                     <path d="M22 2L11 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                                    <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                                    <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                                                 </svg>
                                             </button>
                                         </div>
