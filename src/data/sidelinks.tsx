@@ -114,6 +114,12 @@ export const sidelinks: SideLink[] = [
         href: '/user-settings',
         icon: <IconBoxSeam size={18} />,
       },
+      {
+        title: 'System Settings',
+        label: '',
+        href: '/system-settings',
+        icon: <IconBoxSeam size={18} />,
+      },
     ],
   },
   {
