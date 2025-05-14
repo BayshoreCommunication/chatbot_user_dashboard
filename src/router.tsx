@@ -143,6 +143,12 @@ const router = createBrowserRouter([
         ],
       },
       {
+        path: 'chat-widget-setup',
+        lazy: async () => ({
+          Component: (await import('./pages/settings/systemSetting/chatWidgetSetupPage')).default,
+        }),
+      },
+      {
         path: 'settings',
         lazy: async () => ({
           Component: (await import('./pages/settings')).default,

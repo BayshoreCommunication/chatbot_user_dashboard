@@ -1,7 +1,14 @@
 import { Button } from '@/components/custom/button'
 import { Card } from '@/components/ui/card'
+import { useNavigate } from 'react-router-dom'
 
 export function SystemSetting() {
+  const navigate = useNavigate()
+
+  const handleInstallClick = () => {
+    navigate('/chat-widget-setup')
+  }
+
   return (
     <div className="w-full flex flex-col h-[calc(100vh-120px)]">
       <div className="flex-1 overflow-y-auto pr-4 space-y-6 pb-6">
@@ -33,7 +40,11 @@ export function SystemSetting() {
               </p>
             </div>
 
-            <Button variant="default" className="bg-black text-white rounded-md px-6 py-2 mt-4 flex items-center gap-2">
+            <Button
+              variant="default"
+              className="bg-black text-white rounded-md px-6 py-2 mt-4 flex items-center gap-2"
+              onClick={handleInstallClick}
+            >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M12 5V19M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>

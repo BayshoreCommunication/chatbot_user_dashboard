@@ -32,21 +32,21 @@ export default function ContentSection({
           <h3 className={`text-lg font-medium`}>{title}</h3>
         </div>
         <div className="flex items-center">
-        <div className='mr-2' >
-        <ThemeSwitch />
-        </div>
+          <div className='mr-2' >
+            <ThemeSwitch />
+          </div>
           <div className="relative flex items-center rounded-md bg-gray-100 dark:bg-gray-950 px-3 py-1.5">
             <svg className="h-4 w-4 text-gray-500" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <circle cx="11" cy="11" r="8"></circle>
               <path d="m21 21-4.3-4.3"></path>
             </svg>
             <span className="ml-2 text-xs text-gray-500">Search</span>
-            <span className="ml-4 rounded border border-gray-300 bg-white px-1 text-xs text-gray-500">⌘/</span>
+            <span className="ml-4 rounded border border-gray-300 dark:border-gray-700 bg-background px-1 text-xs text-gray-500">⌘/</span>
           </div>
         </div>
       </div>
       <Separator className='my-4 flex-none' />
-      <div className='faded-bottom -mx-4 flex-1 overflow-auto scroll-smooth px-4 md:pb-16'>
+      <div className='-mx-4 flex-1 overflow-auto scroll-smooth px-4 md:pb-16'>
         <div className='w-full'>{children}</div>
       </div>
     </div>

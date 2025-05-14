@@ -1,0 +1,226 @@
+import { Button } from '@/components/custom/button'
+import { Card } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+
+export function ChatWidgetSetup() {
+    const navigate = useNavigate()
+    const [selectedColor, setSelectedColor] = useState('black')
+    const [botBehavior, setBotBehavior] = useState('2')
+    const [leadCapture, setLeadCapture] = useState(true)
+    const [name, setName] = useState('Byewind')
+
+    const colorOptions = [
+        { value: 'black', bgClass: 'bg-black' },
+        { value: 'red', bgClass: 'bg-red-500' },
+        { value: 'orange', bgClass: 'bg-orange-500' },
+        { value: 'blue', bgClass: 'bg-blue-500' },
+        { value: 'pink', bgClass: 'bg-pink-500' },
+    ]
+
+    const botBehaviorOptions = [
+        { value: '2', label: '2 Sec' },
+        { value: '5', label: '5 Sec' },
+        { value: '10', label: '10 Sec' },
+        { value: '15', label: '15 Sec' },
+    ]
+
+    const handleNext = () => {
+        // Save settings and navigate to next step
+        console.log('Chat widget settings saved:', {
+            name,
+            selectedColor,
+            leadCapture,
+            botBehavior
+        })
+
+        // You would typically save these settings to your backend here
+
+        // Navigate back to system settings or to next step
+        navigate('/system-settings')
+    }
+
+    return (
+        <div className="w-full flex flex-col h-[calc(100vh-120px)]">
+            <div className="flex-1 overflow-y-auto pr-4 space-y-6 pb-6">
+                {/* Chat Widget Setup Section */}
+                <div>
+                    <h3 className="text-xl font-medium">Set up the chat widget</h3>
+                    <p className="text-sm text-muted-foreground mt-1 mb-6">
+                        Set up a chat widget to streamline communication, improve customer satisfaction, and drive conversions
+                        with real-time assistance.
+                    </p>
+
+                    <div className="flex gap-8">
+                        {/* Left side - Configuration */}
+                        <div className="flex-1">
+                            <Card className="p-6 border rounded-lg">
+                                <div className="space-y-6">
+                                    <div className="flex flex-col gap-2">
+                                        <div className="flex items-center">
+                                            <div className="flex items-center justify-center w-6 h-6 rounded-full bg-black text-white text-xs">
+                                                1
+                                            </div>
+                                            <span className="ml-2 text-gray-500 text-sm">—</span>
+                                            <span className="ml-2 text-sm">2</span>
+                                        </div>
+                                        <h4 className="text-lg font-medium">Adjust appearance to suit your website</h4>
+                                        <h3 className="text-xl font-bold">Configure your chat widget</h3>
+                                    </div>
+
+                                    {/* Name Input */}
+                                    <div className="space-y-2">
+                                        <label htmlFor="name" className="block text-sm font-medium">
+                                            Your Name
+                                        </label>
+                                        <Input
+                                            id="name"
+                                            value={name}
+                                            onChange={(e) => setName(e.target.value)}
+                                            className="w-full"
+                                        />
+                                    </div>
+
+                                    {/* Color Scheme & Avatar */}
+                                    <div className="space-y-2">
+                                        <label className="block text-sm font-medium">
+                                            Color Scheme & Avatar
+                                        </label>
+                                        <div className="flex justify-between items-center mt-2">
+                                            <div className="flex gap-2">
+                                                {colorOptions.map((color) => (
+                                                    <button
+                                                        key={color.value}
+                                                        onClick={() => setSelectedColor(color.value)}
+                                                        className={`w-8 h-8 rounded-full ${color.bgClass} flex items-center justify-center ${selectedColor === color.value ? 'ring-2 ring-offset-2 ring-black' : ''
+                                                            }`}
+                                                    >
+                                                        {selectedColor === color.value && (
+                                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                                <path d="M20 6L9 17L4 12" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                                            </svg>
+                                                        )}
+                                                    </button>
+                                                ))}
+                                                <button className="w-8 h-8 rounded-full border border-dashed border-gray-300 flex items-center justify-center">
+                                                    <span className="text-gray-400">...</span>
+                                                </button>
+                                            </div>
+                                            <Button variant="outline" className="text-sm">
+                                                Upload
+                                            </Button>
+                                        </div>
+                                    </div>
+
+                                    {/* Lead Capture */}
+                                    <div className="space-y-2">
+                                        <label className="block text-sm font-medium">
+                                            Lead Capture
+                                        </label>
+                                        <div className="flex items-center mt-2">
+                                            <div
+                                                onClick={() => setLeadCapture(!leadCapture)}
+                                                className={`relative w-12 h-6 rounded-full transition-colors cursor-pointer ${leadCapture ? 'bg-blue-500' : 'bg-gray-300'}`}
+                                            >
+                                                <div className={`absolute top-[2px] w-5 h-5 rounded-full bg-white transition-transform ${leadCapture ? 'translate-x-6' : 'translate-x-1'}`}></div>
+                                            </div>
+                                            <span className="ml-2 text-sm">On</span>
+                                        </div>
+                                    </div>
+
+                                    {/* Chat Bot Behaviour */}
+                                    <div className="space-y-2">
+                                        <label className="block text-sm font-medium">
+                                            Chat Bot Behaviour
+                                        </label>
+                                        <div className="flex gap-3 mt-2">
+                                            {botBehaviorOptions.map((option) => (
+                                                <label key={option.value} className="flex items-center space-x-2 cursor-pointer">
+                                                    <div className="relative">
+                                                        <input
+                                                            type="radio"
+                                                            value={option.value}
+                                                            checked={botBehavior === option.value}
+                                                            onChange={() => setBotBehavior(option.value)}
+                                                            className="sr-only"
+                                                        />
+                                                        <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${botBehavior === option.value ? 'border-black' : 'border-gray-300'}`}>
+                                                            {botBehavior === option.value && (
+                                                                <div className="w-3 h-3 rounded-full bg-black"></div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                    <span>{option.label}</span>
+                                                </label>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            </Card>
+                        </div>
+
+                        {/* Right side - Preview */}
+                        <div className="w-[320px]">
+                            <div className="sticky top-6">
+                                <div className="relative">
+                                    <div className="w-[300px] h-[500px] bg-white rounded-xl shadow-lg border overflow-hidden">
+                                        {/* Chat header */}
+                                        <div className={`p-4 ${selectedColor === 'black' ? 'bg-black' : `bg-${selectedColor}-500`} text-white`}>
+                                            <div className="flex items-center">
+                                                <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
+                                                    <span className="text-black text-xs font-bold">BA</span>
+                                                </div>
+                                                <div className="ml-2">
+                                                    <p className="text-sm">Chat with <span className="font-bold">Bay AI</span></p>
+                                                    <p className="text-xs opacity-70">online conversation</p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Chat content */}
+                                        <div className="p-4 h-[350px] flex flex-col justify-end">
+                                            <div className="bg-gray-100 rounded-lg p-3 max-w-[75%] mb-2">
+                                                <p className="text-sm">Hi yes, David have found it, ask our concierge <span className="font-bold text-lg">👋</span></p>
+                                            </div>
+                                            <div className="flex justify-end">
+                                                <div className="bg-gray-800 text-white rounded-lg p-3 max-w-[75%]">
+                                                    <p className="text-sm">Thank you for work, see you!</p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Chat input */}
+                                        <div className="border-t p-4 flex items-center">
+                                            <input
+                                                type="text"
+                                                placeholder="Type your message here..."
+                                                className="flex-1 border-none outline-none bg-transparent"
+                                            />
+                                            <button className={`ml-2 ${selectedColor === 'black' ? 'text-black' : `text-${selectedColor}-500`}`}>
+                                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                    <path d="M22 2L11 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                                    <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Bottom navigation */}
+            <div className="flex justify-between py-4 border-t mt-4">
+                <a href="#" className="text-sm text-blue-500 hover:underline">
+                    Learn more about account setting
+                </a>
+                <Button variant="default" className="bg-black text-white dark:bg-slate-950" onClick={handleNext}>
+                    Next
+                </Button>
+            </div>
+        </div>
+    )
+} 

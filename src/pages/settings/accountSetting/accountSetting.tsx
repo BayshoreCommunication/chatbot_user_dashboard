@@ -147,7 +147,7 @@ export function AccountSetting() {
       </div>
 
       {/* Footer with buttons - Fixed at bottom */}
-      <div className="mt-auto pt-4 sticky bottom-0 bg-white dark:bg-gray-950 z-10 ">
+      <div className="mt-auto pt-4 sticky bottom-0 dark:bg-gray-950 z-10 ">
         <Separator className="mb-4" />
         <div className="flex items-center justify-between">
           <a href="#" className="text-sm text-blue-500 hover:underline">
