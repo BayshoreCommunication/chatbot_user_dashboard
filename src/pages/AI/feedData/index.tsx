@@ -50,9 +50,11 @@ export default function AutomationSMS() {
                                 <p className="text-sm text-muted-foreground">
                                     Reply with a greeting when someone messages you for the first time.
                                 </p>
-                                <Link to="/instant-reply">
-                                    <Button className="w-full" variant="outline">Create One</Button>
-                                </Link>
+                                <div>
+                                    <Link to="/instant-reply">
+                                        <Button className="w-full" variant="outline">Create One</Button>
+                                    </Link>
+                                </div>
                             </div>
                         </div>
 
@@ -66,11 +68,13 @@ export default function AutomationSMS() {
                                 />
                                 <h3 className="font-medium">Frequently Asked Questions</h3>
                                 <p className="text-sm text-muted-foreground">
-                                    Reply to a message that contains specific keywords.
+                                    Reply to a message that contains specific keyword with a pre-defined response.
                                 </p>
-                                <Link to="/faq">
-                                    <Button className="w-full" variant="outline">Create One</Button>
-                                </Link>
+                                <div>
+                                    <Link to="/faq">
+                                        <Button className="w-full" variant="outline">Create One</Button>
+                                    </Link>
+                                </div>
                             </div>
                         </div>
 
@@ -86,7 +90,12 @@ export default function AutomationSMS() {
                                 <p className="text-sm text-muted-foreground">
                                     You could train your AI about your business and chat with your clients.
                                 </p>
-                                <Button className="w-full" variant="outline">Start Training</Button>
+                                <div>
+                                    <Link to="/faq">
+                                        <Button className="w-full" variant="outline">Start Training</Button>
+                                    </Link>
+                                </div>
+
                             </div>
                         </div>
                     </div>

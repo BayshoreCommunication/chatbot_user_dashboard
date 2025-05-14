@@ -345,7 +345,7 @@ export default function FAQAutomation() {
 
                     {/* Success Modal */}
                     {showSuccessModal && (
-                        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-30 z-50">
+                        <div className="fixed inset-[-28px] flex items-center justify-center bg-black bg-opacity-30 z-50">
                             <div className="bg-white rounded-lg p-6 max-w-md mx-auto shadow-lg">
                                 <div className="flex flex-col items-center text-center">
                                     <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mb-4">
