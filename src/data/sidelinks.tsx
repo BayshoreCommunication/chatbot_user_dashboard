@@ -42,12 +42,6 @@ export const sidelinks: SideLink[] = [
     icon: <IconLayoutDashboard size={18} />,
   },
   {
-    title: 'Tasks',
-    label: '3',
-    href: '/tasks',
-    icon: <IconChecklist size={18} />,
-  },
-  {
     title: 'Chats',
     label: '9',
     href: '/chats',
@@ -104,15 +98,14 @@ export const sidelinks: SideLink[] = [
     icon: <IconUsers size={18} />,
   },
   {
-    title: 'Requests',
-    label: '10',
+    title: 'Settings',
+    label: '4',
     href: '/requests',
     icon: <IconRouteAltLeft size={18} />,
     sub: [
       {
-        title: 'Trucks',
-        label: '9',
-        href: '/trucks',
+        title: 'User Profile',
+        href: '/user-profile',
         icon: <IconTruck size={18} />,
       },
       {
