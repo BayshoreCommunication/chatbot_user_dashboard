@@ -3,7 +3,6 @@ import {
   IconBarrierBlock,
   IconBoxSeam,
   IconChartHistogram,
-  IconChecklist,
   IconComponents,
   IconError404,
   IconExclamationCircle,
@@ -99,13 +98,38 @@ export const sidelinks: SideLink[] = [
   },
   {
     title: 'Settings',
-    label: '4',
+    label: '3',
     href: '/requests',
     icon: <IconRouteAltLeft size={18} />,
     sub: [
       {
         title: 'User Profile',
         href: '/user-profile',
+        icon: <IconTruck size={18} />,
+      },
+      {
+        title: 'Account Settings',
+        label: '',
+        href: '/user-settings',
+        icon: <IconBoxSeam size={18} />,
+      },
+      {
+        title: 'System Settings',
+        label: '',
+        href: '/system-settings',
+        icon: <IconBoxSeam size={18} />,
+      },
+    ],
+  },
+  {
+    title: 'Ai',
+    label: '4',
+    href: '/requests',
+    icon: <IconRouteAltLeft size={18} />,
+    sub: [
+      {
+        title: 'Train AI',
+        href: '/train-ai',
         icon: <IconTruck size={18} />,
       },
       {
