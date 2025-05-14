@@ -3,6 +3,7 @@ import { Button } from "@/components/custom/button";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { Switch } from "@/components/ui/switch";
+import { Link } from "react-router-dom";
 
 interface Automation {
     id: string;
@@ -36,20 +37,22 @@ export default function AutomationSMS() {
                     </p>
 
                     {/* Automation Cards */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 lg:mr-60 mr-0 md:grid-cols-3 gap-6">
                         {/* Instant Reply Card */}
                         <div className="border rounded-lg overflow-hidden">
                             <div className="p-4 space-y-4">
                                 <img
                                     src="https://res.cloudinary.com/dq9yrj7c9/image/upload/v1747212346/instantReply.png"
                                     alt="Instant Reply"
-                                    className="w-full h-28 object-cover rounded-md"
+                                    className="w-full h-full object-cover rounded-md"
                                 />
                                 <h3 className="font-medium">Instant Reply</h3>
                                 <p className="text-sm text-muted-foreground">
                                     Reply with a greeting when someone messages you for the first time.
                                 </p>
-                                <Button className="w-full" variant="outline">Create One</Button>
+                                <Link to="/instant-reply">
+                                    <Button className="w-full" variant="outline">Create One</Button>
+                                </Link>
                             </div>
                         </div>
 
@@ -59,13 +62,15 @@ export default function AutomationSMS() {
                                 <img
                                     src="https://res.cloudinary.com/dq9yrj7c9/image/upload/v1747212404/FAQ.png"
                                     alt="Frequently Asked Questions"
-                                    className="w-full h-28 object-cover rounded-md"
+                                    className="w-full h-full object-cover rounded-md"
                                 />
                                 <h3 className="font-medium">Frequently Asked Questions</h3>
                                 <p className="text-sm text-muted-foreground">
                                     Reply to a message that contains specific keywords.
                                 </p>
-                                <Button className="w-full" variant="outline">Create One</Button>
+                                <Link to="/faq">
+                                    <Button className="w-full" variant="outline">Create One</Button>
+                                </Link>
                             </div>
                         </div>
 
@@ -75,7 +80,7 @@ export default function AutomationSMS() {
                                 <img
                                     src="https://res.cloudinary.com/dq9yrj7c9/image/upload/v1747212425/TrainAi.png"
                                     alt="Trained AI"
-                                    className="w-full h-28 object-cover rounded-md"
+                                    className="w-full h-full object-cover rounded-md"
                                 />
                                 <h3 className="font-medium">Trained AI</h3>
                                 <p className="text-sm text-muted-foreground">

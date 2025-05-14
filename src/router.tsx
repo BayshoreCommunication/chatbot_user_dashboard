@@ -208,6 +208,18 @@ const router = createBrowserRouter([
           Component: (await import('@/pages/AI/feedData/index.tsx')).default,
         }),
       },
+      {
+        path: 'instant-reply',
+        lazy: async () => ({
+          Component: (await import('@/pages/AI/instantReply/index.tsx')).default,
+        }),
+      },
+      {
+        path: 'faq',
+        lazy: async () => ({
+          Component: (await import('@/pages/AI/faq/index.tsx')).default,
+        }),
+      },
     ],
   },
 

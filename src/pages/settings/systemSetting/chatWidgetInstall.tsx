@@ -144,58 +144,58 @@ export function ChatWidgetInstall() {
                                 </div>
 
                                 {/* Right side - Preview */}
-                        <div className="w-[320px]">
-                            <div className="sticky top-6">
-                                <div className="relative">
-                                    <div className="w-[300px] h-[500px] bg-white rounded-xl shadow-lg border overflow-hidden">
-                                        {/* Chat header */}
-                                        <div className={`p-4 bg-black text-white`}>
-                                            <div className="flex items-center">
-                                                <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
-                                                    <span className="text-black text-xs font-bold">BA</span>
+                                <div className="w-[320px]">
+                                    <div className="sticky top-6">
+                                        <div className="relative">
+                                            <div className="w-[300px] h-[500px] bg-white rounded-xl shadow-lg border overflow-hidden">
+                                                {/* Chat header */}
+                                                <div className={`p-4 bg-black text-white`}>
+                                                    <div className="flex items-center">
+                                                        <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
+                                                            <span className="text-black text-xs font-bold">BA</span>
+                                                        </div>
+                                                        <div className="ml-2">
+                                                            <p className="text-sm">Chat with <span className="font-bold">Bay AI</span></p>
+                                                            <p className="text-xs opacity-70">online conversation</p>
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                                <div className="ml-2">
-                                                    <p className="text-sm">Chat with <span className="font-bold">Bay AI</span></p>
-                                                    <p className="text-xs opacity-70">online conversation</p>
-                                                </div>
-                                            </div>
-                                        </div>
 
-                                        {/* Chat content */}
-                                        <div className="p-4 h-[350px] flex flex-col justify-end">
-                                            <div className="bg-gray-100 rounded-lg p-3 max-w-[75%] mb-2">
-                                                <p className="text-sm">Hi yes, David have found it, ask our concierge <span className="font-bold text-lg">👋</span></p>
-                                            </div>
-                                            <div className="flex justify-end">
-                                                <div className="bg-gray-800 text-white rounded-lg p-3 max-w-[75%]">
-                                                    <p className="text-sm">Thank you for work, see you!</p>
+                                                {/* Chat content */}
+                                                <div className="p-4 h-[350px] flex flex-col justify-end">
+                                                    <div className="bg-gray-100 rounded-lg p-3 max-w-[75%] mb-2">
+                                                        <p className="text-sm">Hi yes, David have found it, ask our concierge <span className="font-bold text-lg">👋</span></p>
+                                                    </div>
+                                                    <div className="flex justify-end">
+                                                        <div className="bg-gray-800 text-white rounded-lg p-3 max-w-[75%]">
+                                                            <p className="text-sm">Thank you for work, see you!</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {/* Chat input */}
+                                                <div className="border-t p-4 flex items-center">
+                                                    <div className="flex-1 flex items-center relative">
+                                                        <svg className="h-5 w-5 text-gray-400 absolute left-2" viewBox="0 0 24 24" fill="none">
+                                                            <path d="M19 13C19 16.866 15.866 20 12 20C8.13401 20 5 16.866 5 13C5 9.13401 8.13401 6 12 6C15.866 6 19 9.13401 19 13Z" stroke="currentColor" strokeWidth="2" />
+                                                        </svg>
+                                                        <input
+                                                            type="text"
+                                                            placeholder="Type your message here..."
+                                                            className="flex-1 pl-8 pr-2 py-2 rounded-full border border-gray-200 outline-none text-sm"
+                                                        />
+                                                    </div>
+                                                    <button className={`ml-2 w-8 h-8 rounded-full bg-black text-white flex items-center justify-center`}>
+                                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                            <path d="M22 2L11 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                                            <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                                        </svg>
+                                                    </button>
                                                 </div>
                                             </div>
-                                        </div>
-
-                                        {/* Chat input */}
-                                        <div className="border-t p-4 flex items-center">
-                                            <div className="flex-1 flex items-center relative">
-                                                <svg className="h-5 w-5 text-gray-400 absolute left-2" viewBox="0 0 24 24" fill="none">
-                                                    <path d="M19 13C19 16.866 15.866 20 12 20C8.13401 20 5 16.866 5 13C5 9.13401 8.13401 6 12 6C15.866 6 19 9.13401 19 13Z" stroke="currentColor" strokeWidth="2" />
-                                                </svg>
-                                                <input
-                                                    type="text"
-                                                    placeholder="Type your message here..."
-                                                    className="flex-1 pl-8 pr-2 py-2 rounded-full border border-gray-200 outline-none text-sm"
-                                                />
-                                            </div>
-                                            <button className={`ml-2 w-8 h-8 rounded-full bg-black text-white flex items-center justify-center`}>
-                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                    <path d="M22 2L11 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                                    <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                                </svg>
-                                            </button>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                        </div>
                             </div>
                         </div>
                     </Card>

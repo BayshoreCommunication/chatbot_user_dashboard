@@ -46,7 +46,7 @@ export default function ContentSection({
         </div>
       </div>
       <Separator className='my-4 flex-none' />
-      <div className='-mx-4 flex-1 overflow-auto scroll-smooth px-4 md:pb-16'>
+      <div className='-mx-4 flex-1 overflow-auto scroll-smooth px-4 md:pb-9'>
         <div className='w-full'>{children}</div>
       </div>
     </div>
