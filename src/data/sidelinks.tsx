@@ -90,12 +90,12 @@ export const sidelinks: SideLink[] = [
       },
     ],
   },
-  {
-    title: 'Users',
-    label: '',
-    href: '/users',
-    icon: <IconUsers size={18} />,
-  },
+  // {
+  //   title: 'Users',
+  //   label: '',
+  //   href: '/users',
+  //   icon: <IconUsers size={18} />,
+  // },
   {
     title: 'Settings',
     label: '3',
@@ -123,7 +123,7 @@ export const sidelinks: SideLink[] = [
   },
   {
     title: 'Ai',
-    label: '4',
+    label: '1',
     href: '/requests',
     icon: <IconRouteAltLeft size={18} />,
     sub: [
@@ -132,68 +132,68 @@ export const sidelinks: SideLink[] = [
         href: '/train-ai',
         icon: <IconTruck size={18} />,
       },
-      {
-        title: 'Account Settings',
-        label: '',
-        href: '/user-settings',
-        icon: <IconBoxSeam size={18} />,
-      },
-      {
-        title: 'System Settings',
-        label: '',
-        href: '/system-settings',
-        icon: <IconBoxSeam size={18} />,
-      },
+      // {
+      //   title: 'Account Settings',
+      //   label: '',
+      //   href: '/user-settings',
+      //   icon: <IconBoxSeam size={18} />,
+      // },
+      // {
+      //   title: 'System Settings',
+      //   label: '',
+      //   href: '/system-settings',
+      //   icon: <IconBoxSeam size={18} />,
+      // },
     ],
   },
-  {
-    title: 'Analysis',
-    label: '',
-    href: '/analysis',
-    icon: <IconChartHistogram size={18} />,
-  },
-  {
-    title: 'Extra Components',
-    label: '',
-    href: '/extra-components',
-    icon: <IconComponents size={18} />,
-  },
-  {
-    title: 'Error Pages',
-    label: '',
-    href: '',
-    icon: <IconExclamationCircle size={18} />,
-    sub: [
-      {
-        title: 'Not Found',
-        label: '',
-        href: '/404',
-        icon: <IconError404 size={18} />,
-      },
-      {
-        title: 'Internal Server Error',
-        label: '',
-        href: '/500',
-        icon: <IconServerOff size={18} />,
-      },
-      {
-        title: 'Maintenance Error',
-        label: '',
-        href: '/503',
-        icon: <IconBarrierBlock size={18} />,
-      },
-      {
-        title: 'Unauthorised Error',
-        label: '',
-        href: '/401',
-        icon: <IconLock size={18} />,
-      },
-    ],
-  },
-  {
-    title: 'Settings',
-    label: '',
-    href: '/settings',
-    icon: <IconSettings size={18} />,
-  },
+  // {
+  //   title: 'Analysis',
+  //   label: '',
+  //   href: '/analysis',
+  //   icon: <IconChartHistogram size={18} />,
+  // },
+  // {
+  //   title: 'Extra Components',
+  //   label: '',
+  //   href: '/extra-components',
+  //   icon: <IconComponents size={18} />,
+  // },
+  // {
+  //   title: 'Error Pages',
+  //   label: '',
+  //   href: '',
+  //   icon: <IconExclamationCircle size={18} />,
+  //   sub: [
+  //     {
+  //       title: 'Not Found',
+  //       label: '',
+  //       href: '/404',
+  //       icon: <IconError404 size={18} />,
+  //     },
+  //     {
+  //       title: 'Internal Server Error',
+  //       label: '',
+  //       href: '/500',
+  //       icon: <IconServerOff size={18} />,
+  //     },
+  //     {
+  //       title: 'Maintenance Error',
+  //       label: '',
+  //       href: '/503',
+  //       icon: <IconBarrierBlock size={18} />,
+  //     },
+  //     {
+  //       title: 'Unauthorised Error',
+  //       label: '',
+  //       href: '/401',
+  //       icon: <IconLock size={18} />,
+  //     },
+  //   ],
+  // },
+  // {
+  //   title: 'Settings',
+  //   label: '',
+  //   href: '/settings',
+  //   icon: <IconSettings size={18} />,
+  // },
 ]
