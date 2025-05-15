@@ -107,117 +107,127 @@ export default function TrainAiPage() {
     return (
         <div className="mx-6 mt-4">
             <ContentSection title="Training your AI">
-                <div className="space-y-6">
+                <div className="space-y-6 ">
                     <p className="text-muted-foreground">
                         Build a smarter AI by continuously updating its knowledge and refining its responses to meet customer expectations.
                     </p>
 
                     {/* Initial Page */}
                     {currentStep === 'initial' && (
-                        <div className="flex flex-col lg:flex-row gap-8 mt-8 relative">
+                        <div className="flex flex-col lg:flex-row gap-8 mt-8 relative border-2 rounded-lg">
+                            {/* Left side content */}
+                            <div className="flex-1 z-20">
+                                <div className="flex justify-center items-center w-3/4 mt-16 ">
+                                    <div className="space-y-4">
+                                        <h2 className="text-2xl font-semibold">Enhance customer support with an AI assistant, <span className="text-gray-900">Bay AI!</span></h2>
+                                        <p>Bay AI is a next-generation AI built for customer support, capable of answering up to <span className="font-semibold">85%</span> of customer inquiries.</p>
+
+                                        <div className="space-y-3 mt-6">
+                                            <div className="flex items-center gap-3">
+                                                <div className="flex-shrink-0 w-5 h-5 flex items-center justify-center">
+                                                    <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5">
+                                                        <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                                    </svg>
+                                                </div>
+                                                <p>Replies immediately in natural, human-like conversations.</p>
+                                            </div>
+                                            <div className="flex items-center gap-3">
+                                                <div className="flex-shrink-0 w-5 h-5 flex items-center justify-center">
+                                                    <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5">
+                                                        <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                                    </svg>
+                                                </div>
+                                                <p>Multilingual conversations.</p>
+                                            </div>
+                                            <div className="flex items-center gap-3">
+                                                <div className="flex-shrink-0 w-5 h-5 flex items-center justify-center">
+                                                    <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5">
+                                                        <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                                    </svg>
+                                                </div>
+                                                <p>Powered by various sources: websites, Q&A sets.</p>
+                                            </div>
+                                            <div className="flex items-center gap-3">
+                                                <div className="flex-shrink-0 w-5 h-5 flex items-center justify-center">
+                                                    <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5">
+                                                        <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                                    </svg>
+                                                </div>
+                                                <p>Tackle more complicated, specific use-cases with <span className="font-semibold">Bay AI</span> tasks.</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="mt-6">
+                                            <Button onClick={handleStartTraining} className="bg-black text-white hover:bg-gray-800">
+                                                Start Training
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Right side - Chat Preview */}
+                            <div className="w-[320px] md:sticky md:self-start md:top-6 z-20 my-5">
+                                <div className="relative">
+                                    <div className="w-[270px] bg-white rounded-xl shadow-lg border overflow-hidden">
+                                        {/* Chat header */}
+                                        <div className="p-4 bg-black text-white">
+                                            <div className="flex items-center">
+                                                <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
+                                                    <span className="text-black text-xs font-bold">BA</span>
+                                                </div>
+                                                <div className="ml-2">
+                                                    <p className="text-sm">Chat with <span className="font-bold">Bay AI</span></p>
+                                                    <p className="text-xs opacity-70">we reply immediately</p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Chat content */}
+                                        <div className="p-4 min-h-[200px] max-h-[400px] overflow-y-auto flex flex-col justify-end">
+                                            <div className="bg-gray-100 rounded-lg p-3 max-w-[75%] mb-2 mt-24">
+                                                <p className="text-sm">Hi, yes, David have found it, ask our concierge 👋</p>
+                                            </div>
+                                            <div className="flex justify-end">
+                                                <div className="bg-gray-800 text-white rounded-lg p-3 max-w-[75%]">
+                                                    <p className="text-sm">Thank you for work, see you!</p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Chat input */}
+                                        <div className="border-t p-4 flex items-center">
+                                            <div className="flex-1 flex items-center relative">
+                                                <svg className="h-5 w-5 text-gray-400 absolute left-2" viewBox="0 0 24 24" fill="none">
+                                                    <path d="M19 13C19 16.866 15.866 20 12 20C8.13401 20 5 16.866 5 13C5 9.13401 8.13401 6 12 6C15.866 6 19 9.13401 19 13Z" stroke="currentColor" strokeWidth="2" />
+                                                </svg>
+                                                <input
+                                                    type="text"
+                                                    placeholder="Type your message here..."
+                                                    className="flex-1 pl-8 pr-2 py-2 rounded-full border border-gray-200 outline-none text-sm"
+                                                />
+                                            </div>
+                                            <button className="ml-2 w-8 h-8 rounded-full bg-black text-white flex items-center justify-center">
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                    <path d="M22 2L11 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                                    <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
                             {/* Brain background image */}
                             <div
-                                className="absolute right-0 bottom-0 w-full h-full pointer-events-none opacity-20 z-0"
+                                className="absolute right-0 bottom-0 w-full h-full pointer-events-none  z-10"
                                 style={{
-                                    backgroundImage: "url('https://res.cloudinary.com/dq9yrj7c9/image/upload/v1747281069/Icersuedcjsep0ebqay0.jpg')",
+                                    backgroundImage: "url('https://res.cloudinary.com/dq9yrj7c9/image/upload/v1747287480/d0tfhqfgnhtxfeu7buyr.png')",
                                     backgroundRepeat: "no-repeat",
                                     backgroundPosition: "right bottom",
                                     backgroundSize: "contain",
                                 }}
                             ></div>
-
-                            <div className="flex-1 z-10">
-                                <div className="space-y-4">
-                                    <h2 className="text-2xl font-semibold">Enhance customer support with an AI assistant, <span className="text-gray-900">Bay AI!</span></h2>
-                                    <p>Bay AI is a next-generation AI built for customer support, capable of answering up to <span className="font-semibold">85%</span> of customer inquiries.</p>
-
-                                    <div className="space-y-3 mt-6">
-                                        <div className="flex items-center gap-3">
-                                            <div className="flex-shrink-0 w-5 h-5 flex items-center justify-center">
-                                                <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5">
-                                                    <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                                </svg>
-                                            </div>
-                                            <p>Replies immediately in natural, human-like conversations.</p>
-                                        </div>
-                                        <div className="flex items-center gap-3">
-                                            <div className="flex-shrink-0 w-5 h-5 flex items-center justify-center">
-                                                <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5">
-                                                    <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                                </svg>
-                                            </div>
-                                            <p>Multilingual conversations.</p>
-                                        </div>
-                                        <div className="flex items-center gap-3">
-                                            <div className="flex-shrink-0 w-5 h-5 flex items-center justify-center">
-                                                <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5">
-                                                    <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                                </svg>
-                                            </div>
-                                            <p>Powered by various sources: websites, Q&A sets.</p>
-                                        </div>
-                                        <div className="flex items-center gap-3">
-                                            <div className="flex-shrink-0 w-5 h-5 flex items-center justify-center">
-                                                <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5">
-                                                    <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                                </svg>
-                                            </div>
-                                            <p>Tackle more complicated, specific use-cases with <span className="font-semibold">Bay AI</span> tasks.</p>
-                                        </div>
-                                    </div>
-
-                                    <div className="mt-6">
-                                        <Button onClick={handleStartTraining} className="bg-black text-white hover:bg-gray-800">
-                                            Start Training
-                                        </Button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="lg:w-[450px] z-10">
-                                <div className="relative">
-                                    <div className="w-full h-full rounded-lg overflow-hidden">
-                                        <div className="bg-white rounded-lg p-4 border shadow-sm">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center text-white">
-                                                    <span>BA</span>
-                                                </div>
-                                                <div>
-                                                    <p className="font-medium">Chat with Bay AI</p>
-                                                    <p className="text-xs text-gray-500">we reply immediately</p>
-                                                </div>
-                                            </div>
-
-                                            <div className="mt-6 space-y-4">
-                                                <div className="flex justify-end">
-                                                    <div className="bg-gray-800 text-white px-4 py-2 rounded-lg max-w-[80%]">
-                                                        <p className="text-sm">Hi, yes. David have found it, ask our concierge 👋</p>
-                                                    </div>
-                                                </div>
-                                                <div>
-                                                    <div className="bg-gray-100 px-4 py-2 rounded-lg max-w-[80%]">
-                                                        <p className="text-sm">Thank you for work, see you!</p>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <div className="mt-8 flex items-center">
-                                                <input
-                                                    type="text"
-                                                    placeholder="Type your message here..."
-                                                    className="flex-1 border rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-                                                />
-                                                <button className="ml-2 w-8 h-8 bg-gray-800 rounded-full flex items-center justify-center text-white">
-                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                        <path d="M22 2L11 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                                        <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                                    </svg>
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
                         </div>
                     )}
 
@@ -226,10 +236,10 @@ export default function TrainAiPage() {
                         <>
                             {/* Header with title and active button */}
                             <div className="flex justify-between items-center mb-4">
-                                <h3 className="text-lg font-medium">All websites: {websites.length}</h3>
+                                
                                 <Button
                                     onClick={handleActivate}
-                                    className="bg-blue-600 text-white hover:bg-blue-700"
+                                    className="bg-blue-600 text-white hover:bg-blue-700 px-8 tracking-widest"
                                 >
                                     Active
                                 </Button>
@@ -239,7 +249,7 @@ export default function TrainAiPage() {
                             {websites.length > 0 && (
                                 <div className="mt-4">
                                     <div className="flex items-center justify-between mb-4">
-                                        <div></div>
+                                    <h3 className="text-lg font-medium">All websites: {websites.length}</h3>
                                         <Button onClick={handleAddWebsite} variant="outline" className="flex items-center gap-2">
                                             <Plus className="w-4 h-4" />
                                             Add
@@ -296,7 +306,7 @@ export default function TrainAiPage() {
 
                     {/* URL Input Modal */}
                     {showUrlModal && (
-                        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-30 z-50">
+                        <div className="fixed inset-[-31px] flex items-center justify-center bg-black bg-opacity-30 z-50">
                             <div className="bg-white rounded-lg p-6 max-w-3xl w-full mx-auto shadow-lg">
                                 <h3 className="text-lg font-medium mb-4">Add website content from URL</h3>
                                 <p className="text-sm text-gray-500 mb-6">Training your Bay AI from your website and others</p>
@@ -348,7 +358,7 @@ export default function TrainAiPage() {
 
                     {/* Restriction Modal */}
                     {showRestrictionsModal && (
-                        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-30 z-50">
+                        <div className="fixed inset-[-31px] flex items-center justify-center bg-black bg-opacity-30 z-50">
                             <div className="bg-white rounded-lg p-6 max-w-md w-full mx-auto shadow-lg">
                                 <div className="flex justify-center mb-4">
                                     <div className="w-10 h-10 rounded-full bg-yellow-100 flex items-center justify-center">
@@ -384,7 +394,7 @@ export default function TrainAiPage() {
 
                     {/* Activation Confirmation Modal */}
                     {showActivationModal && (
-                        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-30 z-50">
+                        <div className="fixed inset-[-31px] flex items-center justify-center bg-black bg-opacity-30 z-50">
                             <div className="bg-white rounded-lg p-6 max-w-md w-full mx-auto shadow-lg">
                                 <div className="text-center">
                                     <h2 className="text-2xl font-bold mb-6">Bay AI</h2>
