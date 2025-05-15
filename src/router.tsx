@@ -205,7 +205,13 @@ const router = createBrowserRouter([
       {
         path: 'train-ai',
         lazy: async () => ({
-          Component: (await import('@/pages/AI/feedData/index.tsx')).default,
+          Component: (await import('@/pages/AI/aiHome/index.tsx')).default,
+        }),
+      },
+      {
+        path: 'train-ai-page',
+        lazy: async () => ({
+          Component: (await import('@/pages/AI/trainAi/index.tsx')).default,
         }),
       },
       {

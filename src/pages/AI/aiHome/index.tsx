@@ -3,7 +3,7 @@ import { Button } from "@/components/custom/button";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { Switch } from "@/components/ui/switch";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 interface Automation {
     id: string;
@@ -13,6 +13,7 @@ interface Automation {
 }
 
 export default function AutomationSMS() {
+    const navigate = useNavigate();
     const [automations, setAutomations] = useState<Automation[]>([
         { id: "1", name: "Frequently Asked Questions 1", status: true, type: "faq" },
         { id: "2", name: "Instant Reply", status: false, type: "instant-reply" },
@@ -26,6 +27,10 @@ export default function AutomationSMS() {
                 ? { ...automation, status: !automation.status }
                 : automation
         ));
+    };
+
+    const handleStartTraining = () => {
+        navigate("/train-ai-page");
     };
 
     return (
@@ -91,9 +96,7 @@ export default function AutomationSMS() {
                                     You could train your AI about your business and chat with your clients.
                                 </p>
                                 <div>
-                                    <Link to="/faq">
-                                        <Button className="w-full" variant="outline">Start Training</Button>
-                                    </Link>
+                                    <Button onClick={handleStartTraining} className="w-full" variant="outline">Start Training</Button>
                                 </div>
 
                             </div>
