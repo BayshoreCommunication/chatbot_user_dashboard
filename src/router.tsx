@@ -3,14 +3,22 @@ import GeneralError from './pages/errors/general-error'
 import NotFoundError from './pages/errors/not-found-error'
 import MaintenanceError from './pages/errors/maintenance-error'
 import UnauthorisedError from './pages/errors/unauthorised-error.tsx'
+import SignIn from '@/pages/auth/sign-in'
+import SignUp from '@/pages/auth/sign-up'
+import LandingPage from '@/pages/landing'
 
 const router = createBrowserRouter([
-  // Landing page as default
   {
     path: '/',
-    lazy: async () => ({
-      Component: (await import('./pages/landing')).default,
-    }),
+    element: <LandingPage />,
+  },
+  {
+    path: '/sign-in',
+    element: <SignIn />,
+  },
+  {
+    path: '/sign-up',
+    element: <SignUp />,
   },
   // Landing page
   {
@@ -28,21 +36,9 @@ const router = createBrowserRouter([
   },
   // Auth routes
   {
-    path: '/sign-in',
-    lazy: async () => ({
-      Component: (await import('./pages/auth/sign-in')).default,
-    }),
-  },
-  {
     path: '/sign-in-2',
     lazy: async () => ({
       Component: (await import('./pages/auth/sign-in-2')).default,
-    }),
-  },
-  {
-    path: '/sign-up',
-    lazy: async () => ({
-      Component: (await import('./pages/auth/sign-up')).default,
     }),
   },
   {

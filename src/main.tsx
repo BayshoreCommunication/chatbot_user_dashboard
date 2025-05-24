@@ -8,7 +8,31 @@ import '@/index.css';
 import { ThemeColorProvider } from './context/ThemeColorContext';
 import { UserProvider } from './context/UserContext';
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
+// Load Google OAuth script manually
+const loadGoogleScript = () => {
+    const script = document.createElement('script');
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.async = true;
+    script.defer = true;
+    document.body.appendChild(script);
+};
+
+loadGoogleScript();
+
+// Initialize Google OAuth
+if (!window.google) {
+    window.google = {
+        accounts: {
+            id: {
+                initialize: () => { },
+                renderButton: () => { },
+                prompt: () => { }
+            }
+        }
+    };
+}
+
+const App = () => (
     <React.StrictMode>
         <UserProvider>
             <ThemeColorProvider>
@@ -20,3 +44,5 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         </UserProvider>
     </React.StrictMode>
 );
+
+ReactDOM.createRoot(document.getElementById('root')!).render(<App />);

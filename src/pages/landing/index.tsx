@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/custom/button';
@@ -161,26 +161,32 @@ const FloatingParticles = () => {
 };
 
 export default function LandingPage() {
-    const { user, isAuthenticated } = useUser();
+    const { user, isAuthenticated, setUser } = useUser();
     const navigate = useNavigate();
     const [loading, setLoading] = useState<string | null>(null);
-    const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
     const { scrollY } = useScroll();
     const y1 = useTransform(scrollY, [0, 300], [0, -50]);
     const y2 = useTransform(scrollY, [0, 300], [0, -100]);
 
-    useEffect(() => {
-        const handleMouseMove = (e: MouseEvent) => {
-            setMousePosition({ x: e.clientX, y: e.clientY });
-        };
-
-        window.addEventListener('mousemove', handleMouseMove);
-        return () => window.removeEventListener('mousemove', handleMouseMove);
-    }, []);
+    const handleLogout = () => {
+        localStorage.removeItem('user');
+        setUser(null);
+        navigate('/');
+    };
 
     const handleSubscribe = async (plan: PricingPlan) => {
-        if (isAuthenticated && user?.hasPaidSubscription) {
+        if (!isAuthenticated) {
+            navigate('/sign-in', {
+                state: {
+                    from: location.pathname,
+                    plan: plan
+                }
+            });
+            return;
+        }
+
+        if (user?.hasPaidSubscription) {
             navigate('/dashboard');
             return;
         }
@@ -195,8 +201,8 @@ export default function LandingPage() {
                 },
                 body: JSON.stringify({
                     priceId: plan.stripePriceId,
-                    successUrl: window.location.origin + '/payment-success',
-                    cancelUrl: window.location.origin + '/landing',
+                    successUrl: window.location.origin + '/dashboard',
+                    cancelUrl: window.location.origin + '/',
                     customerEmail: user?.email || undefined
                 }),
             });
@@ -229,14 +235,6 @@ export default function LandingPage() {
 
     return (
         <Spotlight className="min-h-screen bg-black relative overflow-hidden">
-            {/* Dynamic background gradient */}
-            <motion.div
-                className="fixed inset-0 bg-gradient-to-br from-gray-900 via-black to-gray-900"
-                style={{
-                    background: `radial-gradient(circle at ${mousePosition.x}px ${mousePosition.y}px, rgba(59, 130, 246, 0.1) 0%, transparent 50%)`
-                }}
-            />
-
             {/* Floating particles */}
             <FloatingParticles />
 
@@ -260,35 +258,53 @@ export default function LandingPage() {
                                 animate="animate"
                                 className="relative"
                             >
-                                <Bot className="h-8 w-8 text-blue-400" />
+                                <Bot className="h-6 w-6 sm:h-8 sm:w-8 text-blue-400" />
                                 <div className="absolute inset-0 bg-blue-400 blur-xl opacity-30" />
                             </motion.div>
-                            <span className="text-xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+                            <span className="text-lg sm:text-xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
                                 AI Assistant
                             </span>
                         </motion.div>
                         <div className="flex items-center space-x-4">
-                            {isAuthenticated && user?.hasPaidSubscription ? (
-                                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                                    <Button
-                                        onClick={() => navigate('/dashboard')}
-                                        className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white border-0"
-                                    >
-                                        Go to Dashboard
-                                    </Button>
-                                </motion.div>
+                            {isAuthenticated ? (
+                                <div className="flex items-center space-x-4">
+                                    <div className="text-gray-300">
+                                        Welcome, {user?.name}
+                                    </div>
+                                    <div className="flex space-x-2">
+                                        {user?.hasPaidSubscription && (
+                                            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                                                <Button
+                                                    onClick={() => navigate('/dashboard')}
+                                                    className="text-sm sm:text-base bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white border-0"
+                                                >
+                                                    Dashboard
+                                                </Button>
+                                            </motion.div>
+                                        )}
+                                        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                                            <Button
+                                                onClick={handleLogout}
+                                                variant="ghost"
+                                                className="text-sm sm:text-base text-gray-300 hover:text-white hover:bg-gray-800"
+                                            >
+                                                Log Out
+                                            </Button>
+                                        </motion.div>
+                                    </div>
+                                </div>
                             ) : (
                                 <>
                                     <Link to="/sign-in">
                                         <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                                            <Button variant="ghost" className="text-gray-300 hover:text-white hover:bg-gray-800">
+                                            <Button variant="ghost" className="text-sm sm:text-base text-gray-300 hover:text-white hover:bg-gray-800">
                                                 Sign In
                                             </Button>
                                         </motion.div>
                                     </Link>
                                     <Link to="/sign-up">
                                         <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                                            <Button className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white border-0">
+                                            <Button className="text-sm sm:text-base bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white border-0">
                                                 Get Started
                                             </Button>
                                         </motion.div>

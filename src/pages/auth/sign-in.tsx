@@ -1,77 +1,72 @@
-import { UserAuthForm } from './components/user-auth-form'
-import ViteLogo from '@/assets/vite.svg'
+import { Link, useLocation } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { UserAuthForm } from './components/user-auth-form';
+import { Bot } from 'lucide-react';
 
 export default function SignIn() {
+  const location = useLocation();
+  location.state?.from || '/';
+
   return (
-    <>
-      <div className='container relative grid h-svh flex-col items-center justify-center lg:max-w-none lg:grid-cols-2 lg:px-0'>
-        <div className='relative hidden h-full flex-col bg-muted p-10 text-white dark:border-r lg:flex'>
-          <div className='absolute inset-0 bg-zinc-900' />
-          <div className='relative z-20 flex items-center text-lg font-medium'>
-            <svg
-              xmlns='http://www.w3.org/2000/svg'
-              viewBox='0 0 24 24'
-              fill='none'
-              stroke='currentColor'
-              strokeWidth='2'
-              strokeLinecap='round'
-              strokeLinejoin='round'
-              className='mr-2 h-6 w-6'
-            >
-              <path d='M15 6v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3V6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3' />
-            </svg>
-            Shadcn Admin
-          </div>
-
-          <img
-            src={ViteLogo}
-            className='relative m-auto'
-            width={301}
-            height={60}
-            alt='Vite'
-          />
-
-          <div className='relative z-20 mt-auto'>
-            <blockquote className='space-y-2'>
-              <p className='text-lg'>
-                &ldquo;This library has saved me countless hours of work and
-                helped me deliver stunning designs to my clients faster than
-                ever before.&rdquo;
-              </p>
-              <footer className='text-sm'>Sofia Davis</footer>
-            </blockquote>
-          </div>
-        </div>
-        <div className='lg:p-8'>
-          <div className='mx-auto flex w-full flex-col justify-center space-y-2 sm:w-[350px]'>
-            <div className='flex flex-col space-y-2 text-left'>
-              <h1 className='text-2xl font-semibold tracking-tight'>Login</h1>
-              <p className='text-sm text-muted-foreground'>
-                Enter your email and password below <br />
-                to log into your account
-              </p>
-            </div>
-            <UserAuthForm />
-            <p className='px-8 text-center text-sm text-muted-foreground'>
-              By clicking login, you agree to our{' '}
-              <a
-                href='/terms'
-                className='underline underline-offset-4 hover:text-primary'
-              >
-                Terms of Service
-              </a>{' '}
-              and{' '}
-              <a
-                href='/privacy'
-                className='underline underline-offset-4 hover:text-primary'
-              >
-                Privacy Policy
-              </a>
-              .
-            </p>
-          </div>
-        </div>
+    <div className="min-h-screen bg-black relative overflow-hidden flex items-center justify-center">
+      {/* Background Effects */}
+      <div className="absolute inset-0">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-gray-900 via-black to-black opacity-50" />
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#000000,#1a1a1a,#000000)] opacity-40" />
+        <div className="absolute w-full h-full bg-[url('/noise.png')] opacity-[0.03] mix-blend-overlay" />
       </div>
-    </>
-  )
+
+      <div className="container relative z-10 mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
+        <div className="flex flex-col space-y-2 text-center">
+          <motion.div
+            initial={{ scale: 0.5, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.5 }}
+            className="mx-auto flex items-center space-x-2"
+          >
+            <Bot className="h-8 w-8 text-blue-400" />
+            <span className="text-2xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+              AI Assistant
+            </span>
+          </motion.div>
+          <motion.h1
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.2 }}
+            className="text-2xl font-semibold tracking-tight text-white"
+          >
+            Welcome back
+          </motion.h1>
+          <motion.p
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.3 }}
+            className="text-sm text-muted-foreground"
+          >
+            Enter your email to sign in to your account
+          </motion.p>
+        </div>
+        <motion.div
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.4 }}
+        >
+          <UserAuthForm className="bg-black/50 p-6 rounded-lg border border-gray-800" />
+        </motion.div>
+        <motion.p
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.5 }}
+          className="px-8 text-center text-sm text-muted-foreground"
+        >
+          <Link
+            to="/sign-up"
+            className="hover:text-brand underline underline-offset-4 text-blue-400 hover:text-blue-300"
+          >
+            Don&apos;t have an account? Sign Up
+          </Link>
+        </motion.p>
+      </div>
+    </div>
+  );
 }

@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
+import React from "react";
 import { cn } from "@/lib/utils";
+import { motion } from "framer-motion";
 
 type SpotlightProps = {
     className?: string;
@@ -11,33 +11,14 @@ type SpotlightProps = {
     style?: React.CSSProperties;
 };
 
-export function Spotlight({ className, fill, children, style }: SpotlightProps) {
-    const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-
-    useEffect(() => {
-        const handleMouseMove = (e: MouseEvent) => {
-            const { clientX, clientY } = e;
-            const { innerWidth, innerHeight } = window;
-
-            // Convert mouse position to percentage
-            const x = clientX / innerWidth;
-            const y = clientY / innerHeight;
-
-            setMousePosition({ x, y });
-        };
-
-        window.addEventListener('mousemove', handleMouseMove);
-        return () => window.removeEventListener('mousemove', handleMouseMove);
-    }, []);
-
+export function Spotlight({ className, children, style }: SpotlightProps) {
     return (
         <div className={cn("relative overflow-hidden", className)} style={style}>
             <motion.div
-                className="pointer-events-none absolute inset-0 z-30 transition duration-300"
-                animate={{
-                    background: `radial-gradient(800px circle at ${mousePosition.x * 100}% ${mousePosition.y * 100}%, ${fill || "rgba(59, 130, 246, 0.1)"}, transparent 40%)`
-                }}
-                transition={{ type: "spring", bounce: 0.4, duration: 0.6 }}
+                className="pointer-events-none absolute inset-0 z-30"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 1 }}
             />
             <div className="relative z-20">
                 {children}
