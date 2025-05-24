@@ -5,6 +5,27 @@ import MaintenanceError from './pages/errors/maintenance-error'
 import UnauthorisedError from './pages/errors/unauthorised-error.tsx'
 
 const router = createBrowserRouter([
+  // Landing page as default
+  {
+    path: '/',
+    lazy: async () => ({
+      Component: (await import('./pages/landing')).default,
+    }),
+  },
+  // Landing page
+  {
+    path: '/landing',
+    lazy: async () => ({
+      Component: (await import('./pages/landing')).default,
+    }),
+  },
+  // Payment success page
+  {
+    path: '/payment-success',
+    lazy: async () => ({
+      Component: (await import('./pages/payment-success')).default,
+    }),
+  },
   // Auth routes
   {
     path: '/sign-in',
@@ -39,7 +60,7 @@ const router = createBrowserRouter([
 
   // Main routes
   {
-    path: '/',
+    path: '/dashboard',
     lazy: async () => {
       const AppShell = await import('./components/app-shell')
       return { Component: AppShell.default }
