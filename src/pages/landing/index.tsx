@@ -455,7 +455,7 @@ export default function LandingPage() {
                                             Welcome, {user?.name}
                                         </div>
                                         <div className="flex space-x-2">
-                                            {user?.has_paid_subscription && (
+                                            {user?.has_paid_subscription === true && (
                                                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                                                     <Button
                                                         onClick={() => navigate('/dashboard')}

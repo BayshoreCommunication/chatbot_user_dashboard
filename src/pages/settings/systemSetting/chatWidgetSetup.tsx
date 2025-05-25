@@ -38,7 +38,7 @@ export function ChatWidgetSetup() {
         // You would typically save these settings to your backend here
 
         // Navigate to the installation page
-        navigate('/chat-widget-install')
+        navigate('/dashboard/chat-widget-install')
     }
 
     return (

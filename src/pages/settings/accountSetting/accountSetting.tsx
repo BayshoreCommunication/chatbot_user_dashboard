@@ -1,11 +1,56 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/custom/button'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
+import axios from 'axios'
+import { useAuth } from '@/context/AuthContext' // Assuming you have an auth context
+
+interface SubscriptionData {
+  subscription_tier: string;
+  subscription_status: string;
+  current_period_end: string;
+  payment_amount: number;
+}
 
 export function AccountSetting() {
   const [colorValue, setColorValue] = useState('#34dsf89D')
   const [showPassword, setShowPassword] = useState(false)
+  const [subscriptionData, setSubscriptionData] = useState<SubscriptionData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const { user } = useAuth() // Get user from auth context
+
+  useEffect(() => {
+    const fetchSubscriptionData = async () => {
+      try {
+        if (user?.id) {
+          console.log('Fetching subscription for user:', user.id);
+          const response = await axios.get(`${import.meta.env.VITE_API_URL}/payment/user-subscription/${user.id}`);
+          console.log('Subscription response:', response.data);
+
+          if (response.data.status === 'success') {
+            setSubscriptionData(response.data.data);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching subscription data:', error);
+        if (axios.isAxiosError(error)) {
+          console.error('Error details:', error.response?.data);
+        }
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchSubscriptionData()
+  }, [user?.id])
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'numeric',
+      day: 'numeric'
+    })
+  }
 
   return (
     <div className="w-full flex flex-col h-[calc(100vh-120px)]">
@@ -22,8 +67,24 @@ export function AccountSetting() {
                 <img src="https://res.cloudinary.com/dq9yrj7c9/image/upload/v1747201321/jmmegj7hsm1tp3ard65i.png" alt="premium" />
               </div>
               <div>
-                <h4 className="font-medium">Premium plan</h4>
-                <p className="text-sm text-muted-foreground">End Date 1-10-2025</p>
+                {loading ? (
+                  <p>Loading subscription info...</p>
+                ) : subscriptionData ? (
+                  <>
+                    <h4 className="font-medium capitalize">{subscriptionData.subscription_tier} Plan</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Status: <span className="capitalize">{subscriptionData.subscription_status}</span>
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      End Date: {formatDate(subscriptionData.current_period_end)}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Amount: ${subscriptionData.payment_amount}/month
+                    </p>
+                  </>
+                ) : (
+                  <p>No subscription data available</p>
+                )}
               </div>
             </div>
             <Button variant="default" className="bg-black text-white rounded-md px-4 py-2 h-9">

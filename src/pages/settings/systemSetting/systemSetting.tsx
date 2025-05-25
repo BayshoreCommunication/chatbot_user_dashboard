@@ -6,7 +6,7 @@ export function SystemSetting() {
   const navigate = useNavigate()
 
   const handleInstallClick = () => {
-    navigate('/chat-widget-setup')
+    navigate('/dashboard/chat-widget-setup')
   }
 
   return (

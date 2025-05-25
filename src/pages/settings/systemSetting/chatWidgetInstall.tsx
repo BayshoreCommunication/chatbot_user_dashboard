@@ -11,7 +11,7 @@ export function ChatWidgetInstall() {
     const [showSuccessModal, setShowSuccessModal] = useState(false)
 
     const handleBack = () => {
-        navigate('/chat-widget-setup')
+        navigate('/dashboard/chat-widget-setup')
     }
 
     const handleConnect = () => {
@@ -20,7 +20,7 @@ export function ChatWidgetInstall() {
 
         // Automatically navigate to system settings after 1.5s
         setTimeout(() => {
-            navigate('/system-settings')
+            navigate('/dashboard/system-settings')
         }, 1500)
     }
 
