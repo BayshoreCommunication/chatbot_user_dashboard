@@ -4,7 +4,7 @@ interface User {
     id: string;
     email: string;
     name: string;
-    hasPaidSubscription: boolean;
+    has_paid_subscription: boolean;
     subscriptionId?: string;
 }
 

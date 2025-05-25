@@ -7,26 +7,15 @@ import { AnalyticsChart } from './components/analytics-chart'
 import { TrafficSources } from './components/traffic-sources'
 import { MessageList } from './components/message-list'
 import { Notifications, ActiveUsers } from './components/notifications'
-import { useNavigate } from 'react-router-dom'
-import { Button } from '@/components/custom/button'
-import { ArrowLeft } from 'lucide-react'
+
 
 export default function Dashboard() {
-  const navigate = useNavigate()
+  
 
   return (
     <div className="min-h-screen bg-background">
       {/* Back button */}
-      <div className="fixed top-4 left-4 z-50">
-        <Button
-          variant="ghost"
-          onClick={() => navigate('/')}
-          className="flex items-center space-x-2 text-gray-300 hover:text-white"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          <span>Back to Home</span>
-        </Button>
-      </div>
+      
 
       <Layout className="dark:bg-gray-950">
         {/* ===== Top Heading ===== */}

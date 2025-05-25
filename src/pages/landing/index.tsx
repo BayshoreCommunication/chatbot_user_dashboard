@@ -1,14 +1,16 @@
-import { useState } from 'react';
+import { useState, lazy, Suspense, memo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
+import { motion, useScroll, useTransform, useReducedMotion } from 'framer-motion';
 import { Button } from '@/components/custom/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle, Zap, Shield, Bot, MessageSquare, BarChart3, Settings, Users, ArrowRight, Star, Sparkles } from 'lucide-react';
 import { useUser } from '@/context/UserContext';
 import { loadStripe } from '@stripe/stripe-js';
-import { Hero3DScene } from "@/components/ui/hero-3d-scene";
-import { Spotlight } from '@/components/ui/spotlight';
+
+// Lazy load components that are below the fold
+const Hero3DScene = lazy(() => import('@/components/ui/hero-3d-scene').then(module => ({ default: module.Hero3DScene })));
+const Spotlight = lazy(() => import('@/components/ui/spotlight').then(module => ({ default: module.Spotlight })));
 
 const stripePromise = loadStripe('pk_test_51QCEQyP8UcLxbKnCXzg48ysRmhBHDnf4N4gzPtBNpc8Hmnk9dtlt4HGdv92JLjRgw57UHqT6EQUHli5yETB9Gbro00bCBEQ8UT');
 
@@ -72,11 +74,11 @@ const pricingPlans: PricingPlan[] = [
     }
 ];
 
-// Advanced animation variants
+// Optimized animations
 const fadeInUp = {
-    initial: { opacity: 0, y: 60 },
+    initial: { opacity: 0, y: 20 },
     animate: { opacity: 1, y: 0 },
-    transition: { duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] }
+    transition: { duration: 0.5 }
 };
 
 const staggerContainer = {
@@ -89,12 +91,10 @@ const staggerContainer = {
 };
 
 const scaleIn = {
-    initial: { scale: 0.8, opacity: 0, y: 40 },
-    animate: { scale: 1, opacity: 1, y: 0 },
-    transition: { duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }
+    initial: { opacity: 0, scale: 0.95 },
+    animate: { opacity: 1, scale: 1 },
+    transition: { duration: 0.3 }
 };
-
-
 
 const glowAnimation = {
     animate: {
@@ -125,34 +125,34 @@ const sparkleVariants = {
     }
 };
 
-// Floating particles component
+// Optimized floating particles
 const FloatingParticles = () => {
-    const particles = Array.from({ length: 20 }, (_, i) => i);
+    const prefersReducedMotion = useReducedMotion();
+    const particles = Array.from({ length: 8 }, (_, i) => i); // Reduced from 20 to 8
+
+    if (prefersReducedMotion) return null;
 
     return (
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
             {particles.map((particle) => (
                 <motion.div
                     key={particle}
-                    className="absolute w-1 h-1 bg-blue-400 rounded-full"
-                    initial={{
-                        x: Math.random() * window.innerWidth,
-                        y: Math.random() * window.innerHeight,
-                        opacity: 0
+                    className="absolute w-1 h-1 bg-blue-400 rounded-full will-change-transform"
+                    style={{
+                        translateZ: 0,
+                        left: `${Math.random() * 100}%`,
+                        top: `${Math.random() * 100}%`,
                     }}
+                    initial={{ y: 0, opacity: 0 }}
                     animate={{
-                        y: [null, -100],
+                        y: -100,
                         opacity: [0, 1, 0],
                     }}
                     transition={{
-                        duration: Math.random() * 3 + 2,
+                        duration: Math.random() * 2 + 2,
                         repeat: Infinity,
                         delay: Math.random() * 2,
                         ease: "linear"
-                    }}
-                    style={{
-                        left: `${Math.random() * 100}%`,
-                        top: `${Math.random() * 100}%`,
                     }}
                 />
             ))}
@@ -160,19 +160,190 @@ const FloatingParticles = () => {
     );
 };
 
+interface User {
+    name?: string | null;
+    email?: string | null;
+    has_paid_subscription?: boolean | null;
+    id?: string | null;
+}
+
+interface Organization {
+    id: string;
+    name: string;
+    subscription_tier: string;
+    created_at: string;
+    updated_at: string;
+}
+
+// Create a separate PricingCard component for better performance
+const PricingCard = memo(({ plan, loading, handleSubscribe, isAuthenticated, user }: {
+    plan: PricingPlan;
+    loading: string | null;
+    handleSubscribe: (plan: PricingPlan) => void;
+    isAuthenticated: boolean;
+    user: User | null;
+}) => {
+    return (
+        <motion.div
+            variants={{
+                hidden: { opacity: 0, y: 20 },
+                visible: { opacity: 1, y: 0 }
+            }}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+            className={`relative ${plan.recommended ? 'lg:-my-8 lg:h-[calc(100%+4rem)]' : 'h-full'}`}
+        >
+            {plan.recommended && (
+                <Badge className="absolute -top-4 left-1/2 transform -translate-x-1/2 z-50 bg-gradient-to-r from-blue-500 to-purple-600 text-white px-8 py-2 rounded-full text-sm font-medium shadow-lg">
+                    Most Popular
+                </Badge>
+            )}
+
+            <Card
+                className={`relative h-full bg-gradient-to-br from-gray-900 to-black border overflow-hidden backdrop-blur-xl flex flex-col ${plan.recommended
+                    ? 'border-blue-500/50 shadow-[0_0_30px_rgba(59,130,246,0.2)] mt-4'
+                    : 'border-gray-800 hover:border-gray-700'
+                    }`}
+            >
+                <CardHeader className="relative z-10 text-center pb-8 pt-8">
+                    <CardTitle className="text-2xl font-bold text-white mb-2">{plan.name}</CardTitle>
+                    <CardDescription className="text-gray-400 mb-6">{plan.description}</CardDescription>
+                    <div className="mb-6 flex items-baseline justify-center">
+                        <span className="text-5xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">${plan.price}</span>
+                        <span className="text-gray-400 text-lg ml-2">/month</span>
+                    </div>
+                </CardHeader>
+
+                <CardContent className="relative z-10 flex-grow flex flex-col">
+                    <ul className="space-y-4 mb-8 flex-grow">
+                        {plan.features.map((feature, featureIndex) => (
+                            <li
+                                key={featureIndex}
+                                className="flex items-center text-gray-300 group"
+                            >
+                                <CheckCircle className={`h-5 w-5 mr-3 ${plan.recommended ? 'text-blue-400' : 'text-blue-500'}`} />
+                                <span>{feature}</span>
+                            </li>
+                        ))}
+                    </ul>
+
+                    <div className="mt-auto">
+                        <Button
+                            className={`w-full py-6 text-lg font-semibold transition-colors rounded-xl ${plan.recommended
+                                ? 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg shadow-blue-500/25 border-0'
+                                : 'bg-gray-900 hover:bg-gray-800 text-white border border-gray-700 hover:border-gray-600'
+                                }`}
+                            onClick={() => handleSubscribe(plan)}
+                            disabled={loading === plan.id}
+                        >
+                            {loading === plan.id ? (
+                                <span className="flex items-center">Processing...</span>
+                            ) : (
+                                <span className="flex items-center justify-center gap-2">
+                                    {isAuthenticated && user?.has_paid_subscription ? 'Access Dashboard' : 'Get Started'}
+                                    <ArrowRight className="w-5 h-5" />
+                                </span>
+                            )}
+                        </Button>
+                    </div>
+                </CardContent>
+            </Card>
+        </motion.div>
+    );
+});
+
+PricingCard.displayName = 'PricingCard';
+
+// Create a separate CTA section component
+const CTASection = memo(() => {
+    const prefersReducedMotion = useReducedMotion();
+
+    return (
+        <motion.div
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+            className="max-w-5xl mx-auto text-center px-4 sm:px-6 lg:px-8 relative z-10"
+        >
+            <h2 className="text-4xl sm:text-6xl font-bold mb-8">
+                <span className="bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent block mt-16">
+                    Ready to transform
+                </span>
+                <span className="bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent block">
+                    your business?
+                </span>
+            </h2>
+
+            <p className="text-xl sm:text-2xl text-gray-400 mb-12 leading-relaxed max-w-4xl mx-auto">
+                Join thousands of businesses already using our AI assistant to
+                <span className="text-blue-400 font-semibold"> automate customer interactions </span>
+                and
+                <span className="text-purple-400 font-semibold"> boost revenue</span>.
+            </p>
+
+            <Button
+                size="lg"
+                className={`text-xl px-12 mb-16 py-6 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white border-0 transition-colors ${!prefersReducedMotion && 'transform hover:scale-105'
+                    }`}
+            >
+                Start Your Free Trial
+                <ArrowRight className="ml-3 h-6 w-6" />
+            </Button>
+        </motion.div>
+    );
+});
+
+CTASection.displayName = 'CTASection';
+
 export default function LandingPage() {
     const { user, isAuthenticated, setUser } = useUser();
     const navigate = useNavigate();
     const [loading, setLoading] = useState<string | null>(null);
+    const prefersReducedMotion = useReducedMotion();
 
     const { scrollY } = useScroll();
-    const y1 = useTransform(scrollY, [0, 300], [0, -50]);
-    const y2 = useTransform(scrollY, [0, 300], [0, -100]);
+    const y1 = useTransform(scrollY, [0, 300], prefersReducedMotion ? [0, 0] : [0, -25]);
+    const y2 = useTransform(scrollY, [0, 300], prefersReducedMotion ? [0, 0] : [0, -50]);
 
     const handleLogout = () => {
         localStorage.removeItem('user');
+        localStorage.removeItem('organization');
         setUser(null);
         navigate('/');
+    };
+
+    const createOrganization = async (plan: PricingPlan) => {
+        try {
+            if (!user?.id) {
+                throw new Error('User ID is required to create organization');
+            }
+
+            const response = await fetch('http://127.0.0.1:8000/organization/register', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    name: `${user?.name}'s Organization`,
+                    subscription_tier: plan.id,
+                    user_id: user.id  // Add user ID to the request
+                }),
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to create organization');
+            }
+
+            const organizationData: Organization = await response.json();
+            localStorage.setItem('organization', JSON.stringify(organizationData));
+            return organizationData;
+        } catch (error) {
+            console.error('Error creating organization:', error);
+            throw error;
+        }
     };
 
     const handleSubscribe = async (plan: PricingPlan) => {
@@ -186,7 +357,7 @@ export default function LandingPage() {
             return;
         }
 
-        if (user?.hasPaidSubscription) {
+        if (user?.has_paid_subscription) {
             navigate('/dashboard');
             return;
         }
@@ -201,9 +372,10 @@ export default function LandingPage() {
                 },
                 body: JSON.stringify({
                     priceId: plan.stripePriceId,
-                    successUrl: window.location.origin + '/dashboard',
+                    successUrl: window.location.origin + '/payment-success',
                     cancelUrl: window.location.origin + '/',
-                    customerEmail: user?.email || undefined
+                    customerEmail: user?.email || undefined,
+                    planId: plan.id // Pass the plan ID to use it after payment success
                 }),
             });
 
@@ -218,6 +390,9 @@ export default function LandingPage() {
                 throw new Error('No session ID received from server');
             }
 
+            // Create organization before redirecting to payment
+            await createOrganization(plan);
+
             const stripe = await stripePromise;
             if (stripe) {
                 const { error } = await stripe.redirectToCheckout({ sessionId });
@@ -228,531 +403,362 @@ export default function LandingPage() {
             }
         } catch (error) {
             console.error('Payment error:', error);
+            // Remove organization data if payment fails
+            localStorage.removeItem('organization');
         } finally {
             setLoading(null);
         }
     };
 
     return (
-        <Spotlight className="min-h-screen bg-black relative overflow-hidden">
-            {/* Floating particles */}
-            <FloatingParticles />
+        <Suspense fallback={<div className="min-h-screen bg-black" />}>
+            <div className="min-h-screen bg-black relative overflow-hidden">
+                {/* Optimized background with reduced layers */}
+                <div
+                    className="fixed inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-gray-900 via-black to-black opacity-50"
+                    style={{ willChange: 'opacity' }}
+                />
 
-            {/* Grid overlay */}            <div className="fixed inset-0 opacity-30" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.02'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")` }} />
+                {/* Floating particles */}
+                {!prefersReducedMotion && <FloatingParticles />}
 
-            {/* Navigation */}
-            <motion.nav
-                initial={{ y: -100, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] }}
-                className="fixed top-0 w-full z-50 border-b border-gray-800/50 bg-black/80 backdrop-blur-xl"
-            >
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex justify-between items-center h-16">
-                        <motion.div
-                            className="flex items-center space-x-2"
-                            whileHover={{ scale: 1.05 }}
-                        >
+                {/* Navigation */}
+                <motion.nav
+                    initial={{ y: -20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ duration: 0.5 }}
+                    className="fixed top-0 w-full z-50 border-b border-gray-800/50 bg-black/80 backdrop-blur-xl"
+                    style={{ translateZ: 0 }}
+                >
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div className="flex justify-between items-center h-16">
                             <motion.div
-                                variants={glowAnimation}
-                                animate="animate"
-                                className="relative"
+                                className="flex items-center space-x-2"
+                                whileHover={{ scale: 1.05 }}
                             >
-                                <Bot className="h-6 w-6 sm:h-8 sm:w-8 text-blue-400" />
-                                <div className="absolute inset-0 bg-blue-400 blur-xl opacity-30" />
+                                <motion.div
+                                    variants={glowAnimation}
+                                    animate="animate"
+                                    className="relative"
+                                >
+                                    <Bot className="h-6 w-6 sm:h-8 sm:w-8 text-blue-400" />
+                                    <div className="absolute inset-0 bg-blue-400 blur-xl opacity-30" />
+                                </motion.div>
+                                <span className="text-lg sm:text-xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+                                    AI Assistant
+                                </span>
                             </motion.div>
-                            <span className="text-lg sm:text-xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
-                                AI Assistant
-                            </span>
-                        </motion.div>
-                        <div className="flex items-center space-x-4">
-                            {isAuthenticated ? (
-                                <div className="flex items-center space-x-4">
-                                    <div className="text-gray-300">
-                                        Welcome, {user?.name}
-                                    </div>
-                                    <div className="flex space-x-2">
-                                        {user?.hasPaidSubscription && (
+                            <div className="flex items-center space-x-4">
+                                {isAuthenticated ? (
+                                    <div className="flex items-center space-x-4">
+                                        <div className="text-gray-300">
+                                            Welcome, {user?.name}
+                                        </div>
+                                        <div className="flex space-x-2">
+                                            {user?.has_paid_subscription && (
+                                                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                                                    <Button
+                                                        onClick={() => navigate('/dashboard')}
+                                                        className="text-sm sm:text-base bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white border-0"
+                                                    >
+                                                        Dashboard
+                                                    </Button>
+                                                </motion.div>
+                                            )}
                                             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                                                 <Button
-                                                    onClick={() => navigate('/dashboard')}
-                                                    className="text-sm sm:text-base bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white border-0"
+                                                    onClick={handleLogout}
+                                                    variant="ghost"
+                                                    className="text-sm sm:text-base text-gray-300 hover:text-white hover:bg-gray-800"
                                                 >
-                                                    Dashboard
+                                                    Log Out
                                                 </Button>
                                             </motion.div>
-                                        )}
-                                        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                                            <Button
-                                                onClick={handleLogout}
-                                                variant="ghost"
-                                                className="text-sm sm:text-base text-gray-300 hover:text-white hover:bg-gray-800"
-                                            >
-                                                Log Out
-                                            </Button>
-                                        </motion.div>
+                                        </div>
                                     </div>
-                                </div>
-                            ) : (
-                                <>
-                                    <Link to="/sign-in">
-                                        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                                            <Button variant="ghost" className="text-sm sm:text-base text-gray-300 hover:text-white hover:bg-gray-800">
-                                                Sign In
-                                            </Button>
-                                        </motion.div>
-                                    </Link>
-                                    <Link to="/sign-up">
-                                        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                                            <Button className="text-sm sm:text-base bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white border-0">
-                                                Get Started
-                                            </Button>
-                                        </motion.div>
-                                    </Link>
-                                </>
-                            )}
+                                ) : (
+                                    <>
+                                        <Link to="/sign-in">
+                                            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                                                <Button variant="ghost" className="text-sm sm:text-base text-gray-300 hover:text-white hover:bg-gray-800">
+                                                    Sign In
+                                                </Button>
+                                            </motion.div>
+                                        </Link>
+                                        <Link to="/sign-up">
+                                            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                                                <Button className="text-sm sm:text-base bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white border-0">
+                                                    Get Started
+                                                </Button>
+                                            </motion.div>
+                                        </Link>
+                                    </>
+                                )}
+                            </div>
                         </div>
                     </div>
-                </div>
-            </motion.nav>
+                </motion.nav>
 
-            {/* Hero Section - Full 3D Background */}            <section className="relative">                <Hero3DScene />                                {/* Content Overlay */}                <div className="absolute inset-0 z-30 flex items-center justify-center">                    <motion.div style={{ y: y1 }} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" initial="initial" animate="animate" variants={staggerContainer}                    >                        <motion.div variants={fadeInUp} className="text-center relative z-10">                            {/* Sparkle decorations */}                            <motion.div variants={sparkleVariants} animate="animate" className="absolute -top-10 -left-10"                            >                                <Sparkles className="h-6 w-6 text-blue-400" />                            </motion.div>                            <motion.div variants={sparkleVariants} animate="animate" className="absolute -top-5 right-20"                            >                                <Star className="h-4 w-4 text-purple-400" />                            </motion.div>                            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.2, duration: 0.8 }}                            >                                <Badge className="mb-8 bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20 text-blue-300 hover:from-blue-500/20 hover:to-purple-500/20 transition-all duration-300">                                    <Sparkles className="w-4 h-4 mr-2" />                                    Powered by Advanced AI                                </Badge>                            </motion.div>                            <motion.h1 className="text-5xl sm:text-7xl lg:text-8xl font-bold mb-8 leading-tight" variants={fadeInUp}                            >                                <span className="bg-gradient-to-r from-white via-gray-100 to-gray-300 bg-clip-text text-transparent">                                    Transform Your                                </span>                                <br />                                <motion.span className="bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 bg-clip-text text-transparent" animate={{ backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'], }} transition={{ duration: 5, repeat: Infinity, ease: "linear" }} style={{ backgroundSize: '200% 200%' }}                                >                                    Business                                </motion.span>                            </motion.h1>                            <motion.p className="text-xl sm:text-2xl text-gray-300 max-w-4xl mx-auto mb-12 leading-relaxed" variants={fadeInUp}                            >                                Revolutionize customer engagement with our{' '}                                <span className="text-blue-400 font-semibold">AI-powered assistant</span>.                                Automate support, capture leads, and boost sales effortlessly.                            </motion.p>                            <motion.div className="flex flex-col sm:flex-row gap-6 justify-center items-center" variants={staggerContainer}                            >                                <motion.div variants={scaleIn} whileHover={{ scale: 1.05, boxShadow: "0 20px 40px rgba(59, 130, 246, 0.3)" }} whileTap={{ scale: 0.95 }}                                >                                    <Button size="lg" className="text-lg px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white border-0 shadow-2xl" onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })}                                    >                                        Start Free Trial                                        <motion.div animate={{ x: [0, 5, 0] }} transition={{ duration: 1.5, repeat: Infinity }}                                        >                                            <ArrowRight className="ml-2 h-5 w-5" />                                        </motion.div>                                    </Button>                                </motion.div>                                <motion.div variants={scaleIn} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}                                >                                    <Button size="lg" variant="outline" className="text-lg px-8 py-4 border-gray-600 bg-gray-800 text-gray-300 hover:bg-gray-800 hover:text-white hover:border-gray-500"                                    >                                        Watch Demo                                    </Button>                                </motion.div>                            </motion.div>                        </motion.div>                    </motion.div>                </div>            </section>
+                {/* Hero Section with optimized animations */}
+                <section className="relative">
+                    <Suspense fallback={null}>
+                        <Hero3DScene />
+                    </Suspense>
 
-            {/* Features Section */}
-            <Spotlight className="relative pt-32 bg-black" fill="rgba(59, 130, 246, 0.08)">
-                <motion.div style={{ y: y2 }}>
-                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="absolute inset-0 z-30 flex items-center justify-center">
                         <motion.div
-                            initial="initial"
-                            whileInView="animate"
-                            viewport={{ once: true, amount: 0.3 }}
-                            variants={fadeInUp}
-                            className="text-center mb-20"
+                            style={{ y: y1, translateZ: 0 }}
+                            className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"
                         >
-                            <motion.h2
-                                className="text-4xl sm:text-6xl font-bold mb-6"
-                                variants={fadeInUp}
-                            >
-                                <span className="bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
-                                    Everything you need to
-                                </span>
-                                <br />
-                                <span className="bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
-                                    succeed
-                                </span>
-                            </motion.h2>
-                            <motion.p
-                                className="text-xl text-gray-400 max-w-3xl mx-auto"
-                                variants={fadeInUp}
-                            >
-                                Our AI assistant comes packed with powerful features designed to automate and accelerate your business growth.
-                            </motion.p>
-                        </motion.div>
-
-                        <motion.div
-                            variants={staggerContainer}
-                            initial="initial"
-                            whileInView="animate"
-                            viewport={{ once: true, amount: 0.2 }}
-                            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
-                        >
-                            {[
-                                {
-                                    icon: MessageSquare,
-                                    title: "Smart Conversations",
-                                    description: "Natural language processing for human-like interactions with your customers.",
-                                    color: "from-blue-500 to-cyan-500"
-                                },
-                                {
-                                    icon: Zap,
-                                    title: "Instant Responses",
-                                    description: "24/7 availability with lightning-fast response times to never miss a customer.",
-                                    color: "from-yellow-500 to-orange-500"
-                                },
-                                {
-                                    icon: BarChart3,
-                                    title: "Advanced Analytics",
-                                    description: "Detailed insights into customer interactions and business performance.",
-                                    color: "from-green-500 to-emerald-500"
-                                },
-                                {
-                                    icon: Users,
-                                    title: "Lead Management",
-                                    description: "Automatically capture and qualify leads from your website visitors.",
-                                    color: "from-purple-500 to-pink-500"
-                                },
-                                {
-                                    icon: Settings,
-                                    title: "Easy Integration",
-                                    description: "Seamlessly integrate with your existing tools and workflows.",
-                                    color: "from-indigo-500 to-blue-500"
-                                },
-                                {
-                                    icon: Shield,
-                                    title: "Enterprise Security",
-                                    description: "Bank-level security with end-to-end encryption for all communications.",
-                                    color: "from-red-500 to-pink-500"
-                                }
-                            ].map((feature, index) => (
-                                <motion.div
-                                    key={index}
-                                    variants={scaleIn}
-                                    whileHover={{
-                                        scale: 1.05,
-                                        rotateY: 5,
-                                        boxShadow: "0 25px 50px rgba(0, 0, 0, 0.5)"
-                                    }}
-                                    className="group"
-                                >
-                                    <Card className="relative h-full bg-gradient-to-br from-gray-900 to-black border border-gray-800 hover:border-gray-700 transition-all duration-500 overflow-hidden">
-                                        <div className={`absolute inset-0 bg-gradient-to-br ${feature.color} opacity-0 group-hover:opacity-10 transition-opacity duration-500`} />
-                                        <CardHeader className="relative z-10">
-                                            <motion.div
-                                                whileHover={{ rotate: 360, scale: 1.1 }}
-                                                transition={{ duration: 0.6 }}
-                                                className={`h-14 w-14 rounded-lg bg-gradient-to-br ${feature.color} p-3 mb-4 mx-auto`}
-                                            >
-                                                <feature.icon className="h-8 w-8 text-white" />
-                                            </motion.div>
-                                            <CardTitle className="text-xl text-white text-center">{feature.title}</CardTitle>
-                                        </CardHeader>
-                                        <CardContent className="relative z-10">
-                                            <p className="text-gray-400 text-center leading-relaxed">{feature.description}</p>
-                                        </CardContent>
-                                    </Card>
+                            <motion.div variants={fadeInUp} className="text-center relative z-10">
+                                <motion.div variants={sparkleVariants} animate="animate" className="absolute -top-10 -left-10">
+                                    <Sparkles className="h-6 w-6 text-blue-400" />
                                 </motion.div>
-                            ))}
+                                <motion.div variants={sparkleVariants} animate="animate" className="absolute -top-5 right-20">
+                                    <Star className="h-4 w-4 text-purple-400" />
+                                </motion.div>
+                                <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.2, duration: 0.8 }}>
+                                    <Badge className="mb-8 bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20 text-blue-300 hover:from-blue-500/20 hover:to-purple-500/20 transition-all duration-300">
+                                        <Sparkles className="w-4 h-4 mr-2" />
+                                        Powered by Advanced AI
+                                    </Badge>
+                                </motion.div>
+                                <motion.h1 className="text-5xl sm:text-7xl lg:text-8xl font-bold mb-8 leading-tight" variants={fadeInUp}>
+                                    <span className="bg-gradient-to-r from-white via-gray-100 to-gray-300 bg-clip-text text-transparent">
+                                        Transform Your
+                                    </span>
+                                    <br />
+                                    <motion.span className="bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 bg-clip-text text-transparent" animate={{ backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'], }} transition={{ duration: 5, repeat: Infinity, ease: "linear" }} style={{ backgroundSize: '200% 200%' }}>
+                                        Business
+                                    </motion.span>
+                                </motion.h1>
+                                <motion.p className="text-xl sm:text-2xl text-gray-300 max-w-4xl mx-auto mb-12 leading-relaxed" variants={fadeInUp}>
+                                    Revolutionize customer engagement with our{' '}
+                                    <span className="text-blue-400 font-semibold">AI-powered assistant</span>.
+                                    Automate support, capture leads, and boost sales effortlessly.
+                                </motion.p>
+                                <motion.div className="flex flex-col sm:flex-row gap-6 justify-center items-center" variants={staggerContainer}>
+                                    <motion.div variants={scaleIn} whileHover={{ scale: 1.05, boxShadow: "0 20px 40px rgba(59, 130, 246, 0.3)" }} whileTap={{ scale: 0.95 }}>
+                                        <Button size="lg" className="text-lg px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white border-0 shadow-2xl" onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })}>
+                                            Start Free Trial
+                                            <motion.div animate={{ x: [0, 5, 0] }} transition={{ duration: 1.5, repeat: Infinity }}>
+                                                <ArrowRight className="ml-2 h-5 w-5" />
+                                            </motion.div>
+                                        </Button>
+                                    </motion.div>
+                                    <motion.div variants={scaleIn} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                                        <Button size="lg" variant="outline" className="text-lg px-8 py-4 border-gray-600 bg-gray-800 text-gray-300 hover:bg-gray-800 hover:text-white hover:border-gray-500">
+                                            Watch Demo
+                                        </Button>
+                                    </motion.div>
+                                </motion.div>
+                            </motion.div>
                         </motion.div>
                     </div>
-                </motion.div>
-            </Spotlight>
+                </section>
 
-            {/* Pricing Section */}
-            <Spotlight className="relative pb-32 bg-black overflow-hidden" fill="rgba(168, 85, 247, 0.08)">
-                {/* Background Effects */}
-                <div className="absolute inset-0">
-                    <motion.div
-                        className="absolute inset-0 top-20 bottom-20 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-gray-900 via-black to-black"
-                        initial={{ opacity: 0.5 }}
-                        animate={{ opacity: [0.5, 0.7, 0.5] }}
-                        transition={{
-                            duration: 5,
-                            repeat: Infinity,
-                            ease: "easeInOut"
-                        }}
-                    />
-                    <div className="absolute inset-0 top-20 bottom-20 bg-[linear-gradient(to_right,#000000,#1a1a1a,#000000)] opacity-40" />
-                    <div className="absolute w-full h-full top-20 bottom-20 bg-[url('/noise.png')] opacity-[0.03] mix-blend-overlay" />
-                </div>
-
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-                    <motion.div
-                        initial="initial"
-                        whileInView="animate"
-                        viewport={{ once: true, amount: 0.3 }}
-                        variants={fadeInUp}
-                        className="text-center mb-20"
-                    >
-                        {/* <Badge
-                            className="mb-8 bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20 text-blue-400 hover:from-blue-500/20 hover:to-purple-500/20 transition-all duration-300"
+                {/* Features Section with optimized animations */}
+                <Suspense fallback={null}>
+                    <Spotlight className="relative pt-32 bg-black" fill="rgba(59, 130, 246, 0.08)">
+                        <motion.div
+                            style={{ y: y2, translateZ: 0 }}
+                            className="will-change-transform"
                         >
-                            <Sparkles className="w-4 h-4 mr-2" />
-                            Simple, transparent pricing
-                        </Badge> */}
-                        <motion.h2
-                            className="text-4xl sm:text-6xl mt-10 font-bold mb-6"
-                            variants={fadeInUp}
-                        >
-                            <span className="bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
-                                Choose your
-                            </span>
-                            <br />
-                            <span className="bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
-                                perfect plan
-                            </span>
-                        </motion.h2>
-                        <motion.p
-                            className="text-xl text-gray-400 max-w-3xl mx-auto"
-                            variants={fadeInUp}
-                        >
-                            Start free, scale as you grow. No hidden fees, cancel anytime.
-                        </motion.p>
-                    </motion.div>
-
-                    <motion.div
-                        variants={staggerContainer}
-                        initial="initial"
-                        whileInView="animate"
-                        viewport={{ once: true, amount: 0.2 }}
-                        className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-6xl mx-auto relative pt-6"
-                    >
-                        {/* Glow Effect for Popular Plan */}
-                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-blue-500/20 rounded-full blur-[120px] opacity-30 pointer-events-none" />
-
-                        {pricingPlans.map((plan) => (
-                            <motion.div
-                                key={plan.id}
-                                variants={scaleIn}
-                                whileHover={{
-                                    scale: plan.recommended ? 1.02 : 1.05,
-                                    y: -10,
-                                    transition: { duration: 0.3 }
-                                }}
-                                className={`relative ${plan.recommended ? 'lg:-my-8 lg:h-[calc(100%+4rem)]' : 'h-full'}`}
-                            >
-                                {plan.recommended && (
-                                    <motion.div
-                                        initial={{ y: -20 }}
-                                        animate={{ y: 0 }}
-                                        className="absolute top- left-1/2 transform -translate-x-1/2 z-50"
-                                    >
-                                        <Badge className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-8 py-2 rounded-full text-sm font-medium shadow-lg shadow-blue-500/20">
-                                            Most Popular
-                                        </Badge>
-                                    </motion.div>
-                                )}
-
-                                <Card
-                                    className={`relative h-full bg-gradient-to-br from-gray-900 to-black border overflow-hidden backdrop-blur-xl flex flex-col ${plan.recommended
-                                        ? 'border-blue-500/50 shadow-[0_0_50px_rgba(59,130,246,0.3)] mt-4'
-                                        : 'border-gray-800 hover:border-gray-700'
-                                        } transition-all duration-500`}
+                            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                                <motion.div
+                                    initial="initial"
+                                    whileInView="animate"
+                                    viewport={{ once: true, amount: 0.3 }}
+                                    variants={fadeInUp}
+                                    className="text-center mb-20"
                                 >
-                                    {plan.recommended && (
-                                        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/[0.07] to-purple-500/[0.07]" />
-                                    )}
+                                    <motion.h2
+                                        className="text-4xl sm:text-6xl font-bold mb-6"
+                                        variants={fadeInUp}
+                                    >
+                                        <span className="bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+                                            Everything you need to
+                                        </span>
+                                        <br />
+                                        <span className="bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
+                                            succeed
+                                        </span>
+                                    </motion.h2>
+                                    <motion.p
+                                        className="text-xl text-gray-400 max-w-3xl mx-auto"
+                                        variants={fadeInUp}
+                                    >
+                                        Our AI assistant comes packed with powerful features designed to automate and accelerate your business growth.
+                                    </motion.p>
+                                </motion.div>
 
-                                    <CardHeader className={`relative z-10 text-center pb-8 ${plan.recommended ? 'pt-8' : 'pt-8'}`}>
-                                        <CardTitle className="text-2xl font-bold text-white mb-2">{plan.name}</CardTitle>
-                                        <CardDescription className="text-gray-400 mb-6">{plan.description}</CardDescription>
+                                <motion.div
+                                    variants={staggerContainer}
+                                    initial="initial"
+                                    whileInView="animate"
+                                    viewport={{ once: true, amount: 0.2 }}
+                                    className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
+                                >
+                                    {[
+                                        {
+                                            icon: MessageSquare,
+                                            title: "Smart Conversations",
+                                            description: "Natural language processing for human-like interactions with your customers.",
+                                            color: "from-blue-500 to-cyan-500"
+                                        },
+                                        {
+                                            icon: Zap,
+                                            title: "Instant Responses",
+                                            description: "24/7 availability with lightning-fast response times to never miss a customer.",
+                                            color: "from-yellow-500 to-orange-500"
+                                        },
+                                        {
+                                            icon: BarChart3,
+                                            title: "Advanced Analytics",
+                                            description: "Detailed insights into customer interactions and business performance.",
+                                            color: "from-green-500 to-emerald-500"
+                                        },
+                                        {
+                                            icon: Users,
+                                            title: "Lead Management",
+                                            description: "Automatically capture and qualify leads from your website visitors.",
+                                            color: "from-purple-500 to-pink-500"
+                                        },
+                                        {
+                                            icon: Settings,
+                                            title: "Easy Integration",
+                                            description: "Seamlessly integrate with your existing tools and workflows.",
+                                            color: "from-indigo-500 to-blue-500"
+                                        },
+                                        {
+                                            icon: Shield,
+                                            title: "Enterprise Security",
+                                            description: "Bank-level security with end-to-end encryption for all communications.",
+                                            color: "from-red-500 to-pink-500"
+                                        }
+                                    ].map((feature, index) => (
                                         <motion.div
-                                            className="mb-6 flex items-baseline justify-center"
-                                            whileHover={{ scale: 1.05 }}
+                                            key={index}
+                                            variants={scaleIn}
+                                            whileHover={{
+                                                scale: 1.05,
+                                                rotateY: 5,
+                                                boxShadow: "0 25px 50px rgba(0, 0, 0, 0.5)"
+                                            }}
+                                            className="group"
                                         >
-                                            <span className="text-5xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">${plan.price}</span>
-                                            <span className="text-gray-400 text-lg ml-2">/month</span>
-                                        </motion.div>
-                                    </CardHeader>
-
-                                    <CardContent className="relative z-10 flex-grow flex flex-col">
-                                        <ul className="space-y-4 mb-8 flex-grow">
-                                            {plan.features.map((feature, featureIndex) => (
-                                                <motion.li
-                                                    key={featureIndex}
-                                                    className="flex items-center text-gray-300 group"
-                                                    initial={{ opacity: 0, x: -20 }}
-                                                    whileInView={{ opacity: 1, x: 0 }}
-                                                    transition={{ delay: featureIndex * 0.1 }}
-                                                >
+                                            <Card className="relative h-full bg-gradient-to-br from-gray-900 to-black border border-gray-800 hover:border-gray-700 transition-all duration-500 overflow-hidden">
+                                                <div className={`absolute inset-0 bg-gradient-to-br ${feature.color} opacity-0 group-hover:opacity-10 transition-opacity duration-500`} />
+                                                <CardHeader className="relative z-10">
                                                     <motion.div
-                                                        whileHover={{ scale: 1.2, rotate: 360 }}
-                                                        transition={{ duration: 0.3 }}
-                                                        className="mr-3 flex-shrink-0"
+                                                        whileHover={{ rotate: 360, scale: 1.1 }}
+                                                        transition={{ duration: 0.6 }}
+                                                        className={`h-14 w-14 rounded-lg bg-gradient-to-br ${feature.color} p-3 mb-4 mx-auto`}
                                                     >
-                                                        <CheckCircle className={`h-5 w-5 ${plan.recommended ? 'text-blue-400' : 'text-blue-500'} group-hover:text-blue-400 transition-colors`} />
+                                                        <feature.icon className="h-8 w-8 text-white" />
                                                     </motion.div>
-                                                    <span className="group-hover:text-white transition-colors">{feature}</span>
-                                                </motion.li>
-                                            ))}
-                                        </ul>
-
-                                        <motion.div
-                                            whileHover={{ scale: 1.02 }}
-                                            whileTap={{ scale: 0.98 }}
-                                            className="mt-auto"
-                                        >
-                                            <Button
-                                                className={`w-full py-6 text-lg font-semibold transition-all duration-300 rounded-xl ${plan.recommended
-                                                    ? 'bg-gradient-to-r from-blue-600 via-blue-500 to-purple-600 hover:from-blue-700 hover:via-blue-600 hover:to-purple-700 text-white shadow-lg shadow-blue-500/25 border-0'
-                                                    : 'bg-gray-900 hover:bg-gray-800 text-white border border-gray-700 hover:border-gray-600'
-                                                    }`}
-                                                onClick={() => handleSubscribe(plan)}
-                                                disabled={loading === plan.id}
-                                            >
-                                                <AnimatePresence mode="wait">
-                                                    {loading === plan.id ? (
-                                                        <motion.span
-                                                            initial={{ opacity: 0 }}
-                                                            animate={{ opacity: 1 }}
-                                                            exit={{ opacity: 0 }}
-                                                            className="flex items-center"
-                                                        >
-                                                            Processing...
-                                                        </motion.span>
-                                                    ) : (
-                                                        <motion.span
-                                                            initial={{ opacity: 0 }}
-                                                            animate={{ opacity: 1 }}
-                                                            exit={{ opacity: 0 }}
-                                                            className="flex items-center justify-center gap-2"
-                                                        >
-                                                            {isAuthenticated && user?.hasPaidSubscription ? 'Access Dashboard' : 'Get Started'}
-                                                            <ArrowRight className="w-5 h-5" />
-                                                        </motion.span>
-                                                    )}
-                                                </AnimatePresence>
-                                            </Button>
+                                                    <CardTitle className="text-xl text-white text-center">{feature.title}</CardTitle>
+                                                </CardHeader>
+                                                <CardContent className="relative z-10">
+                                                    <p className="text-gray-400 text-center leading-relaxed">{feature.description}</p>
+                                                </CardContent>
+                                            </Card>
                                         </motion.div>
-                                    </CardContent>
-                                </Card>
-                            </motion.div>
-                        ))}
-                    </motion.div>
-                </div>
-            </Spotlight>
-
-            {/* CTA Section */}
-            <Spotlight className="relative       bg-black overflow-hidden" fill="rgba(59, 130, 246, 0.1)">
-                <div className="absolute inset-0 ">
-                    <motion.div
-                        className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-gray-900 via-black to-black"
-                        initial={{ opacity: 0.5 }}
-                        animate={{ opacity: [0.5, 0.7, 0.5] }}
-                        transition={{
-                            duration: 5,
-                            repeat: Infinity,
-                            ease: "easeInOut"
-                        }}
-                    />
-                    <div className="absolute inset-0 bg-[linear-gradient(to_right,#000000,#1a1a1a,#000000)] opacity-40" />
-                    <div className="absolute w-full h-full bg-[url('/noise.png')] opacity-[0.03] mix-blend-overlay" />
-                </div>
-
-                <motion.div
-                    initial={{ scale: 0.9, opacity: 0 }}
-                    whileInView={{ scale: 1, opacity: 1 }}
-                    transition={{ duration: 0.8 }}
-                    className="max-w-5xl mx-auto text-center px-4 sm:px-6 lg:px-8 relative z-10"
-                >
-                    <motion.h2
-                        className="text-4xl sm:text-6xl font-bold mb-8"
-                        whileHover={{ scale: 1.02 }}
-                    >
-                        <motion.span
-                            className="bg-gradient-to-r from-white via-gray-200 to-gray-400 mt-16 bg-clip-text text-transparent inline-block"
-                            animate={{
-                                backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'],
-                            }}
-                            transition={{
-                                duration: 5,
-                                repeat: Infinity,
-                                ease: "linear"
-                            }}
-                            style={{
-                                backgroundSize: '200% auto'
-                            }}
-                        >
-                            Ready to transform
-                        </motion.span>
-                        <br />
-                        <motion.span
-                            className="bg-gradient-to-r from-blue-500 via-purple-500 to-blue-500 bg-clip-text text-transparent inline-block"
-                            animate={{
-                                backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'],
-                            }}
-                            transition={{
-                                duration: 5,
-                                repeat: Infinity,
-                                ease: "linear"
-                            }}
-                            style={{
-                                backgroundSize: '200% auto'
-                            }}
-                        >
-                            your business?
-                        </motion.span>
-                    </motion.h2>
-
-                    <motion.p
-                        initial={{ opacity: 0, y: 30 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.2, duration: 0.8 }}
-                        className="text-xl sm:text-2xl text-gray-400 mb-12 leading-relaxed max-w-4xl mx-auto font-light"
-                    >
-                        Join thousands of businesses already using our AI assistant to
-                        <motion.span
-                            className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400 font-normal"
-                            animate={{
-                                opacity: [0.8, 1, 0.8],
-                            }}
-                            transition={{
-                                duration: 2,
-                                repeat: Infinity,
-                                ease: "easeInOut"
-                            }}
-                        > automate customer interactions </motion.span>
-                        and
-                        <motion.span
-                            className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 font-normal"
-                            animate={{
-                                opacity: [0.8, 1, 0.8],
-                            }}
-                            transition={{
-                                duration: 2,
-                                repeat: Infinity,
-                                ease: "easeInOut",
-                                delay: 1
-                            }}
-                        > boost revenue</motion.span>.
-                    </motion.p>
-
-                    <motion.div
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        className="inline-block"
-                    >
-                        <Button
-                            size="lg"
-                            className="text-xl px-12 mb-16 py-6 bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 hover:from-blue-700 hover:via-purple-700 hover:to-blue-700 text-white border-0 transition-all duration-300"
-                        >
-                            Start Your Free Trial
-                            <motion.div
-                                animate={{ x: [0, 5, 0] }}
-                                transition={{ duration: 1.5, repeat: Infinity }}
-                            >
-                                <ArrowRight className="ml-3 h-6 w-6" />
-                            </motion.div>
-                        </Button>
-                    </motion.div>
-                </motion.div>
-            </Spotlight>
-
-            {/* Footer */}
-            <Spotlight className="relative bg-black border-t border-gray-800 py-16" fill="rgba(59, 130, 246, 0.05)">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.8 }}
-                        className="flex flex-col md:flex-row justify-between items-center"
-                    >
-                        <motion.div
-                            className="flex items-center space-x-3 mb-8 md:mb-0"
-                            whileHover={{ scale: 1.05 }}
-                        >
-                            <motion.div
-                                variants={glowAnimation}
-                                animate="animate"
-                                className="relative"
-                            >
-                                <Bot className="h-8 w-8 text-blue-400" />
-                                <div className="absolute inset-0 bg-blue-400 blur-xl opacity-30" />
-                            </motion.div>
-                            <span className="text-2xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
-                                AI Assistant
-                            </span>
+                                    ))}
+                                </motion.div>
+                            </div>
                         </motion.div>
+                    </Spotlight>
+                </Suspense>
+
+                {/* Optimized Pricing Section */}
+                <section className="relative pb-32 bg-black overflow-hidden">
+                    <div className="absolute inset-0 bg-gradient-to-b from-gray-900 via-black to-black opacity-50" />
+
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
                         <motion.div
-                            className="text-gray-400 text-lg"
-                            initial={{ opacity: 0 }}
-                            whileInView={{ opacity: 1 }}
-                            transition={{ delay: 0.2 }}
+                            initial={{ opacity: 0, y: 20 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true }}
+                            transition={{ duration: 0.5 }}
+                            className="text-center mb-20"
                         >
-                            © 2024 AI Assistant. All rights reserved.
+                            <h2 className="text-4xl sm:text-6xl mt-10 font-bold mb-6">
+                                <span className="bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent block">
+                                    Choose your
+                                </span>
+                                <span className="bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent block">
+                                    perfect plan
+                                </span>
+                            </h2>
+                            <p className="text-xl text-gray-400 max-w-3xl mx-auto">
+                                Start free, scale as you grow. No hidden fees, cancel anytime.
+                            </p>
                         </motion.div>
-                    </motion.div>
-                </div>
-            </Spotlight>
-        </Spotlight>
+
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-6xl mx-auto relative pt-6">
+                            {/* Simple glow effect */}
+                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-blue-500/20 rounded-full blur-[120px] opacity-20" />
+
+                            {pricingPlans.map((plan) => (
+                                <PricingCard
+                                    key={plan.id}
+                                    plan={plan}
+                                    loading={loading}
+                                    handleSubscribe={handleSubscribe}
+                                    isAuthenticated={isAuthenticated}
+                                    user={user}
+                                />
+                            ))}
+                        </div>
+                    </div>
+                </section>
+
+                {/* Optimized CTA Section */}
+                <section className="relative bg-black overflow-hidden">
+                    <div className="absolute inset-0 bg-gradient-to-b from-black to-gray-900 opacity-50" />
+                    <CTASection />
+                </section>
+
+                {/* Footer */}
+                <Suspense fallback={null}>
+                    <Spotlight className="relative bg-black border-t border-gray-800 py-16" fill="rgba(59, 130, 246, 0.05)">
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                whileInView={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.8 }}
+                                className="flex flex-col md:flex-row justify-between items-center"
+                            >
+                                <motion.div
+                                    className="flex items-center space-x-3 mb-8 md:mb-0"
+                                    whileHover={{ scale: 1.05 }}
+                                >
+                                    <motion.div
+                                        variants={glowAnimation}
+                                        animate="animate"
+                                        className="relative"
+                                    >
+                                        <Bot className="h-8 w-8 text-blue-400" />
+                                        <div className="absolute inset-0 bg-blue-400 blur-xl opacity-30" />
+                                    </motion.div>
+                                    <span className="text-2xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+                                        AI Assistant
+                                    </span>
+                                </motion.div>
+                                <motion.div
+                                    className="text-gray-400 text-lg"
+                                    initial={{ opacity: 0 }}
+                                    whileInView={{ opacity: 1 }}
+                                    transition={{ delay: 0.2 }}
+                                >
+                                    © 2024 AI Assistant. All rights reserved.
+                                </motion.div>
+                            </motion.div>
+                        </div>
+                    </Spotlight>
+                </Suspense>
+            </div>
+        </Suspense>
     );
 }

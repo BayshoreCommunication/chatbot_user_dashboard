@@ -1,16 +1,16 @@
 import {
   IconApps,
   IconBoxSeam,
-  IconHexagonNumber1,
-  IconHexagonNumber2,
-  IconHexagonNumber3,
-  IconHexagonNumber4,
-  IconHexagonNumber5,
+  // IconHexagonNumber1,
+  // IconHexagonNumber2,
+  // IconHexagonNumber3,
+  // IconHexagonNumber4,
+  // IconHexagonNumber5,
   IconLayoutDashboard,
   IconMessages,
   IconRouteAltLeft,
   IconTruck,
-  IconUserShield,
+  // IconUserShield,
 } from '@tabler/icons-react'
 
 export interface NavLink {
@@ -34,53 +34,53 @@ export const sidelinks: SideLink[] = [
   {
     title: 'Chats',
     label: '9',
-    href: '/chats',
+    href: '/dashboard/chats',
     icon: <IconMessages size={18} />,
   },
   {
     title: 'Apps',
     label: '',
-    href: '/apps',
+    href: '/dashboard/apps',
     icon: <IconApps size={18} />,
   },
-  {
-    title: 'Authentication',
-    label: '',
-    href: '',
-    icon: <IconUserShield size={18} />,
-    sub: [
-      {
-        title: 'Sign In (email + password)',
-        label: '',
-        href: '/sign-in',
-        icon: <IconHexagonNumber1 size={18} />,
-      },
-      {
-        title: 'Sign In (Box)',
-        label: '',
-        href: '/sign-in-2',
-        icon: <IconHexagonNumber2 size={18} />,
-      },
-      {
-        title: 'Sign Up',
-        label: '',
-        href: '/sign-up',
-        icon: <IconHexagonNumber3 size={18} />,
-      },
-      {
-        title: 'Forgot Password',
-        label: '',
-        href: '/forgot-password',
-        icon: <IconHexagonNumber4 size={18} />,
-      },
-      {
-        title: 'OTP',
-        label: '',
-        href: '/otp',
-        icon: <IconHexagonNumber5 size={18} />,
-      },
-    ],
-  },
+  // {
+  //   title: 'Authentication',
+  //   label: '',
+  //   href: '',
+  //   icon: <IconUserShield size={18} />,
+  //   sub: [
+  //     {
+  //       title: 'Sign In (email + password)',
+  //       label: '',
+  //       href: '/sign-in',
+  //       icon: <IconHexagonNumber1 size={18} />,
+  //     },
+  //     {
+  //       title: 'Sign In (Box)',
+  //       label: '',
+  //       href: '/sign-in-2',
+  //       icon: <IconHexagonNumber2 size={18} />,
+  //     },
+  //     {
+  //       title: 'Sign Up',
+  //       label: '',
+  //       href: '/sign-up',
+  //       icon: <IconHexagonNumber3 size={18} />,
+  //     },
+  //     {
+  //       title: 'Forgot Password',
+  //       label: '',
+  //       href: '/forgot-password',
+  //       icon: <IconHexagonNumber4 size={18} />,
+  //     },
+  //     {
+  //       title: 'OTP',
+  //       label: '',
+  //       href: '/otp',
+  //       icon: <IconHexagonNumber5 size={18} />,
+  //     },
+  //   ],
+  // },
   // {
   //   title: 'Users',
   //   label: '',
@@ -90,24 +90,24 @@ export const sidelinks: SideLink[] = [
   {
     title: 'Settings',
     label: '3',
-    href: '/requests',
+    href: '/dashboard/requests',
     icon: <IconRouteAltLeft size={18} />,
     sub: [
       {
         title: 'User Profile',
-        href: '/user-profile',
+        href: '/dashboard/user-profile',
         icon: <IconTruck size={18} />,
       },
       {
         title: 'Account Settings',
         label: '',
-        href: '/user-settings',
+        href: '/dashboard/user-settings',
         icon: <IconBoxSeam size={18} />,
       },
       {
         title: 'System Settings',
         label: '',
-        href: '/system-settings',
+        href: '/dashboard/system-settings',
         icon: <IconBoxSeam size={18} />,
       },
     ],
@@ -120,7 +120,7 @@ export const sidelinks: SideLink[] = [
     sub: [
       {
         title: 'Train AI',
-        href: '/train-ai',
+        href: '/dashboard/train-ai',
         icon: <IconTruck size={18} />,
       },
       // {

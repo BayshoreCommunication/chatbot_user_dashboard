@@ -1,8 +1,9 @@
-import { HTMLAttributes, useState, useEffect, useRef, useCallback } from 'react'
+import { HTMLAttributes, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useNavigate, Link } from 'react-router-dom'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { GoogleLogin, CredentialResponse } from '@react-oauth/google'
 import {
   Form,
   FormControl,
@@ -22,6 +23,7 @@ interface UserAuthFormProps extends HTMLAttributes<HTMLDivElement> {
   isSignUp?: boolean;
 }
 
+const API_URL = 'http://localhost:8000';
 const GOOGLE_CLIENT_ID = '580986048415-qpgtv2kvij47ae4if8ep47jjq8o2qtmj.apps.googleusercontent.com';
 
 const formSchema = z.object({
@@ -52,54 +54,48 @@ const formSchema = z.object({
 
 export function UserAuthForm({ className, isSignUp = false, ...props }: UserAuthFormProps) {
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const navigate = useNavigate()
   const { setUser } = useUser()
-  const googleButtonRef = useRef<HTMLDivElement>(null)
 
-  const handleGoogleResponse = useCallback(async (response: { credential: string }) => {
+  const handleGoogleSuccess = async (credentialResponse: CredentialResponse) => {
     try {
-      const decoded = JSON.parse(atob(response.credential.split('.')[1]))
-
-      const userData = {
-        id: decoded.sub,
-        email: decoded.email,
-        name: decoded.name,
-        hasPaidSubscription: false,
+      setError(null)
+      if (!credentialResponse.credential) {
+        throw new Error('No credentials received from Google')
       }
 
-      localStorage.setItem('user', JSON.stringify(userData))
-      setUser(userData)
+      const decoded = JSON.parse(atob(credentialResponse.credential.split('.')[1]))
+
+      const authResponse = await fetch(`${API_URL}/auth/google`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          email: decoded.email,
+          name: decoded.name,
+          google_id: decoded.sub
+        }),
+      })
+
+      if (!authResponse.ok) {
+        const errorData = await authResponse.json().catch(() => ({}))
+        throw new Error(errorData.detail || 'Failed to authenticate with Google')
+      }
+
+      const { user, access_token } = await authResponse.json()
+
+      localStorage.setItem('user', JSON.stringify(user))
+      localStorage.setItem('token', access_token)
+      setUser(user)
       navigate('/')
     } catch (error) {
       console.error('Google login error:', error)
+      setError(error instanceof Error ? error.message : 'Failed to authenticate with Google')
     }
-  }, [navigate, setUser])
-
-  useEffect(() => {
-    const script = document.createElement('script')
-    script.src = 'https://accounts.google.com/gsi/client'
-    script.async = true
-    script.defer = true
-    document.body.appendChild(script)
-
-    script.onload = () => {
-      if (window.google?.accounts?.id) {
-        window.google.accounts.id.initialize({
-          client_id: GOOGLE_CLIENT_ID,
-          callback: handleGoogleResponse,
-        })
-
-        window.google.accounts.id.renderButton(
-          googleButtonRef.current!,
-          { theme: 'filled_black', size: 'large', width: '100%' }
-        )
-      }
-    }
-
-    return () => {
-      document.body.removeChild(script)
-    }
-  }, [handleGoogleResponse])
+  }
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -114,18 +110,29 @@ export function UserAuthForm({ className, isSignUp = false, ...props }: UserAuth
     setIsLoading(true)
 
     try {
-      const userData = {
-        id: 'user_' + Math.random().toString(36).substr(2, 9),
-        email: data.email,
-        name: data.email.split('@')[0],
-        hasPaidSubscription: false,
+      const endpoint = isSignUp ? 'register' : 'login'
+      const response = await fetch(`${API_URL}/auth/${endpoint}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: data.email,
+          password: data.password,
+          ...(isSignUp && { name: data.email.split('@')[0] })
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error(isSignUp ? 'Failed to register' : 'Failed to login')
       }
 
-      localStorage.setItem('user', JSON.stringify(userData))
-      setUser(userData)
+      const { user, access_token } = await response.json()
 
-      // Navigate to landing page instead of dashboard
-      navigate('/', { replace: true })
+      localStorage.setItem('user', JSON.stringify(user))
+      localStorage.setItem('token', access_token)
+      setUser(user)
+      navigate('/')
     } catch (error) {
       console.error('Authentication error:', error)
     } finally {
@@ -135,6 +142,11 @@ export function UserAuthForm({ className, isSignUp = false, ...props }: UserAuth
 
   return (
     <div className={cn('grid gap-6', className)} {...props}>
+      {error && (
+        <div className="bg-red-500/10 border border-red-500/20 rounded p-3 text-sm text-red-500">
+          {error}
+        </div>
+      )}
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           <FormField
@@ -216,7 +228,19 @@ export function UserAuthForm({ className, isSignUp = false, ...props }: UserAuth
             </div>
           </div>
 
-          <div ref={googleButtonRef} className="w-full" />
+          <div className="flex justify-center">
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={() => {
+                setError('Failed to authenticate with Google')
+              }}
+              useOneTap={false}
+              theme="filled_black"
+              size="large"
+              width={300}
+              context="signin"
+            />
+          </div>
         </form>
       </Form>
     </div>

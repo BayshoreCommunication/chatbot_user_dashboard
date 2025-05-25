@@ -39,7 +39,7 @@ export default function PaymentSuccess() {
                     if (user) {
                         setUser({
                             ...user,
-                            hasPaidSubscription: true,
+                            has_paid_subscription: true,
                             subscriptionId: data.subscriptionId
                         });
                     }

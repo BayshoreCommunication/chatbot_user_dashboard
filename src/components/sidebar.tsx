@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
 import { IconChevronsLeft, IconMenu2, IconX } from '@tabler/icons-react'
 import { Layout } from './custom/layout'
-import { Button } from './custom/button'
 import Nav from './nav'
 import { cn } from '@/lib/utils'
 import { sidelinks } from '@/data/sidelinks'
+import { useNavigate } from 'react-router-dom'
+import { Button } from '@/components/custom/button'
+import { ArrowLeft } from 'lucide-react'
 
 interface SidebarProps extends React.HTMLAttributes<HTMLElement> {
   isCollapsed: boolean
@@ -17,6 +19,7 @@ export default function Sidebar({
   setIsCollapsed,
 }: SidebarProps) {
   const [navOpened, setNavOpened] = useState(false)
+  const navigate = useNavigate()
 
   /* Make body not scrollable when navBar is opened */
   useEffect(() => {
@@ -47,7 +50,7 @@ export default function Sidebar({
           className='z-50 flex justify-between px-4 py-3 shadow-sm md:px-4'
         >
           <div className={`flex items-center ${!isCollapsed ? 'gap-2' : ''}`}>
-            <svg
+            {/* <svg
               xmlns='http://www.w3.org/2000/svg'
               viewBox='0 0 256 256'
               className={`transition-all ${isCollapsed ? 'h-6 w-6' : 'h-8 w-8'}`}
@@ -76,12 +79,16 @@ export default function Sidebar({
                 strokeWidth='16'
               ></line>
               <span className='sr-only'>Website Name</span>
-            </svg>
-            <div
-              className={`flex flex-col justify-end truncate ${isCollapsed ? 'invisible w-0' : 'visible w-auto'}`}
-            >
-              <span className='font-medium'>ByeWind</span>
-              <span className='text-xs'>Bayshore AI</span>
+            </svg> */}
+            <div className="fixed top-4 left-4 z-50">
+              <Button
+                variant="ghost"
+                onClick={() => navigate('/')}
+                className="flex items-center space-x-2 text-gray-300 hover:text-white"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                <span>Back to Home</span>
+              </Button>
             </div>
           </div>
 

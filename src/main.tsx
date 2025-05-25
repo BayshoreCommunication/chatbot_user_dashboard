@@ -1,12 +1,6 @@
-import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { RouterProvider } from 'react-router-dom';
-import { Toaster } from '@/components/ui/toaster';
-import { ThemeProvider } from '@/components/theme-provider';
-import router from '@/router';
+import App from './App';
 import '@/index.css';
-import { ThemeColorProvider } from './context/ThemeColorContext';
-import { UserProvider } from './context/UserContext';
 
 // Load Google OAuth script manually
 const loadGoogleScript = () => {
@@ -31,18 +25,5 @@ if (!window.google) {
         }
     };
 }
-
-const App = () => (
-    <React.StrictMode>
-        <UserProvider>
-            <ThemeColorProvider>
-                <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
-                    <RouterProvider router={router} />
-                    <Toaster />
-                </ThemeProvider>
-            </ThemeColorProvider>
-        </UserProvider>
-    </React.StrictMode>
-);
 
 ReactDOM.createRoot(document.getElementById('root')!).render(<App />);
