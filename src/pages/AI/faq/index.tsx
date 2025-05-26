@@ -7,6 +7,8 @@ import { Label } from "@/components/ui/label";
 import ContentSection from "@/pages/settings/components/content-section";
 import { useNavigate } from "react-router-dom";
 import { CheckIcon, ChevronDownIcon, EditIcon, UserIcon } from "lucide-react";
+import { useChatWidgetSettings } from "@/hooks/useChatWidgetSettings";
+import { LoadingSpinner } from "@/components/custom/loading-spinner";
 
 interface FAQ {
     id: number;
@@ -16,6 +18,8 @@ interface FAQ {
 }
 
 export default function FAQAutomation() {
+    const navigate = useNavigate();
+    const { data: settings, isLoading: isSettingsLoading } = useChatWidgetSettings();
     const [isEnabled, setIsEnabled] = useState(true);
     const [faqs, setFaqs] = useState<FAQ[]>([
         {
@@ -28,7 +32,6 @@ export default function FAQAutomation() {
     const [expandedQuestionId, setExpandedQuestionId] = useState<number | null>(null);
     const [showPersonalizeModal, setShowPersonalizeModal] = useState(false);
     const [showSuccessModal, setShowSuccessModal] = useState(false);
-    const navigate = useNavigate();
 
     const handleQuestionChange = (id: number, value: string) => {
         setFaqs(faqs.map(faq =>
@@ -77,13 +80,25 @@ export default function FAQAutomation() {
     const handleSave = () => {
         setShowSuccessModal(true);
         setTimeout(() => {
-            navigate("/train-ai");
+            navigate("/dashboard/train-ai");
         }, 1500);
     };
 
     const getCharCount = (text: string) => {
         return text.length;
     };
+
+    // Show loading spinner while settings are loading
+    if (isSettingsLoading) {
+        return (
+            <div className="w-full h-[calc(100vh-120px)] flex items-center justify-center">
+                <LoadingSpinner
+                    size="lg"
+                    text="Loading preview..."
+                />
+            </div>
+        );
+    }
 
     return (
         <div className="mx-6 mt-4">
@@ -235,13 +250,17 @@ export default function FAQAutomation() {
                             <div className="relative">
                                 <div className="w-[300px] bg-white rounded-xl shadow-lg border overflow-hidden">
                                     {/* Chat header */}
-                                    <div className={`p-4 bg-black text-white`}>
+                                    <div className={`p-4 ${settings?.selectedColor === 'black' ? 'bg-black' : `bg-${settings?.selectedColor}-500`} text-white`}>
                                         <div className="flex items-center">
                                             <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
-                                                <span className="text-black text-xs font-bold">BA</span>
+                                                {settings?.avatarUrl ? (
+                                                    <img src={settings.avatarUrl} alt="Avatar" className="w-8 h-8 rounded-full object-cover" />
+                                                ) : (
+                                                    <span className="text-black text-xs font-bold">BA</span>
+                                                )}
                                             </div>
                                             <div className="ml-2">
-                                                <p className="text-sm">Chat with <span className="font-bold">Bay AI</span></p>
+                                                <p className="text-sm"><span className="font-bold">{settings?.name || 'Bay AI'}</span></p>
                                                 <p className="text-xs opacity-70">we reply immediately</p>
                                             </div>
                                         </div>
@@ -250,7 +269,7 @@ export default function FAQAutomation() {
                                     {/* Chat content */}
                                     <div className="p-4 min-h-[350px] max-h-[350px] overflow-y-auto flex flex-col justify-end">
                                         <div className="bg-gray-100 rounded-lg p-3 max-w-[75%] mb-2">
-                                            <p className="text-sm">Hi, yes, David have found it, ask our concierge 👋</p>
+                                            <p className="text-sm text-black">Hi, yes, David have found it, ask our concierge 👋</p>
                                         </div>
                                         <div className="flex justify-end">
                                             <div className="bg-gray-800 text-white rounded-lg p-3 max-w-[75%]">
@@ -271,7 +290,7 @@ export default function FAQAutomation() {
                                                 className="flex-1 pl-8 pr-2 py-2 rounded-full border border-gray-200 outline-none text-sm"
                                             />
                                         </div>
-                                        <button className={`ml-2 w-8 h-8 rounded-full bg-black text-white flex items-center justify-center`}>
+                                        <button className={`ml-2 w-8 h-8 rounded-full ${settings?.selectedColor === 'black' ? 'bg-black' : `bg-${settings?.selectedColor}-500`} text-white flex items-center justify-center`}>
                                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                                 <path d="M22 2L11 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                                                 <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />

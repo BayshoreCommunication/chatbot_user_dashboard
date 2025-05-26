@@ -4,6 +4,8 @@ import { Input } from "@/components/ui/input";
 import { X, Plus, AlertTriangle, Check } from "lucide-react";
 import ContentSection from "@/pages/settings/components/content-section";
 import { useNavigate } from "react-router-dom";
+import { useChatWidgetSettings } from "@/hooks/useChatWidgetSettings";
+import { LoadingSpinner } from "@/components/custom/loading-spinner";
 
 interface Website {
     id: string;
@@ -14,6 +16,11 @@ interface Website {
 
 export default function TrainAiPage() {
     const navigate = useNavigate();
+    const { data: settings, isLoading: isSettingsLoading } = useChatWidgetSettings();
+
+
+    console.log(settings);
+
     // Page state management
     const [currentStep, setCurrentStep] = useState<'initial' | 'main'>('initial');
 
@@ -101,8 +108,20 @@ export default function TrainAiPage() {
 
     const handleActivationDone = () => {
         // Navigate to AI home page
-        navigate("/train-ai");
+        navigate("/dashboard/train-ai");
     };
+
+    // Show loading spinner while settings are loading
+    if (isSettingsLoading && currentStep === 'initial') {
+        return (
+            <div className="w-full h-[calc(100vh-120px)] flex items-center justify-center">
+                <LoadingSpinner
+                    size="lg"
+                    text="Loading preview..."
+                />
+            </div>
+        );
+    }
 
     return (
         <div className="mx-6 mt-4">
@@ -171,13 +190,17 @@ export default function TrainAiPage() {
                                 <div className="relative">
                                     <div className="w-[270px] bg-white rounded-xl shadow-lg border overflow-hidden">
                                         {/* Chat header */}
-                                        <div className="p-4 bg-black text-white">
+                                        <div className={`p-4 ${settings?.selectedColor === 'black' ? 'bg-black' : `bg-${settings?.selectedColor}-500`} text-white`}>
                                             <div className="flex items-center">
                                                 <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
-                                                    <span className="text-black text-xs font-bold">BA</span>
+                                                    {settings?.avatarUrl ? (
+                                                        <img src={settings.avatarUrl} alt="Avatar" className="w-8 h-8 rounded-full object-cover" />
+                                                    ) : (
+                                                        <span className="text-black text-xs font-bold">BA</span>
+                                                    )}
                                                 </div>
                                                 <div className="ml-2">
-                                                    <p className="text-sm">Chat with <span className="font-bold">Bay AI</span></p>
+                                                    <p className="text-sm"><span className="font-bold">{settings?.name || 'Bay AI'}</span></p>
                                                     <p className="text-xs opacity-70">we reply immediately</p>
                                                 </div>
                                             </div>
@@ -207,7 +230,7 @@ export default function TrainAiPage() {
                                                     className="flex-1 pl-8 pr-2 py-2 rounded-full border border-gray-200 outline-none text-sm"
                                                 />
                                             </div>
-                                            <button className="ml-2 w-8 h-8 rounded-full bg-black text-white flex items-center justify-center">
+                                            <button className={`ml-2 w-8 h-8 rounded-full ${settings?.selectedColor === 'black' ? 'bg-black' : `bg-${settings?.selectedColor}-500`} text-white flex items-center justify-center`}>
                                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                                     <path d="M22 2L11 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                                                     <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -220,7 +243,7 @@ export default function TrainAiPage() {
 
                             {/* Brain background image */}
                             <div
-                                className="absolute right-0 bottom-0 w-full h-full pointer-events-none  z-10"
+                                className="absolute right-0 bottom-0 w-full h-full pointer-events-none z-10"
                                 style={{
                                     backgroundImage: "url('https://res.cloudinary.com/dq9yrj7c9/image/upload/v1747287480/d0tfhqfgnhtxfeu7buyr.png')",
                                     backgroundRepeat: "no-repeat",
@@ -236,7 +259,7 @@ export default function TrainAiPage() {
                         <>
                             {/* Header with title and active button */}
                             <div className="flex justify-between items-center mb-4">
-                                
+
                                 <Button
                                     onClick={handleActivate}
                                     className="bg-blue-600 text-white hover:bg-blue-700 px-8 tracking-widest"
@@ -249,7 +272,7 @@ export default function TrainAiPage() {
                             {websites.length > 0 && (
                                 <div className="mt-4">
                                     <div className="flex items-center justify-between mb-4">
-                                    <h3 className="text-lg font-medium">All websites: {websites.length}</h3>
+                                        <h3 className="text-lg font-medium">All websites: {websites.length}</h3>
                                         <Button onClick={handleAddWebsite} variant="outline" className="flex items-center gap-2">
                                             <Plus className="w-4 h-4" />
                                             Add

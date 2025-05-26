@@ -4,10 +4,10 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { CopyIcon, CheckIcon } from '@radix-ui/react-icons'
-import axios from 'axios'
 import { useToast } from '@/components/ui/use-toast'
 import { useApiKey } from '@/hooks/useApiKey'
 import { LoadingSpinner } from '@/components/custom/loading-spinner'
+import { useChatWidgetSettings } from '@/hooks/useChatWidgetSettings'
 
 export function ChatWidgetInstall() {
     const navigate = useNavigate()
@@ -15,51 +15,29 @@ export function ChatWidgetInstall() {
     const [showSuccessModal, setShowSuccessModal] = useState(false)
     const { toast } = useToast()
     const { apiKey, isLoading: isApiKeyLoading } = useApiKey()
+    const { data: settings, isLoading: isSettingsLoading } = useChatWidgetSettings()
 
     // Add states for chat widget settings
     const [name, setName] = useState('Bay AI')
     const [selectedColor, setSelectedColor] = useState('black')
     const [avatarUrl, setAvatarUrl] = useState('')
-    const [isLoading, setIsLoading] = useState(true)
     const [scriptTag, setScriptTag] = useState('')
 
     useEffect(() => {
-        const loadSettings = async () => {
-            if (!apiKey) return
+        if (!apiKey) return
 
-            try {
-                // Generate script tag with API key as data attribute
-                setScriptTag(`<script src="${import.meta.env.VITE_BOT_URL}/chatbot-widget.min.js" data-api-key="${apiKey}" async></script>`)
+        // Generate script tag with API key as data attribute
+        setScriptTag(`<script src="${import.meta.env.VITE_BOT_URL}/chatbot-widget.min.js" data-api-key="${apiKey}" async></script>`)
 
-                // Fetch chat widget settings
-                const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/chatbot/settings`, {
-                    headers: {
-                        'X-API-Key': apiKey
-                    }
-                })
-
-                if (response.data.status === 'success') {
-                    const settings = response.data.settings
-                    setName(settings.name)
-                    setSelectedColor(settings.selectedColor)
-                    if (settings.avatarUrl) {
-                        setAvatarUrl(settings.avatarUrl)
-                    }
-                }
-            } catch (error) {
-                console.error('Load settings error:', error)
-                toast({
-                    title: 'Error',
-                    description: 'Failed to load settings',
-                    variant: 'destructive'
-                })
-            } finally {
-                setIsLoading(false)
+        // Update states from settings when they're available
+        if (settings) {
+            setName(settings.name)
+            setSelectedColor(settings.selectedColor)
+            if (settings.avatarUrl) {
+                setAvatarUrl(settings.avatarUrl)
             }
         }
-
-        loadSettings()
-    }, [apiKey])
+    }, [apiKey, settings])
 
     const handleBack = () => {
         navigate('/dashboard/chat-widget-setup')
@@ -88,7 +66,7 @@ export function ChatWidgetInstall() {
     }
 
     // Update loading state to use LoadingSpinner
-    if (isLoading || isApiKeyLoading) {
+    if (isSettingsLoading || isApiKeyLoading) {
         return (
             <div className="w-full h-[calc(100vh-120px)] flex items-center justify-center">
                 <LoadingSpinner

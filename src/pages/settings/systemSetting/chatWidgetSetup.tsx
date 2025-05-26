@@ -7,9 +7,11 @@ import axios from 'axios'
 import { useToast } from '@/components/ui/use-toast'
 import { LoadingSpinner } from '@/components/custom/loading-spinner'
 import { useApiKey } from '@/hooks/useApiKey'
+import { useQueryClient } from '@tanstack/react-query'
 
 export function ChatWidgetSetup() {
     const navigate = useNavigate()
+    const queryClient = useQueryClient()
     const [selectedColor, setSelectedColor] = useState('black')
     const [botBehavior, setBotBehavior] = useState('2')
     const [leadCapture, setLeadCapture] = useState(true)
@@ -138,6 +140,31 @@ export function ChatWidgetSetup() {
             if (response.data.status === 'success') {
                 // Use the full URL directly from the server response
                 setAvatarUrl(response.data.url)
+
+                // Save the updated settings with new avatar URL
+                const settingsResponse = await axios.post(`${import.meta.env.VITE_API_URL}/api/chatbot/save-settings`, {
+                    name,
+                    selectedColor,
+                    leadCapture,
+                    botBehavior,
+                    avatarUrl: response.data.url
+                }, {
+                    headers: {
+                        'X-API-Key': apiKey
+                    }
+                })
+
+                if (settingsResponse.data.status === 'success') {
+                    // Invalidate and refetch chatWidgetSettings query
+                    await queryClient.invalidateQueries({ queryKey: ['chatWidgetSettings'] })
+
+                    // Update initial values
+                    setInitialValues(prev => ({
+                        ...prev,
+                        avatarUrl: response.data.url
+                    }))
+                }
+
                 toast({
                     title: 'Success',
                     description: 'Avatar uploaded successfully',
@@ -184,6 +211,18 @@ export function ChatWidgetSetup() {
             })
 
             if (response.data.status === 'success') {
+                // Invalidate and refetch chatWidgetSettings query
+                await queryClient.invalidateQueries({ queryKey: ['chatWidgetSettings'] })
+
+                // Update the initial values to match current values
+                setInitialValues({
+                    name,
+                    selectedColor,
+                    leadCapture,
+                    botBehavior,
+                    avatarUrl
+                })
+
                 // Navigate to the installation page
                 navigate('/dashboard/chat-widget-install')
             }

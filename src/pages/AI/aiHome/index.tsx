@@ -30,7 +30,7 @@ export default function AutomationSMS() {
     };
 
     const handleStartTraining = () => {
-        navigate("/train-ai-page");
+        navigate("/dashboard/train-ai-page");
     };
 
     return (
@@ -56,7 +56,7 @@ export default function AutomationSMS() {
                                     Reply with a greeting when someone messages you for the first time.
                                 </p>
                                 <div>
-                                    <Link to="/instant-reply">
+                                    <Link to="/dashboard/instant-reply">
                                         <Button className="w-full" variant="outline">Create One</Button>
                                     </Link>
                                 </div>
@@ -76,7 +76,7 @@ export default function AutomationSMS() {
                                     Reply to a message that contains specific keyword with a pre-defined response.
                                 </p>
                                 <div>
-                                    <Link to="/faq">
+                                    <Link to="/dashboard/faq">
                                         <Button className="w-full" variant="outline">Create One</Button>
                                     </Link>
                                 </div>
