@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
 import axios from 'axios'
 import { useAuth } from '@/context/AuthContext' // Assuming you have an auth context
+import { LoadingSpinner } from '@/components/custom/loading-spinner'
 
 interface SubscriptionData {
   subscription_tier: string;
@@ -52,6 +53,17 @@ export function AccountSetting() {
     })
   }
 
+  if (loading) {
+    return (
+      <div className="w-full h-[calc(100vh-120px)] flex items-center justify-center">
+        <LoadingSpinner
+          size="lg"
+          text="Loading settings..."
+        />
+      </div>
+    )
+  }
+
   return (
     <div className="w-full flex flex-col h-[calc(100vh-120px)]">
       <div className="flex-1 overflow-y-auto pr-4 space-y-6 pb-6">
@@ -67,9 +79,7 @@ export function AccountSetting() {
                 <img src="https://res.cloudinary.com/dq9yrj7c9/image/upload/v1747201321/jmmegj7hsm1tp3ard65i.png" alt="premium" />
               </div>
               <div>
-                {loading ? (
-                  <p>Loading subscription info...</p>
-                ) : subscriptionData ? (
+                {subscriptionData ? (
                   <>
                     <h4 className="font-medium capitalize">{subscriptionData.subscription_tier} Plan</h4>
                     <p className="text-sm text-muted-foreground">

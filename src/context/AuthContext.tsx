@@ -1,9 +1,15 @@
-import { createContext, useContext, ReactNode } from 'react';
+import { createContext, useContext, ReactNode, useState, useEffect } from 'react';
 
 interface User {
+    _id: string;
     id: string;
     email: string;
     name: string;
+    has_paid_subscription: boolean;
+    created_at: string;
+    updated_at: string;
+    google_id: string;
+    subscription_id: string;
 }
 
 interface AuthContextType {
@@ -13,12 +19,15 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType>({ user: null });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-    // You can implement actual auth logic here
-    const user = {
-        id: "f456bac6-baf1-45bf-9565-82cd6ae15161", // Example user ID
-        email: "info.bayshorecommunication@gmail.com",
-        name: "Bayshore Communication"
-    };
+    const [user, setUser] = useState<User | null>(null);
+
+    useEffect(() => {
+        // Get user data from localStorage
+        const userData = localStorage.getItem('user');
+        if (userData) {
+            setUser(JSON.parse(userData));
+        }
+    }, []);
 
     return (
         <AuthContext.Provider value={{ user }}>

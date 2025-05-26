@@ -6,9 +6,7 @@ import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { useToast } from '@/components/ui/use-toast'
 import { LoadingSpinner } from '@/components/custom/loading-spinner'
-
-// Add API base URL
-const API_BASE_URL = 'http://localhost:8000'
+import { useApiKey } from '@/hooks/useApiKey'
 
 export function ChatWidgetSetup() {
     const navigate = useNavigate()
@@ -20,6 +18,7 @@ export function ChatWidgetSetup() {
     const [avatarUrl, setAvatarUrl] = useState('')
     const [isLoading, setIsLoading] = useState(true)
     const fileInputRef = useRef<HTMLInputElement>(null)
+    const { apiKey } = useApiKey()
     const { toast } = useToast()
 
     // Add state to track initial values
@@ -36,10 +35,11 @@ export function ChatWidgetSetup() {
 
     useEffect(() => {
         const loadSettings = async () => {
+            if (!apiKey) return
             try {
-                const response = await axios.get(`${API_BASE_URL}/api/chatbot/settings`, {
+                const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/chatbot/settings`, {
                     headers: {
-                        'X-API-Key': 'org_sk_b6aca9aae10b18f64b82c4e139f55c40'
+                        'X-API-Key': apiKey
                     }
                 })
 
@@ -75,7 +75,7 @@ export function ChatWidgetSetup() {
         }
 
         loadSettings()
-    }, [])
+    }, [apiKey, toast])
 
     // Add effect to check for changes
     useEffect(() => {
@@ -112,6 +112,7 @@ export function ChatWidgetSetup() {
     const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0]
         if (!file) return
+        if (!apiKey) return
 
         console.log('Selected file:', {
             name: file.name,
@@ -124,11 +125,11 @@ export function ChatWidgetSetup() {
         formData.append('file', file)
 
         try {
-            console.log('Sending request to:', `${API_BASE_URL}/api/upload/upload-avatar`)
-            const response = await axios.post(`${API_BASE_URL}/api/upload/upload-avatar`, formData, {
+            console.log('Sending request to:', `${import.meta.env.VITE_API_URL}/api/upload/upload-avatar`)
+            const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/upload/upload-avatar`, formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
-                    'X-API-Key': 'org_sk_b6aca9aae10b18f64b82c4e139f55c40'
+                    'X-API-Key': apiKey
                 }
             })
 
@@ -166,10 +167,11 @@ export function ChatWidgetSetup() {
             navigate('/dashboard/chat-widget-install')
             return
         }
+        if (!apiKey) return
 
         try {
             // Save settings to MongoDB only if there are changes
-            const response = await axios.post(`${API_BASE_URL}/api/chatbot/save-settings`, {
+            const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/chatbot/save-settings`, {
                 name,
                 selectedColor,
                 leadCapture,
@@ -177,7 +179,7 @@ export function ChatWidgetSetup() {
                 avatarUrl
             }, {
                 headers: {
-                    'X-API-Key': 'org_sk_b6aca9aae10b18f64b82c4e139f55c40'
+                    'X-API-Key': apiKey
                 }
             })
 
@@ -195,8 +197,8 @@ export function ChatWidgetSetup() {
         }
     }
 
-      // Update loading state to use LoadingSpinner
-      if (isLoading) {
+    // Update loading state to use LoadingSpinner
+    if (isLoading) {
         return (
             <div className="w-full h-[calc(100vh-120px)] flex items-center justify-center">
                 <LoadingSpinner

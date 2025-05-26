@@ -1,11 +1,15 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { PlusIcon } from '@radix-ui/react-icons'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { Button } from '@/components/custom/button'
+import { LoadingSpinner } from '@/components/custom/loading-spinner'
 import {
   Form,
   FormLabel,
+  FormControl,
+  FormField,
+  FormItem,
+  FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import {
@@ -16,6 +20,10 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
+import { useEffect, useState } from 'react'
+import { useToast } from '@/components/ui/use-toast'
+import { useAuth } from '@/context/AuthContext'
+import useAxiosPublic from '@/hooks/useAxiosPublic'
 
 const languages = [
   { label: 'English', value: 'en' },
@@ -60,8 +68,7 @@ const genders = [
 ] as const
 
 const profileFormSchema = z.object({
-  fullName: z.string().optional(),
-  nickName: z.string().optional(),
+  nickName: z.string().min(2, 'Nickname must be at least 2 characters').optional(),
   gender: z.string().optional(),
   country: z.string().optional(),
   language: z.string().optional(),
@@ -71,19 +78,82 @@ const profileFormSchema = z.object({
 
 type ProfileFormValues = z.infer<typeof profileFormSchema>
 
-// This can come from your database or API.
-const defaultValues: Partial<ProfileFormValues> = {
-  // These would be populated from user data
-}
-
 export function AccountForm() {
+  const { toast } = useToast()
+  const { user } = useAuth()
+  const [isLoading, setIsLoading] = useState(false)
+  const [isFetching, setIsFetching] = useState(true)
+  const axiosPublic = useAxiosPublic()
+
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
-    defaultValues,
+    defaultValues: {
+      nickName: '',
+      gender: '',
+      country: '',
+      language: '',
+      timeZone: '',
+      email: user?.email || '',
+    },
   })
 
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (!user?.id) return
+      setIsFetching(true)
+      try {
+        const { data } = await axiosPublic.get(`/user/profile/${user.id}`)
+        console.log('data', data)
+        form.reset({
+          nickName: data.nickName || '',
+          gender: data.gender || '',
+          country: data.country || '',
+          language: data.language || '',
+          timeZone: data.timeZone || '',
+          email: data.email || user.email || '',
+        })
+      } catch (error) {
+        console.error('Error fetching user profile:', error)
+      } finally {
+        setIsFetching(false)
+      }
+    }
+
+    fetchUserProfile()
+  }, [user, form, axiosPublic])
+
+  async function onSubmit(data: ProfileFormValues) {
+    if (!user?.id) return
+
+    setIsLoading(true)
+    try {
+      await axiosPublic.put(`/user/profile/${user.id}`, data)
+      toast({
+        title: 'Profile updated',
+        description: 'Your profile has been updated successfully.',
+      })
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to update profile. Please try again.',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  if (isFetching) {
+    return <div className="w-full h-[calc(100vh-120px)] flex items-center justify-center">
+      <LoadingSpinner
+        size="lg"
+        text="Loading settings..."
+      />
+    </div>
+  }
+
   return (
-    <div className="w-full space-y-6 ">
+    <div className="w-full space-y-6">
       {/* User Profile Header */}
       <div className="flex items-center gap-4">
         <div className="h-16 w-16 overflow-hidden rounded-full bg-gray-200">
@@ -93,92 +163,141 @@ export function AccountForm() {
           </svg>
         </div>
         <div>
-          <h2 className="text-xl font-semibold">Bye Wind</h2>
-          <p className="text-sm text-muted-foreground">byewind@gmail.com</p>
+          <h2 className="text-xl font-semibold">{user?.name || 'User Profile'}</h2>
+          <p className="text-sm text-muted-foreground">{form.watch('email') || user?.email}</p>
         </div>
       </div>
 
       <div className="mr-12">
         <Form {...form}>
-          <form className="space-y-6">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             {/* Full Name and Nick Name */}
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
               <div>
                 <FormLabel className="block text-sm font-medium mb-1.5">Full Name</FormLabel>
-                <Input className="w-full bg-muted/40 h-12" placeholder="Your First Name" />
+                <Input
+                  className="w-full bg-muted/40 h-12"
+                  value={user?.name || ''}
+                  disabled
+                />
               </div>
-              <div>
-                <FormLabel className="block text-sm font-medium mb-1.5">Nick Name</FormLabel>
-                <Input className="w-full bg-muted/40 h-12" placeholder="Your First Name" />
-              </div>
+              <FormField
+                control={form.control}
+                name="nickName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="block text-sm font-medium mb-1.5">Nick Name</FormLabel>
+                    <FormControl>
+                      <Input className="w-full bg-muted/40 h-12" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
 
             {/* Gender and Country */}
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-              <div>
-                <FormLabel className="block text-sm font-medium mb-1.5">Gender</FormLabel>
-                <Select>
-                  <SelectTrigger className="w-full bg-muted/40 h-12">
-                    <SelectValue placeholder="Your First Name" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {genders.map((gender) => (
-                      <SelectItem key={gender.value} value={gender.value}>
-                        {gender.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <FormLabel className="block text-sm font-medium mb-1.5">Country</FormLabel>
-                <Select>
-                  <SelectTrigger className="w-full bg-muted/40 h-12">
-                    <SelectValue placeholder="Your First Name" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {countries.map((country) => (
-                      <SelectItem key={country.value} value={country.value}>
-                        {country.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <FormField
+                control={form.control}
+                name="gender"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="block text-sm font-medium mb-1.5">Gender</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger className="w-full bg-muted/40 h-12">
+                          <SelectValue placeholder="Select gender" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {genders.map((gender) => (
+                          <SelectItem key={gender.value} value={gender.value}>
+                            {gender.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="country"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="block text-sm font-medium mb-1.5">Country</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger className="w-full bg-muted/40 h-12">
+                          <SelectValue placeholder="Select country" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {countries.map((country) => (
+                          <SelectItem key={country.value} value={country.value}>
+                            {country.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
 
             {/* Language and Time Zone */}
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-              <div>
-                <FormLabel className="block text-sm font-medium mb-1.5">Language</FormLabel>
-                <Select>
-                  <SelectTrigger className="w-full bg-muted/40 h-12">
-                    <SelectValue placeholder="Your First Name" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {languages.map((language) => (
-                      <SelectItem key={language.value} value={language.value}>
-                        {language.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <FormLabel className="block text-sm font-medium mb-1.5">Time Zone</FormLabel>
-                <Select>
-                  <SelectTrigger className="w-full bg-muted/40 h-12">
-                    <SelectValue placeholder="Your First Name" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {timeZones.map((timezone) => (
-                      <SelectItem key={timezone.value} value={timezone.value}>
-                        {timezone.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <FormField
+                control={form.control}
+                name="language"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="block text-sm font-medium mb-1.5">Language</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger className="w-full bg-muted/40 h-12">
+                          <SelectValue placeholder="Select language" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {languages.map((language) => (
+                          <SelectItem key={language.value} value={language.value}>
+                            {language.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="timeZone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="block text-sm font-medium mb-1.5">Time Zone</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger className="w-full bg-muted/40 h-12">
+                          <SelectValue placeholder="Select timezone" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {timeZones.map((timezone) => (
+                          <SelectItem key={timezone.value} value={timezone.value}>
+                            {timezone.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
 
             {/* Email Address Section */}
@@ -193,37 +312,41 @@ export function AccountForm() {
                   </div>
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm font-medium">byewind@gmail.com</p>
-                  <p className="text-xs text-muted-foreground">1 month ago</p>
+                  <p className="text-sm font-medium">{form.watch('email') || user?.email}</p>
+                  <p className="text-xs text-muted-foreground">Primary email</p>
                 </div>
               </div>
-              <div className="mt-4">
-                <Button variant="outline" size="sm" className="flex items-center gap-1 text-xs h-9 px-4 rounded">
-                  <PlusIcon className="h-3.5 w-3.5" />
-                  Add Email Address
-                </Button>
+            </div>
+
+            {/* Footer with buttons */}
+            <div className="mt-auto pt-10">
+              <Separator className="mb-6" />
+              <div className="flex items-center justify-between">
+                <a href="#" className="text-sm text-blue-500">
+                  Learn more about user profile
+                </a>
+                <div className="flex gap-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="px-6 h-10 rounded"
+                    onClick={() => form.reset()}
+                    disabled={isLoading}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    className="bg-gray-900 dark:bg-gray-100 px-6 h-10 rounded"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? 'Saving...' : 'Save'}
+                  </Button>
+                </div>
               </div>
             </div>
           </form>
         </Form>
-      </div>
-
-      {/* Footer with buttons */}
-      <div className="mt-auto pt-10">
-        <Separator className="mb-6" />
-        <div className="flex items-center justify-between">
-          <a href="#" className="text-sm text-blue-500">
-            Learn more about user profile
-          </a>
-          <div className="flex gap-4">
-            <Button variant="outline" className="px-6 h-10 rounded">
-              Cancel
-            </Button>
-            <Button className="bg-gray-900 px-6 h-10 rounded">
-              Save
-            </Button>
-          </div>
-        </div>
       </div>
     </div>
   )
