@@ -1,14 +1,65 @@
 import { Button } from '@/components/custom/button'
 import { Card } from '@/components/ui/card'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { CopyIcon, CheckIcon } from '@radix-ui/react-icons'
+import axios from 'axios'
+import { useToast } from '@/components/ui/use-toast'
+import { useApiKey } from '@/hooks/useApiKey'
+import { LoadingSpinner } from '@/components/custom/loading-spinner'
 
 export function ChatWidgetInstall() {
     const navigate = useNavigate()
     const [platform, setPlatform] = useState('wordpress')
     const [showSuccessModal, setShowSuccessModal] = useState(false)
+    const { toast } = useToast()
+    const { apiKey, isLoading: isApiKeyLoading } = useApiKey()
+
+    // Add states for chat widget settings
+    const [name, setName] = useState('Bay AI')
+    const [selectedColor, setSelectedColor] = useState('black')
+    const [avatarUrl, setAvatarUrl] = useState('')
+    const [isLoading, setIsLoading] = useState(true)
+    const [scriptTag, setScriptTag] = useState('')
+
+    useEffect(() => {
+        const loadSettings = async () => {
+            if (!apiKey) return
+
+            try {
+                // Generate script tag with API key as data attribute
+                setScriptTag(`<script src="${import.meta.env.VITE_BOT_URL}/chatbot-widget.min.js" data-api-key="${apiKey}" async></script>`)
+
+                // Fetch chat widget settings
+                const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/chatbot/settings`, {
+                    headers: {
+                        'X-API-Key': apiKey
+                    }
+                })
+
+                if (response.data.status === 'success') {
+                    const settings = response.data.settings
+                    setName(settings.name)
+                    setSelectedColor(settings.selectedColor)
+                    if (settings.avatarUrl) {
+                        setAvatarUrl(settings.avatarUrl)
+                    }
+                }
+            } catch (error) {
+                console.error('Load settings error:', error)
+                toast({
+                    title: 'Error',
+                    description: 'Failed to load settings',
+                    variant: 'destructive'
+                })
+            } finally {
+                setIsLoading(false)
+            }
+        }
+
+        loadSettings()
+    }, [apiKey])
 
     const handleBack = () => {
         navigate('/dashboard/chat-widget-setup')
@@ -29,7 +80,23 @@ export function ChatWidgetInstall() {
         if (code) {
             navigator.clipboard.writeText(code)
             // Could add a toast notification here
+            toast({
+                title: 'Success',
+                description: 'Code copied to clipboard',
+            })
         }
+    }
+
+    // Update loading state to use LoadingSpinner
+    if (isLoading || isApiKeyLoading) {
+        return (
+            <div className="w-full h-[calc(100vh-120px)] flex items-center justify-center">
+                <LoadingSpinner
+                    size="lg"
+                    text="Loading settings..."
+                />
+            </div>
+        )
     }
 
     return (
@@ -121,19 +188,19 @@ export function ChatWidgetInstall() {
                                     {/* Manual Installation Instructions */}
                                     {platform === 'manual' && (
                                         <div className="space-y-4">
-                                            <div className="flex items-center gap-2 bg-gray-50 rounded-lg p-2">
+                                            <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-900 rounded-lg p-2">
                                                 <div className="flex items-center justify-center w-6 h-6 rounded-full bg-black text-white text-xs">
                                                     2
                                                 </div>
-                                                <span className="text-sm">Paste this code snippet just before the &lt;/body&gt; tag</span>
+                                                <span className="text-sm dark:text-gray-300">Paste this code snippet just before the &lt;/body&gt; tag</span>
                                             </div>
-                                            <div className="bg-gray-50 p-4 rounded-lg relative">
-                                                <pre className="text-sm whitespace-pre-wrap font-mono" id="code-snippet">
-                                                    &lt;script src="//code.bay.ai/ek21xsqcxgviu08qjblyiwemgosj-snp.js" async&gt;&lt;/script&gt;
+                                            <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg relative">
+                                                <pre className="text-sm whitespace-pre-wrap font-mono text-gray-800 dark:text-gray-200" id="code-snippet">
+                                                    {scriptTag || 'Loading script tag...'}
                                                 </pre>
                                                 <button
                                                     onClick={handleCopyToClipboard}
-                                                    className="absolute right-4 top-4 p-2 text-gray-500 hover:text-gray-700 flex items-center"
+                                                    className="absolute right-4 top-4 p-2 text-gray-500 hover:text-gray-400 dark:text-gray-400 dark:hover:text-gray-300 flex items-center"
                                                 >
                                                     <span className="mr-1 text-xs">Copy to clipboard</span>
                                                     <CopyIcon className="h-4 w-4" />
@@ -149,13 +216,17 @@ export function ChatWidgetInstall() {
                                         <div className="relative">
                                             <div className="w-[300px] h-[500px] bg-white rounded-xl shadow-lg border overflow-hidden">
                                                 {/* Chat header */}
-                                                <div className={`p-4 bg-black text-white`}>
+                                                <div className={`p-4 ${selectedColor === 'black' ? 'bg-black' : `bg-${selectedColor}-500`} text-white`}>
                                                     <div className="flex items-center">
                                                         <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
-                                                            <span className="text-black text-xs font-bold">BA</span>
+                                                            {avatarUrl ? (
+                                                                <img src={avatarUrl} alt="Avatar" className="w-8 h-8 rounded-full object-cover" />
+                                                            ) : (
+                                                                <span className="text-black text-xs font-bold">BA</span>
+                                                            )}
                                                         </div>
                                                         <div className="ml-2">
-                                                            <p className="text-sm">Chat with <span className="font-bold">Bay AI</span></p>
+                                                            <p className="text-sm"><span className="font-bold">{name}</span></p>
                                                             <p className="text-xs opacity-70">online conversation</p>
                                                         </div>
                                                     </div>
@@ -164,7 +235,7 @@ export function ChatWidgetInstall() {
                                                 {/* Chat content */}
                                                 <div className="p-4 h-[350px] flex flex-col justify-end">
                                                     <div className="bg-gray-100 rounded-lg p-3 max-w-[75%] mb-2">
-                                                        <p className="text-sm">Hi yes, David have found it, ask our concierge <span className="font-bold text-lg">👋</span></p>
+                                                        <p className="text-sm text-black">Hi yes, David have found it, ask our concierge <span className="font-bold text-lg">👋</span></p>
                                                     </div>
                                                     <div className="flex justify-end">
                                                         <div className="bg-gray-800 text-white rounded-lg p-3 max-w-[75%]">
@@ -185,7 +256,7 @@ export function ChatWidgetInstall() {
                                                             className="flex-1 pl-8 pr-2 py-2 rounded-full border border-gray-200 outline-none text-sm"
                                                         />
                                                     </div>
-                                                    <button className={`ml-2 w-8 h-8 rounded-full bg-black text-white flex items-center justify-center`}>
+                                                    <button className={`ml-2 w-8 h-8 rounded-full ${selectedColor === 'black' ? 'bg-black' : `bg-${selectedColor}-500`} text-white flex items-center justify-center`}>
                                                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                                             <path d="M22 2L11 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                                                             <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />

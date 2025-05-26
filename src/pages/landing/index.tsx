@@ -9,7 +9,6 @@ import { useUser } from '@/context/UserContext';
 import { loadStripe } from '@stripe/stripe-js';
 
 // Lazy load components that are below the fold
-const Hero3DScene = lazy(() => import('@/components/ui/hero-3d-scene').then(module => ({ default: module.Hero3DScene })));
 const Spotlight = lazy(() => import('@/components/ui/spotlight').then(module => ({ default: module.Spotlight })));
 
 const stripePromise = loadStripe('pk_test_51QCEQyP8UcLxbKnCXzg48ysRmhBHDnf4N4gzPtBNpc8Hmnk9dtlt4HGdv92JLjRgw57UHqT6EQUHli5yETB9Gbro00bCBEQ8UT');
@@ -125,41 +124,6 @@ const sparkleVariants = {
     }
 };
 
-// Optimized floating particles
-const FloatingParticles = () => {
-    const prefersReducedMotion = useReducedMotion();
-    const particles = Array.from({ length: 8 }, (_, i) => i); // Reduced from 20 to 8
-
-    if (prefersReducedMotion) return null;
-
-    return (
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            {particles.map((particle) => (
-                <motion.div
-                    key={particle}
-                    className="absolute w-1 h-1 bg-blue-400 rounded-full will-change-transform"
-                    style={{
-                        translateZ: 0,
-                        left: `${Math.random() * 100}%`,
-                        top: `${Math.random() * 100}%`,
-                    }}
-                    initial={{ y: 0, opacity: 0 }}
-                    animate={{
-                        y: -100,
-                        opacity: [0, 1, 0],
-                    }}
-                    transition={{
-                        duration: Math.random() * 2 + 2,
-                        repeat: Infinity,
-                        delay: Math.random() * 2,
-                        ease: "linear"
-                    }}
-                />
-            ))}
-        </div>
-    );
-};
-
 interface User {
     name?: string | null;
     email?: string | null;
@@ -167,13 +131,13 @@ interface User {
     id?: string | null;
 }
 
-interface Organization {
-    id: string;
-    name: string;
-    subscription_tier: string;
-    created_at: string;
-    updated_at: string;
-}
+// interface Organization {
+//     id: string;
+//     name: string;
+//     subscription_tier: string;
+//     created_at: string;
+//     updated_at: string;
+// }
 
 // Create a separate PricingCard component for better performance
 const PricingCard = memo(({ plan, loading, handleSubscribe, isAuthenticated, user }: {
@@ -315,37 +279,6 @@ export default function LandingPage() {
         navigate('/');
     };
 
-    const createOrganization = async (plan: PricingPlan) => {
-        try {
-            if (!user?.id) {
-                throw new Error('User ID is required to create organization');
-            }
-
-            const response = await fetch('http://127.0.0.1:8000/organization/register', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    name: `${user?.name}'s Organization`,
-                    subscription_tier: plan.id,
-                    user_id: user.id  // Add user ID to the request
-                }),
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to create organization');
-            }
-
-            const organizationData: Organization = await response.json();
-            localStorage.setItem('organization', JSON.stringify(organizationData));
-            return organizationData;
-        } catch (error) {
-            console.error('Error creating organization:', error);
-            throw error;
-        }
-    };
-
     const handleSubscribe = async (plan: PricingPlan) => {
         if (!isAuthenticated) {
             navigate('/sign-in', {
@@ -365,6 +298,48 @@ export default function LandingPage() {
         setLoading(plan.id);
 
         try {
+            // First check if user has an existing organization
+            const orgCheckResponse = await fetch(`http://localhost:8000/organization/user/${user?.id}`);
+            let organizationData;
+
+            if (orgCheckResponse.ok) {
+                // User has an existing organization
+                organizationData = await orgCheckResponse.json();
+                console.log('Found existing organization:', organizationData);
+            } else if (orgCheckResponse.status === 500 || orgCheckResponse.status === 400) {
+                // Create new organization only if none exists
+                const createOrgResponse = await fetch('http://localhost:8000/organization/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        name: `${user?.name}'s Organization`,
+                        user_id: user?.id,
+                        subscription_tier: plan.id
+                    }),
+                });
+
+                if (!createOrgResponse.ok) {
+                    const errorData = await createOrgResponse.json();
+                    throw new Error(errorData.detail || 'Failed to create organization');
+                }
+
+                const createOrgData = await createOrgResponse.json();
+                organizationData = createOrgData.organization;
+                console.log('Created new organization:', organizationData);
+            } else {
+                throw new Error('Failed to check organization status');
+            }
+
+            if (!organizationData?.id && !organizationData?._id) {
+                throw new Error('No organization ID received');
+            }
+
+            // Store organization data
+            // localStorage.setItem('organization', JSON.stringify(organizationData));
+
+            // Create checkout session
             const response = await fetch('http://localhost:8000/payment/create-checkout-session', {
                 method: 'POST',
                 headers: {
@@ -373,9 +348,10 @@ export default function LandingPage() {
                 body: JSON.stringify({
                     priceId: plan.stripePriceId,
                     successUrl: window.location.origin + '/payment-success',
-                    cancelUrl: window.location.origin + '/',
-                    customerEmail: user?.email || undefined,
-                    planId: plan.id // Pass the plan ID to use it after payment success
+                    cancelUrl: window.location.origin + '/landing',
+                    customerEmail: user?.email,
+                    planId: plan.id,
+                    organizationId: organizationData.id || organizationData._id
                 }),
             });
 
@@ -390,9 +366,7 @@ export default function LandingPage() {
                 throw new Error('No session ID received from server');
             }
 
-            // Create organization before redirecting to payment
-            await createOrganization(plan);
-
+            // Redirect to Stripe checkout
             const stripe = await stripePromise;
             if (stripe) {
                 const { error } = await stripe.redirectToCheckout({ sessionId });
@@ -418,9 +392,6 @@ export default function LandingPage() {
                     className="fixed inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-gray-900 via-black to-black opacity-50"
                     style={{ willChange: 'opacity' }}
                 />
-
-                {/* Floating particles */}
-                {!prefersReducedMotion && <FloatingParticles />}
 
                 {/* Navigation */}
                 <motion.nav
@@ -501,11 +472,7 @@ export default function LandingPage() {
 
                 {/* Hero Section with optimized animations */}
                 <section className="relative">
-                    <Suspense fallback={null}>
-                        <Hero3DScene />
-                    </Suspense>
-
-                    <div className="absolute inset-0 z-30 flex items-center justify-center">
+                    <div className=" inset-0 pt-36 z-30 flex items-center justify-center">
                         <motion.div
                             style={{ y: y1, translateZ: 0 }}
                             className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"
@@ -537,6 +504,7 @@ export default function LandingPage() {
                                     <span className="text-blue-400 font-semibold">AI-powered assistant</span>.
                                     Automate support, capture leads, and boost sales effortlessly.
                                 </motion.p>
+                                <div className="h-8 sm:h-12" />
                                 <motion.div className="flex flex-col sm:flex-row gap-6 justify-center items-center" variants={staggerContainer}>
                                     <motion.div variants={scaleIn} whileHover={{ scale: 1.05, boxShadow: "0 20px 40px rgba(59, 130, 246, 0.3)" }} whileTap={{ scale: 0.95 }}>
                                         <Button size="lg" className="text-lg px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white border-0 shadow-2xl" onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })}>

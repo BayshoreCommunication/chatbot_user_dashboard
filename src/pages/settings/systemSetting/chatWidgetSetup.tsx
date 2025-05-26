@@ -1,8 +1,14 @@
 import { Button } from '@/components/custom/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import axios from 'axios'
+import { useToast } from '@/components/ui/use-toast'
+import { LoadingSpinner } from '@/components/custom/loading-spinner'
+
+// Add API base URL
+const API_BASE_URL = 'http://localhost:8000'
 
 export function ChatWidgetSetup() {
     const navigate = useNavigate()
@@ -10,6 +16,83 @@ export function ChatWidgetSetup() {
     const [botBehavior, setBotBehavior] = useState('2')
     const [leadCapture, setLeadCapture] = useState(true)
     const [name, setName] = useState('Byewind')
+    const [isUploading, setIsUploading] = useState(false)
+    const [avatarUrl, setAvatarUrl] = useState('')
+    const [isLoading, setIsLoading] = useState(true)
+    const fileInputRef = useRef<HTMLInputElement>(null)
+    const { toast } = useToast()
+
+    // Add state to track initial values
+    const [initialValues, setInitialValues] = useState({
+        name: '',
+        selectedColor: '',
+        leadCapture: true,
+        botBehavior: '',
+        avatarUrl: ''
+    })
+
+    // Add state to track if any changes were made
+    const [hasChanges, setHasChanges] = useState(false)
+
+    useEffect(() => {
+        const loadSettings = async () => {
+            try {
+                const response = await axios.get(`${API_BASE_URL}/api/chatbot/settings`, {
+                    headers: {
+                        'X-API-Key': 'org_sk_b6aca9aae10b18f64b82c4e139f55c40'
+                    }
+                })
+
+                if (response.data.status === 'success') {
+                    const settings = response.data.settings
+                    setName(settings.name)
+                    setSelectedColor(settings.selectedColor)
+                    setLeadCapture(settings.leadCapture)
+                    setBotBehavior(settings.botBehavior)
+                    if (settings.avatarUrl) {
+                        setAvatarUrl(settings.avatarUrl)
+                    }
+
+                    // Store initial values
+                    setInitialValues({
+                        name: settings.name,
+                        selectedColor: settings.selectedColor,
+                        leadCapture: settings.leadCapture,
+                        botBehavior: settings.botBehavior,
+                        avatarUrl: settings.avatarUrl || ''
+                    })
+                }
+            } catch (error) {
+                console.error('Load settings error:', error)
+                toast({
+                    title: 'Error',
+                    description: 'Failed to load settings',
+                    variant: 'destructive'
+                })
+            } finally {
+                setIsLoading(false)
+            }
+        }
+
+        loadSettings()
+    }, [])
+
+    // Add effect to check for changes
+    useEffect(() => {
+        const currentValues = {
+            name,
+            selectedColor,
+            leadCapture,
+            botBehavior,
+            avatarUrl
+        }
+
+        const hasAnyChanges = Object.keys(initialValues).some(key => {
+            return initialValues[key as keyof typeof initialValues] !== currentValues[key as keyof typeof currentValues]
+        })
+
+        setHasChanges(hasAnyChanges)
+    }, [name, selectedColor, leadCapture, botBehavior, avatarUrl, initialValues])
 
     const colorOptions = [
         { value: 'black', bgClass: 'bg-black' },
@@ -26,19 +109,102 @@ export function ChatWidgetSetup() {
         { value: '15', label: '15 Sec' },
     ]
 
-    const handleNext = () => {
-        // Save settings and navigate to next step
-        console.log('Chat widget settings saved:', {
-            name,
-            selectedColor,
-            leadCapture,
-            botBehavior
+    const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0]
+        if (!file) return
+
+        console.log('Selected file:', {
+            name: file.name,
+            type: file.type,
+            size: file.size
         })
 
-        // You would typically save these settings to your backend here
+        setIsUploading(true)
+        const formData = new FormData()
+        formData.append('file', file)
 
-        // Navigate to the installation page
-        navigate('/dashboard/chat-widget-install')
+        try {
+            console.log('Sending request to:', `${API_BASE_URL}/api/upload/upload-avatar`)
+            const response = await axios.post(`${API_BASE_URL}/api/upload/upload-avatar`, formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                    'X-API-Key': 'org_sk_b6aca9aae10b18f64b82c4e139f55c40'
+                }
+            })
+
+            console.log('Upload response:', response.data)
+
+            if (response.data.status === 'success') {
+                // Use the full URL directly from the server response
+                setAvatarUrl(response.data.url)
+                toast({
+                    title: 'Success',
+                    description: 'Avatar uploaded successfully',
+                })
+            }
+        } catch (error) {
+            console.error('Upload error:', error)
+            // Log more detailed error information
+            if (axios.isAxiosError(error)) {
+                console.error('Response data:', error.response?.data)
+                console.error('Response status:', error.response?.status)
+                console.error('Response headers:', error.response?.headers)
+            }
+            toast({
+                title: 'Error',
+                description: 'Failed to upload avatar',
+                variant: 'destructive'
+            })
+        } finally {
+            setIsUploading(false)
+        }
+    }
+
+    const handleNext = async () => {
+        // If no changes, navigate directly without making API call
+        if (!hasChanges) {
+            navigate('/dashboard/chat-widget-install')
+            return
+        }
+
+        try {
+            // Save settings to MongoDB only if there are changes
+            const response = await axios.post(`${API_BASE_URL}/api/chatbot/save-settings`, {
+                name,
+                selectedColor,
+                leadCapture,
+                botBehavior,
+                avatarUrl
+            }, {
+                headers: {
+                    'X-API-Key': 'org_sk_b6aca9aae10b18f64b82c4e139f55c40'
+                }
+            })
+
+            if (response.data.status === 'success') {
+                // Navigate to the installation page
+                navigate('/dashboard/chat-widget-install')
+            }
+        } catch (error) {
+            console.error('Save settings error:', error)
+            toast({
+                title: 'Error',
+                description: 'Failed to save settings',
+                variant: 'destructive'
+            })
+        }
+    }
+
+      // Update loading state to use LoadingSpinner
+      if (isLoading) {
+        return (
+            <div className="w-full h-[calc(100vh-120px)] flex items-center justify-center">
+                <LoadingSpinner
+                    size="lg"
+                    text="Loading settings..."
+                />
+            </div>
+        )
     }
 
     return (
@@ -107,13 +273,22 @@ export function ChatWidgetSetup() {
                                                         )}
                                                     </button>
                                                 ))}
-                                                <button className="w-8 h-8 rounded-full border border-dashed border-gray-300 flex items-center justify-center">
-                                                    <span className="text-gray-400">...</span>
-                                                </button>
+                                                <Button
+                                                    variant="outline"
+                                                    className="text-sm"
+                                                    onClick={() => fileInputRef.current?.click()}
+                                                    disabled={isUploading}
+                                                >
+                                                    {isUploading ? 'Uploading...' : 'Upload'}
+                                                </Button>
                                             </div>
-                                            <Button variant="outline" className="text-sm">
-                                                Upload
-                                            </Button>
+                                            <input
+                                                type="file"
+                                                ref={fileInputRef}
+                                                className="hidden"
+                                                accept="image/*"
+                                                onChange={handleFileUpload}
+                                            />
                                         </div>
                                     </div>
 
@@ -133,33 +308,27 @@ export function ChatWidgetSetup() {
                                         </div>
                                     </div>
 
-                                    {/* Chat Bot Behaviour */}
+                                    {/* Bot Behavior */}
                                     <div className="space-y-2">
                                         <label className="block text-sm font-medium">
-                                            Chat Bot Behaviour
+                                            Bot Response Delay
                                         </label>
-                                        <div className="flex gap-3 mt-2">
+                                        <div className="flex gap-2">
                                             {botBehaviorOptions.map((option) => (
-                                                <label key={option.value} className="flex items-center space-x-2 cursor-pointer">
-                                                    <div className="relative">
-                                                        <input
-                                                            type="radio"
-                                                            value={option.value}
-                                                            checked={botBehavior === option.value}
-                                                            onChange={() => setBotBehavior(option.value)}
-                                                            className="sr-only"
-                                                        />
-                                                        <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${botBehavior === option.value ? 'border-black' : 'border-gray-300'}`}>
-                                                            {botBehavior === option.value && (
-                                                                <div className="w-3 h-3 rounded-full bg-black"></div>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                    <span>{option.label}</span>
-                                                </label>
+                                                <button
+                                                    key={option.value}
+                                                    onClick={() => setBotBehavior(option.value)}
+                                                    className={`px-3 py-1 rounded-md text-sm ${botBehavior === option.value
+                                                        ? 'bg-black text-white'
+                                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                                        }`}
+                                                >
+                                                    {option.label}
+                                                </button>
                                             ))}
                                         </div>
                                     </div>
+
                                 </div>
                             </Card>
                         </div>
@@ -173,10 +342,14 @@ export function ChatWidgetSetup() {
                                         <div className={`p-4 ${selectedColor === 'black' ? 'bg-black' : `bg-${selectedColor}-500`} text-white`}>
                                             <div className="flex items-center">
                                                 <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
-                                                    <span className="text-black text-xs font-bold">BA</span>
+                                                    {avatarUrl ? (
+                                                        <img src={avatarUrl} alt="Avatar" className="w-8 h-8 rounded-full object-cover" />
+                                                    ) : (
+                                                        <span className="text-black text-xs font-bold">BA</span>
+                                                    )}
                                                 </div>
                                                 <div className="ml-2">
-                                                    <p className="text-sm">Chat with <span className="font-bold">Bay AI</span></p>
+                                                    <p className="text-sm"><span className="font-bold">{name}</span></p>
                                                     <p className="text-xs opacity-70">online conversation</p>
                                                 </div>
                                             </div>
@@ -185,7 +358,7 @@ export function ChatWidgetSetup() {
                                         {/* Chat content */}
                                         <div className="p-4 h-[350px] flex flex-col justify-end">
                                             <div className="bg-gray-100 rounded-lg p-3 max-w-[75%] mb-2">
-                                                <p className="text-sm">Hi yes, David have found it, ask our concierge <span className="font-bold text-lg">👋</span></p>
+                                                <p className="text-sm text-black">Hi yes, David have found it, ask our concierge <span className="font-bold text-lg">👋</span></p>
                                             </div>
                                             <div className="flex justify-end">
                                                 <div className="bg-gray-800 text-white rounded-lg p-3 max-w-[75%]">
