@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { cn } from '@/lib/utils'
+import { Toaster } from "sonner";
 
 const LayoutContext = React.createContext<{
   offset: number
@@ -38,6 +39,7 @@ const Layout = ({ className, fixed = false, ...props }: LayoutProps) => {
         )}
         {...props}
       />
+      <Toaster position="top-right" />
     </LayoutContext.Provider>
   )
 }

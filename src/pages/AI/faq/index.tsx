@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/custom/button";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
@@ -9,92 +9,264 @@ import { useNavigate } from "react-router-dom";
 import { CheckIcon, ChevronDownIcon, EditIcon, UserIcon } from "lucide-react";
 import { useChatWidgetSettings } from "@/hooks/useChatWidgetSettings";
 import { LoadingSpinner } from "@/components/custom/loading-spinner";
+import { toast } from "sonner";
+import { useApiKey } from "@/hooks/useApiKey";
+import axios from "axios";
 
 interface FAQ {
-    id: number;
+    id?: string;
     question: string;
     response: string;
-    persistentMenu: boolean;
+    is_active: boolean;
+    persistent_menu: boolean;
+    created_at?: string;
+    updated_at?: string;
 }
 
 export default function FAQAutomation() {
     const navigate = useNavigate();
     const { data: settings, isLoading: isSettingsLoading } = useChatWidgetSettings();
+    const { apiKey } = useApiKey();
     const [isEnabled, setIsEnabled] = useState(true);
-    const [faqs, setFaqs] = useState<FAQ[]>([
-        {
-            id: 1,
-            question: "Question 1",
-            response: "Hi, thanks for contacting us. We've received your message and appreciate your getting in touch.",
-            persistentMenu: false
-        }
-    ]);
-    const [expandedQuestionId, setExpandedQuestionId] = useState<number | null>(null);
+    const [faqs, setFaqs] = useState<FAQ[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [expandedQuestionId, setExpandedQuestionId] = useState<string | null>(null);
     const [showPersonalizeModal, setShowPersonalizeModal] = useState(false);
     const [showSuccessModal, setShowSuccessModal] = useState(false);
 
-    const handleQuestionChange = (id: number, value: string) => {
+    // Helper function to get character count
+    const getCharCount = (text: string): number => {
+        return text?.length || 0;
+    };
+
+    // Fetch FAQs on component mount
+    useEffect(() => {
+        fetchFAQs();
+    }, [apiKey]);
+
+    const fetchFAQs = async () => {
+        try {
+            const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/faq/list`, {
+                headers: {
+                    'X-API-Key': apiKey || '',
+                }
+            });
+            if (response.data) {
+                setFaqs(response.data);
+                setIsLoading(false);
+            }
+        } catch (error) {
+            console.error('Error fetching FAQs:', error);
+            toast.error('Failed to load FAQs');
+            setIsLoading(false);
+        }
+    };
+
+    const handleQuestionChange = (id: string, value: string) => {
         setFaqs(faqs.map(faq =>
             faq.id === id ? { ...faq, question: value } : faq
         ));
     };
 
-    const handleResponseChange = (id: number, value: string) => {
+    const handleResponseChange = (id: string, value: string) => {
         setFaqs(faqs.map(faq =>
             faq.id === id ? { ...faq, response: value } : faq
         ));
     };
 
-    const togglePersistentMenu = (id: number) => {
-        setFaqs(faqs.map(faq =>
-            faq.id === id ? { ...faq, persistentMenu: !faq.persistentMenu } : faq
-        ));
-    };
+    const togglePersistentMenu = async (id: string) => {
+        const faq = faqs.find(f => f.id === id);
+        if (!faq) return;
 
-    const toggleQuestionExpand = (id: number) => {
-        if (expandedQuestionId === id) {
-            setExpandedQuestionId(null);
-        } else {
-            setExpandedQuestionId(id);
+        try {
+            const response = await axios.put(
+                `${import.meta.env.VITE_API_URL}/api/faq/${id}`,
+                {
+                    ...faq,
+                    persistent_menu: !faq.persistent_menu
+                },
+                {
+                    headers: {
+                        'X-API-Key': apiKey || '',
+                    }
+                }
+            );
+
+            if (response.data) {
+                setFaqs(faqs.map(f =>
+                    f.id === id ? { ...f, persistent_menu: response.data.persistent_menu } : f
+                ));
+                toast.success('FAQ updated successfully');
+            }
+        } catch (error) {
+            console.error('Error updating FAQ:', error);
+            toast.error('Failed to update FAQ');
         }
     };
 
-    const deleteQuestion = (id: number) => {
-        setFaqs(faqs.filter(faq => faq.id !== id));
-        if (expandedQuestionId === id) {
-            setExpandedQuestionId(null);
+    const toggleQuestionExpand = (id: string) => {
+        setExpandedQuestionId(expandedQuestionId === id ? null : id);
+    };
+
+    const deleteQuestion = async (id: string) => {
+        try {
+            const response = await axios.delete(
+                `${import.meta.env.VITE_API_URL}/api/faq/${id}`,
+                {
+                    headers: {
+                        'X-API-Key': apiKey || '',
+                    }
+                }
+            );
+
+            if (response.data?.status === 'success') {
+                setFaqs(faqs.filter(faq => faq.id !== id));
+                if (expandedQuestionId === id) {
+                    setExpandedQuestionId(null);
+                }
+                toast.success('FAQ deleted successfully');
+            }
+        } catch (error) {
+            console.error('Error deleting FAQ:', error);
+            toast.error('Failed to delete FAQ');
         }
     };
 
-    const addQuestion = () => {
-        const newId = Math.max(0, ...faqs.map(faq => faq.id)) + 1;
+    const addQuestion = async () => {
         const newFaq = {
-            id: newId,
-            question: `Question ${newId}`,
+            question: "New Question",
             response: "Enter your response here...",
-            persistentMenu: false
+            is_active: true,
+            persistent_menu: false
         };
-        setFaqs([...faqs, newFaq]);
+
+        try {
+            const response = await axios.post(
+                `${import.meta.env.VITE_API_URL}/api/faq/create`,
+                newFaq,
+                {
+                    headers: {
+                        'X-API-Key': apiKey || '',
+                    }
+                }
+            );
+
+            if (response.data) {
+                setFaqs([...faqs, response.data]);
+                toast.success('New FAQ created successfully');
+            }
+        } catch (error) {
+            console.error('Error creating FAQ:', error);
+            toast.error('Failed to create new FAQ');
+        }
     };
 
-    const handleSave = () => {
-        setShowSuccessModal(true);
-        setTimeout(() => {
-            navigate("/dashboard/train-ai");
-        }, 1500);
+    const handleSave = async () => {
+        let hasError = false;
+
+        // Update all expanded FAQs
+        for (const faq of faqs) {
+            if (faq.id && expandedQuestionId === faq.id) {
+                try {
+                    const response = await axios.put(
+                        `${import.meta.env.VITE_API_URL}/api/faq/${faq.id}`,
+                        {
+                            question: faq.question,
+                            response: faq.response,
+                            is_active: faq.is_active,
+                            persistent_menu: faq.persistent_menu
+                        },
+                        {
+                            headers: {
+                                'X-API-Key': apiKey || '',
+                            }
+                        }
+                    );
+
+                    if (!response.data) throw new Error('Failed to update FAQ');
+                } catch (error) {
+                    console.error('Error updating FAQ:', error);
+                    hasError = true;
+                }
+            }
+        }
+
+        if (hasError) {
+            toast.error('Some FAQs failed to update');
+        } else {
+            setShowSuccessModal(true);
+            toast.success('All FAQs saved successfully');
+            setTimeout(() => {
+                setShowSuccessModal(false);
+                navigate("/dashboard/train-ai");
+            }, 1500);
+        }
     };
 
-    const getCharCount = (text: string) => {
-        return text.length;
+    const toggleFaqActive = async (id: string) => {
+        // Find the current FAQ
+        const currentFaq = faqs.find(faq => faq.id === id);
+        if (!currentFaq) return;
+
+        // Store the current state
+        const currentState = currentFaq.is_active;
+
+        try {
+            // Optimistically update the UI
+            setFaqs(prevFaqs => prevFaqs.map(faq =>
+                faq.id === id ? { ...faq, is_active: !currentState } : faq
+            ));
+
+            const response = await axios.put(
+                `${import.meta.env.VITE_API_URL}/api/faq/${id}/toggle`,
+                {},
+                {
+                    headers: {
+                        'X-API-Key': apiKey || '',
+                    }
+                }
+            );
+
+            if (!response.data) {
+                // Revert on failure
+                setFaqs(prevFaqs => prevFaqs.map(faq =>
+                    faq.id === id ? { ...faq, is_active: currentState } : faq
+                ));
+                throw new Error('Failed to update FAQ status');
+            }
+
+            toast.success('FAQ status updated successfully');
+        } catch (error) {
+            // Revert on error
+            setFaqs(prevFaqs => prevFaqs.map(faq =>
+                faq.id === id ? { ...faq, is_active: currentState } : faq
+            ));
+
+            console.error('Error toggling FAQ status:', error);
+            if (axios.isAxiosError(error)) {
+                if (error.response?.status === 404) {
+                    toast.error('FAQ not found. Please refresh the page.');
+                } else if (error.response?.status === 400) {
+                    toast.error('Invalid FAQ ID format.');
+                } else {
+                    toast.error(error.response?.data?.detail || 'Failed to update FAQ status');
+                }
+            } else {
+                toast.error('An unexpected error occurred');
+            }
+
+            // Refresh the FAQs list to ensure UI is in sync with server
+            await fetchFAQs();
+        }
     };
 
     // Show loading spinner while settings are loading
-    if (isSettingsLoading) {
+    if (isSettingsLoading || isLoading) {
         return (
             <div className="w-full h-[calc(100vh-120px)] flex items-center justify-center">
                 <LoadingSpinner
                     size="lg"
-                    text="Loading preview..."
+                    text="Loading FAQs..."
                 />
             </div>
         );
@@ -136,20 +308,25 @@ export default function FAQAutomation() {
                                 <div key={faq.id} className={`border rounded-lg overflow-hidden ${expandedQuestionId === faq.id ? 'border-gray-300' : ''}`}>
                                     <div
                                         className={`p-4 cursor-pointer ${expandedQuestionId === faq.id ? 'bg-gray-100 text-gray-900' : ''}`}
-                                        onClick={() => toggleQuestionExpand(faq.id)}
+                                        onClick={() => toggleQuestionExpand(faq.id!)}
                                     >
                                         <div className="flex items-center justify-between">
                                             <div className="flex items-center">
                                                 <div className={`flex h-8 w-8 items-center justify-center rounded-full ${expandedQuestionId === faq.id ? 'bg-gray-200 text-gray-900' : 'bg-gray-100'} mr-2`}>
                                                     <span className="text-sm">Aa</span>
                                                 </div>
-                                                <h4 className="font-medium">Question {faq.id}</h4>
+                                                <h4 className="font-medium">{faq.question}</h4>
                                             </div>
                                             <div className="flex items-center">
+                                                <Switch
+                                                    checked={faq.is_active}
+                                                    onCheckedChange={() => toggleFaqActive(faq.id!)}
+                                                    className="mr-2"
+                                                />
                                                 <button
                                                     onClick={(e) => {
                                                         e.stopPropagation();
-                                                        toggleQuestionExpand(faq.id);
+                                                        toggleQuestionExpand(faq.id!);
                                                     }}
                                                     className={`h-8 w-8 flex items-center justify-center rounded-full ${expandedQuestionId === faq.id ? 'text-gray-700' : 'text-gray-400'}`}
                                                 >
@@ -164,13 +341,13 @@ export default function FAQAutomation() {
                                         <div className="p-4 pt-0 border-t bg-gray-100 text-gray-900">
                                             <div className="space-y-4">
                                                 <div className="space-y-2">
-                                                    <Label htmlFor={`question-${faq.id}`} className="font-medium">Question {faq.id}</Label>
+                                                    <Label htmlFor={`question-${faq.id}`} className="font-medium">Question</Label>
                                                     <div className="relative bg-white rounded-md">
                                                         <Input
                                                             id={`question-${faq.id}`}
                                                             placeholder="Enter your question here"
                                                             value={faq.question}
-                                                            onChange={(e) => handleQuestionChange(faq.id, e.target.value)}
+                                                            onChange={(e) => handleQuestionChange(faq.id!, e.target.value)}
                                                             className="pr-16 border-gray-300 text-gray-900"
                                                         />
                                                         <div className="absolute right-3 top-2.5 text-sm text-gray-500">
@@ -186,7 +363,7 @@ export default function FAQAutomation() {
                                                             id={`response-${faq.id}`}
                                                             placeholder="Type your response here"
                                                             value={faq.response}
-                                                            onChange={(e) => handleResponseChange(faq.id, e.target.value)}
+                                                            onChange={(e) => handleResponseChange(faq.id!, e.target.value)}
                                                             className="min-h-32 resize-none pr-16 border-gray-300 text-gray-900"
                                                         />
                                                         <div className="absolute bottom-3 right-3 text-sm text-gray-500">
@@ -206,8 +383,8 @@ export default function FAQAutomation() {
                                                 <div className="flex items-center mt-4">
                                                     <Switch
                                                         id={`persistent-menu-${faq.id}`}
-                                                        checked={faq.persistentMenu}
-                                                        onCheckedChange={() => togglePersistentMenu(faq.id)}
+                                                        checked={faq.persistent_menu}
+                                                        onCheckedChange={() => togglePersistentMenu(faq.id!)}
                                                         className="mr-3"
                                                     />
                                                     <div>
@@ -218,7 +395,7 @@ export default function FAQAutomation() {
 
                                                 <Button
                                                     variant="ghost"
-                                                    onClick={() => deleteQuestion(faq.id)}
+                                                    onClick={() => deleteQuestion(faq.id!)}
                                                     className="text-red-400 hover:text-red-300 hover:bg-black mt-4 w-full justify-center border border-gray-700"
                                                 >
                                                     <span className="flex items-center">
@@ -268,6 +445,15 @@ export default function FAQAutomation() {
 
                                     {/* Chat content */}
                                     <div className="p-4 min-h-[350px] max-h-[350px] overflow-y-auto flex flex-col justify-end">
+                                        {/* Show active FAQs as suggestions */}
+                                        <div className="space-y-2 mb-4">
+                                            {faqs.filter(faq => faq.is_active).map((faq) => (
+                                                <div key={faq.id} className="bg-gray-100 text-sm text-black p-2 rounded-lg cursor-pointer hover:bg-gray-200">
+                                                    {faq.question}
+                                                </div>
+                                            ))}
+                                        </div>
+
                                         <div className="bg-gray-100 rounded-lg p-3 max-w-[75%] mb-2">
                                             <p className="text-sm text-black">Hi, yes, David have found it, ask our concierge 👋</p>
                                         </div>

@@ -31,7 +31,7 @@ export default function InstantReply() {
     useEffect(() => {
         const loadInstantReply = async () => {
             try {
-                const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/train-ai/instant-reply`, {
+                const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/instant-reply`, {
                     headers: {
                         'X-API-Key': apiKey
                     }
@@ -60,7 +60,7 @@ export default function InstantReply() {
         try {
             setIsSaving(true);
 
-            await axios.post(`${import.meta.env.VITE_API_URL}/api/train-ai/instant-reply`,
+            await axios.post(`${import.meta.env.VITE_API_URL}/api/instant-reply`,
                 {
                     message,
                     isActive: isEnabled
