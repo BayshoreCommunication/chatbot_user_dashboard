@@ -25,51 +25,49 @@ interface PricingPlan {
 
 const pricingPlans: PricingPlan[] = [
     {
-        id: 'starter',
-        name: 'Starter',
-        price: 29,
-        description: 'Perfect for small businesses getting started',
+        id: 'monthly',
+        name: 'Monthly',
+        price: 49,
+        description: 'Perfect for trying out our service',
         features: [
             'AI-powered chatbot',
-            'Up to 1,000 conversations/month',
             'Basic analytics',
             'Email support',
-            'Standard integrations'
+            'Standard integrations',
+            'Up to 1,000 conversations/month'
         ],
-        stripePriceId: 'price_starter_test'
+        stripePriceId: 'price_monthly'
     },
     {
-        id: 'professional',
-        name: 'Professional',
-        price: 79,
-        description: 'Ideal for growing businesses',
+        id: 'trial',
+        name: 'Free Trial',
+        price: 0,
+        description: 'Try all features free for 1 month',
         features: [
-            'Everything in Starter',
-            'Up to 10,000 conversations/month',
+            'Everything in Monthly plan',
             'Advanced analytics',
             'Priority support',
             'Custom integrations',
-            'Lead management',
-            'Appointment booking'
+            'Up to 5,000 conversations/month',
+            'Automatic renewal at $49/month'
         ],
         recommended: true,
-        stripePriceId: 'price_professional_test'
+        stripePriceId: 'price_trial'
     },
     {
-        id: 'enterprise',
-        name: 'Enterprise',
-        price: 199,
-        description: 'For large organizations with custom needs',
+        id: 'yearly',
+        name: 'Yearly',
+        price: 499,
+        description: 'Best value for long-term commitment',
         features: [
-            'Everything in Professional',
+            'Everything in Monthly plan',
+            'Save $89 compared to monthly',
             'Unlimited conversations',
             'Custom AI training',
             'Dedicated support',
-            'White-label solution',
-            'Advanced security',
             'API access'
         ],
-        stripePriceId: 'price_enterprise_test'
+        stripePriceId: 'price_yearly'
     }
 ];
 
