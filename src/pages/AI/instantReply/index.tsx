@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/custom/button";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
@@ -8,14 +8,19 @@ import { useNavigate } from "react-router-dom";
 import { CheckIcon } from "lucide-react";
 import { useChatWidgetSettings } from "@/hooks/useChatWidgetSettings";
 import { LoadingSpinner } from "@/components/custom/loading-spinner";
+import axios from "axios";
+import { useApiKey } from "@/hooks/useApiKey";
 
 export default function InstantReply() {
     const [isEnabled, setIsEnabled] = useState(false);
     const [message, setMessage] = useState("Hi, thanks for contacting us. We've received your message and appreciate your getting in touch.");
     const [charCount, setCharCount] = useState(95);
     const [showSuccessModal, setShowSuccessModal] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
     const navigate = useNavigate();
     const { data: settings, isLoading: isSettingsLoading } = useChatWidgetSettings();
+    const { apiKey } = useApiKey();
 
     const handleMessageChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         const newMessage = e.target.value;
@@ -23,16 +28,65 @@ export default function InstantReply() {
         setCharCount(newMessage.length);
     };
 
-    const handleSave = () => {
-        setShowSuccessModal(true);
-        // Automatically navigate to train AI after 1.5s
-        setTimeout(() => {
-            navigate("/dashboard/train-ai");
-        }, 1500);
+    useEffect(() => {
+        const loadInstantReply = async () => {
+            try {
+                const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/train-ai/instant-reply`, {
+                    headers: {
+                        'X-API-Key': apiKey
+                    }
+                });
+
+                if (response.data.status === 'success' && response.data.data) {
+                    setMessage(response.data.data.message || message);
+                    setIsEnabled(response.data.data.isActive);
+                    if (response.data.data.message) {
+                        setCharCount(response.data.data.message.length);
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading instant reply:', error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        if (apiKey) {
+            loadInstantReply();
+        }
+    }, [apiKey]);
+
+    const handleSave = async () => {
+        try {
+            setIsSaving(true);
+
+            await axios.post(`${import.meta.env.VITE_API_URL}/api/train-ai/instant-reply`,
+                {
+                    message,
+                    isActive: isEnabled
+                },
+                {
+                    headers: {
+                        'X-API-Key': apiKey
+                    }
+                }
+            );
+
+            setShowSuccessModal(true);
+            // Automatically navigate to train AI after 1.5s
+            setTimeout(() => {
+                navigate("/dashboard/train-ai");
+            }, 1500);
+        } catch (error) {
+            console.error('Error saving instant reply:', error);
+            // You might want to show an error message to the user here
+        } finally {
+            setIsSaving(false);
+        }
     };
 
-    // Show loading spinner while settings are loading
-    if (isSettingsLoading) {
+    // Show loading spinner while settings or instant reply are loading
+    if (isSettingsLoading || isLoading) {
         return (
             <div className="w-full h-[calc(100vh-120px)] flex items-center justify-center">
                 <LoadingSpinner
@@ -84,6 +138,7 @@ export default function InstantReply() {
                                         value={message}
                                         onChange={handleMessageChange}
                                         className="min-h-32 resize-none pr-16"
+                                        disabled={!isEnabled}
                                     />
                                     <div className="absolute bottom-3 right-3 text-sm text-muted-foreground">
                                         {charCount}/500
@@ -159,8 +214,16 @@ export default function InstantReply() {
                             <Button variant="outline" className="px-6">
                                 Cancel
                             </Button>
-                            <Button className="px-6" onClick={handleSave}>
-                                Save
+                            <Button
+                                className="px-6"
+                                onClick={handleSave}
+                                disabled={isSaving}
+                            >
+                                {isSaving ? (
+                                    <LoadingSpinner size="sm" />
+                                ) : (
+                                    'Save'
+                                )}
                             </Button>
                         </div>
                     </div>
