@@ -1,11 +1,15 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/custom/button";
 import { Input } from "@/components/ui/input";
-import { X, Plus, AlertTriangle, Check } from "lucide-react";
+import { X, Plus, AlertTriangle, Check, Upload } from "lucide-react";
 import ContentSection from "@/pages/settings/components/content-section";
 import { useNavigate } from "react-router-dom";
 import { useChatWidgetSettings } from "@/hooks/useChatWidgetSettings";
 import { LoadingSpinner } from "@/components/custom/loading-spinner";
+import { useApiKey } from "@/hooks/useApiKey";
+import useAxiosPublic from "@/hooks/useAxiosPublic";
+import { toast } from "sonner";
+import { AxiosInstance } from "axios";
 
 interface Website {
     id: string;
@@ -14,33 +18,117 @@ interface Website {
     createdAt: string;
 }
 
+interface Document {
+    id: string;
+    name: string;
+    status: "Used" | "Pending" | "Failed";
+    createdAt: string;
+}
+
+interface UploadHistoryItem {
+    id: string;
+    type: "url" | "pdf" | "text";
+    status: "Used" | "Pending" | "Failed";
+    created_at: string;
+    url?: string;
+    file_name?: string;
+}
+
 export default function TrainAiPage() {
     const navigate = useNavigate();
     const { data: settings, isLoading: isSettingsLoading } = useChatWidgetSettings();
-
-
-    console.log(settings);
+    const { apiKey } = useApiKey() as { apiKey: string };
+    const axiosPublic = useAxiosPublic() as AxiosInstance;
 
     // Page state management
     const [currentStep, setCurrentStep] = useState<'initial' | 'main'>('initial');
+    const [isLoadingHistory, setIsLoadingHistory] = useState(true);
+    const [isLoadingWebsites, setIsLoadingWebsites] = useState(false);
+    const [isLoadingDocuments, setIsLoadingDocuments] = useState(false);
 
     // Modal state management
     const [showRestrictionsModal, setShowRestrictionsModal] = useState(false);
     const [showUrlModal, setShowUrlModal] = useState(false);
+    const [showPdfModal, setShowPdfModal] = useState(false);
     const [showActivationModal, setShowActivationModal] = useState(false);
 
     // Form state
-    const [urlInputs, setUrlInputs] = useState<string[]>(["", "", "", ""]);
-    const [websites, setWebsites] = useState<Website[]>([
-        { id: "1", url: "dresseddelights.com/contact", status: "Used", createdAt: "Apr 1, 11:59 AM" },
-        { id: "2", url: "dresseddelights.com/contact", status: "Used", createdAt: "Apr 1, 11:59 AM" },
-        { id: "3", url: "dresseddelights.com/contact", status: "Used", createdAt: "Apr 1, 11:59 AM" },
-        { id: "4", url: "dresseddelights.com/contact", status: "Used", createdAt: "Apr 1, 11:59 AM" },
-        { id: "5", url: "dresseddelights.com/contact", status: "Used", createdAt: "Apr 1, 11:59 AM" },
-        { id: "6", url: "dresseddelights.com/contact", status: "Used", createdAt: "Apr 1, 11:59 AM" },
-        { id: "7", url: "dresseddelights.com/contact", status: "Used", createdAt: "Apr 1, 11:59 AM" },
-    ]);
+    const [urlInputs, setUrlInputs] = useState<string[]>([""]);
+    const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+    const [isUploading, setIsUploading] = useState(false);
+    const [websites, setWebsites] = useState<Website[]>([]);
+    const [documents, setDocuments] = useState<Document[]>([]);
     const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+
+    // Check for previous uploads when component mounts
+    useEffect(() => {
+        const checkPreviousUploads = async () => {
+            try {
+                setIsLoadingWebsites(true);
+                setIsLoadingDocuments(true);
+
+                // First check if user has previous uploads
+                const hasPreviousResponse = await axiosPublic.get('/api/chatbot/has_previous_uploads', {
+                    headers: {
+                        'X-API-Key': apiKey,
+                    }
+                });
+
+                if (hasPreviousResponse.data.has_previous_uploads) {
+                    setCurrentStep('main');
+                }
+
+                // Get upload history
+                const historyResponse = await axiosPublic.get('/api/chatbot/upload_history', {
+                    headers: {
+                        'X-API-Key': apiKey,
+                    }
+                });
+
+                // Convert history items to website/document format
+                const websites: Website[] = [];
+                const documents: Document[] = [];
+
+                historyResponse.data.forEach((item: UploadHistoryItem) => {
+                    const historyItem = {
+                        id: item.id,
+                        status: item.status,
+                        createdAt: new Date(item.created_at).toLocaleString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            hour: 'numeric',
+                            minute: 'numeric',
+                            hour12: true
+                        })
+                    };
+
+                    if (item.type === 'url' && item.url) {
+                        websites.push({
+                            ...historyItem,
+                            url: item.url
+                        });
+                    } else if (item.type === 'pdf' && item.file_name) {
+                        documents.push({
+                            ...historyItem,
+                            name: item.file_name
+                        });
+                    }
+                });
+
+                setWebsites(websites);
+                setDocuments(documents);
+            } catch (error) {
+                console.error('Error checking previous uploads:', error);
+                toast.error('Failed to load upload history');
+            } finally {
+                setIsLoadingHistory(false);
+                setIsLoadingWebsites(false);
+                setIsLoadingDocuments(false);
+            }
+        };
+
+        checkPreviousUploads();
+    }, [apiKey, axiosPublic]);
 
     const handleStartTraining = () => {
         setShowRestrictionsModal(true);
@@ -61,39 +149,126 @@ export default function TrainAiPage() {
         setShowUrlModal(true);
     };
 
-    const handleUrlSubmit = () => {
-        // Filter out empty URLs
+    const handleAddDocument = () => {
+        setShowPdfModal(true);
+    };
+
+    const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const files = event.target.files;
+        if (files) {
+            const pdfFiles = Array.from(files).filter(file => file.type === 'application/pdf');
+            setSelectedFiles(prevFiles => [...prevFiles, ...pdfFiles]);
+        }
+    };
+
+    const handleRemoveFile = (index: number) => {
+        setSelectedFiles(files => files.filter((_, i) => i !== index));
+    };
+
+    const handleUrlSubmit = async () => {
         const validUrls = urlInputs.filter(url => url.trim() !== "");
+        if (validUrls.length === 0) return;
 
-        if (validUrls.length > 0) {
-            const newWebsites = validUrls.map((url, index) => ({
-                id: (websites.length + index + 1).toString(),
-                url: url,
-                status: "Used" as const,
-                createdAt: new Date().toLocaleString('en-US', {
-                    month: 'short',
-                    day: 'numeric',
-                    hour: 'numeric',
-                    minute: 'numeric',
-                    hour12: true
-                })
-            }));
+        setIsUploading(true);
+        try {
+            for (const url of validUrls) {
+                const formData = new FormData();
+                formData.append('url', url);
 
-            setWebsites([...websites, ...newWebsites]);
+                const response = await axiosPublic.post('/api/chatbot/upload_document', formData, {
+                    headers: {
+                        'X-API-Key': apiKey,
+                    }
+                });
+
+                if (response.data.status === 'success') {
+                    setWebsites(prev => [...prev, {
+                        id: response.data.id || Date.now().toString(),
+                        url: url,
+                        status: "Used",
+                        createdAt: new Date().toLocaleString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            hour: 'numeric',
+                            minute: 'numeric',
+                            hour12: true
+                        })
+                    }]);
+                }
+            }
+
             setUrlInputs(["", "", "", ""]);
             setShowUrlModal(false);
             setCurrentStep('main');
             setShowSuccessMessage(true);
+            toast.success('URLs uploaded successfully');
 
-            // Hide success message after 3 seconds
             setTimeout(() => {
                 setShowSuccessMessage(false);
             }, 3000);
+        } catch (error) {
+            console.error('Error uploading URLs:', error);
+            toast.error('Failed to upload URLs');
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
+    const handlePdfSubmit = async () => {
+        if (selectedFiles.length === 0) return;
+
+        setIsUploading(true);
+        try {
+            for (const file of selectedFiles) {
+                const formData = new FormData();
+                formData.append('file', file);
+
+                const response = await axiosPublic.post('/api/chatbot/upload_document', formData, {
+                    headers: {
+                        'X-API-Key': apiKey,
+                        'Content-Type': 'multipart/form-data'
+                    }
+                });
+
+                if (response.data.status === 'success') {
+                    setDocuments(prev => [...prev, {
+                        id: response.data.id || Date.now().toString(),
+                        name: file.name,
+                        status: "Used",
+                        createdAt: new Date().toLocaleString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            hour: 'numeric',
+                            minute: 'numeric',
+                            hour12: true
+                        })
+                    }]);
+                }
+            }
+
+            setSelectedFiles([]);
+            setShowPdfModal(false);
+            setCurrentStep('main');
+            setShowSuccessMessage(true);
+            toast.success('PDFs uploaded successfully');
+
+            setTimeout(() => {
+                setShowSuccessMessage(false);
+            }, 3000);
+        } catch (error) {
+            console.error('Error uploading PDFs:', error);
+            toast.error('Failed to upload PDFs');
+        } finally {
+            setIsUploading(false);
         }
     };
 
     const handleAddUrlInput = () => {
-        setUrlInputs([...urlInputs, ""]);
+        if (urlInputs.length < 10) {
+            setUrlInputs([...urlInputs, ""]);
+        } else {
+            toast.error('Maximum 10 URLs allowed');
+        }
     };
 
     const handleRemoveUrlInput = (index: number) => {
@@ -107,12 +282,11 @@ export default function TrainAiPage() {
     };
 
     const handleActivationDone = () => {
-        // Navigate to AI home page
         navigate("/dashboard/train-ai");
     };
 
-    // Show loading spinner while settings are loading
-    if (isSettingsLoading && currentStep === 'initial') {
+    // Show loading spinner while settings or history are loading
+    if ((isSettingsLoading || isLoadingHistory) && currentStep === 'initial') {
         return (
             <div className="w-full h-[calc(100vh-120px)] flex items-center justify-center">
                 <LoadingSpinner
@@ -254,12 +428,10 @@ export default function TrainAiPage() {
                         </div>
                     )}
 
-                    {/* Main Page (after URL submission) */}
+                    {/* Main Page (after submission) */}
                     {currentStep === 'main' && (
                         <>
-                            {/* Header with title and active button */}
                             <div className="flex justify-between items-center mb-4">
-
                                 <Button
                                     onClick={handleActivate}
                                     className="bg-blue-600 text-white hover:bg-blue-700 px-8 tracking-widest"
@@ -268,60 +440,149 @@ export default function TrainAiPage() {
                                 </Button>
                             </div>
 
-                            {/* Websites List */}
-                            {websites.length > 0 && (
-                                <div className="mt-4">
-                                    <div className="flex items-center justify-between mb-4">
-                                        <h3 className="text-lg font-medium">All websites: {websites.length}</h3>
-                                        <Button onClick={handleAddWebsite} variant="outline" className="flex items-center gap-2">
-                                            <Plus className="w-4 h-4" />
-                                            Add
-                                        </Button>
-                                    </div>
+                            {/* Add Content Section */}
+                            <div className="flex gap-4 mb-6">
+                                <Button
+                                    onClick={handleAddWebsite}
+                                    variant="outline"
+                                    className="flex items-center gap-2"
+                                >
+                                    <Plus className="w-4 h-4" />
+                                    Add Website URL
+                                </Button>
+                                <Button
+                                    onClick={handleAddDocument}
+                                    variant="outline"
+                                    className="flex items-center gap-2"
+                                >
+                                    <Upload className="w-4 h-4" />
+                                    Upload PDF
+                                </Button>
+                            </div>
 
-                                    <div className="border rounded-md overflow-hidden bg-white">
-                                        <table className="w-full">
-                                            <thead>
-                                                <tr className="bg-gray-50 border-b">
-                                                    <th className="w-8 px-4 py-3 text-left">
-                                                        <input type="checkbox" className="rounded" />
-                                                    </th>
-                                                    <th className="px-4 py-3 text-left font-medium text-sm">Name</th>
-                                                    <th className="px-4 py-3 text-left font-medium text-sm">Status</th>
-                                                    <th className="px-4 py-3 text-left font-medium text-sm">Created at</th>
-                                                    <th className="w-8 px-4 py-3"></th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {websites.map((website, index) => (
-                                                    <tr key={website.id} className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}>
-                                                        <td className="px-4 py-3">
-                                                            <input type="checkbox" className="rounded" />
-                                                        </td>
-                                                        <td className="px-4 py-3 text-sm">{website.url}</td>
-                                                        <td className="px-4 py-3">
-                                                            <span className={`inline-block px-2 py-1 rounded-md text-xs ${website.status === "Used" ? "bg-green-100 text-green-800" :
-                                                                website.status === "Failed" ? "bg-red-100 text-red-800" :
-                                                                    "bg-yellow-100 text-yellow-800"
-                                                                }`}>
-                                                                {website.status}
-                                                            </span>
-                                                        </td>
-                                                        <td className="px-4 py-3 text-sm">{website.createdAt}</td>
-                                                        <td className="px-4 py-3 text-right">
-                                                            <button className="text-gray-400 hover:text-gray-500">
-                                                                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none">
-                                                                    <path d="M12 12V12.01M12 6V6.01M12 18V18.01M12 13C12.5523 13 13 12.5523 13 12C13 11.4477 12.5523 11 12 11C11.4477 11 11 11.4477 11 12C11 12.5523 11.4477 13 12 13Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                                                    <path d="M12 7C12.5523 7 13 6.55228 13 6C13 5.44772 12.5523 5 12 5C11.4477 5 11 5.44772 11 6C11 6.55228 11.4477 7 12 7Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                                                    <path d="M12 19C12.5523 19 13 18.5523 13 18C13 17.4477 12.5523 17 12 17C11.4477 17 11 17.4477 11 18C11 18.5523 11.4477 19 12 19Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                                                </svg>
-                                                            </button>
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    </div>
+                            {/* Websites List */}
+                            {(websites.length > 0 || isLoadingWebsites) && (
+                                <div className="mt-4">
+                                    {isLoadingWebsites ? (
+                                        <div className="border rounded-md overflow-hidden bg-white p-8">
+                                            <div className="animate-pulse space-y-4">
+                                                <div className="h-6 w-32 bg-gray-200 rounded"></div>
+                                                <div className="space-y-3">
+                                                    <div className="h-4 bg-gray-200 rounded"></div>
+                                                    <div className="h-4 bg-gray-200 rounded"></div>
+                                                    <div className="h-4 bg-gray-200 rounded"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <h3 className="text-lg font-medium mb-4">Websites: {websites.length}</h3>
+                                            <div className="border rounded-md overflow-hidden bg-white">
+                                                <table className="w-full">
+                                                    <thead>
+                                                        <tr className="bg-gray-50 border-b">
+                                                            <th className="w-8 px-4 py-3 text-left">
+                                                                <input type="checkbox" className="rounded" />
+                                                            </th>
+                                                            <th className="px-4 py-3 text-left font-medium text-sm">URL</th>
+                                                            <th className="px-4 py-3 text-left font-medium text-sm">Status</th>
+                                                            <th className="px-4 py-3 text-left font-medium text-sm">Created at</th>
+                                                            <th className="w-8 px-4 py-3"></th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {websites.map((website, index) => (
+                                                            <tr key={website.id} className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}>
+                                                                <td className="px-4 py-3">
+                                                                    <input type="checkbox" className="rounded" />
+                                                                </td>
+                                                                <td className="px-4 py-3 text-sm">{website.url}</td>
+                                                                <td className="px-4 py-3">
+                                                                    <span className={`inline-block px-2 py-1 rounded-md text-xs ${website.status === "Used" ? "bg-green-100 text-green-800" :
+                                                                        website.status === "Failed" ? "bg-red-100 text-red-800" :
+                                                                            "bg-yellow-100 text-yellow-800"
+                                                                        }`}>
+                                                                        {website.status}
+                                                                    </span>
+                                                                </td>
+                                                                <td className="px-4 py-3 text-sm">{website.createdAt}</td>
+                                                                <td className="px-4 py-3 text-right">
+                                                                    <button className="text-gray-400 hover:text-gray-500">
+                                                                        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none">
+                                                                            <path d="M12 12V12.01M12 6V6.01M12 18V18.01M12 13C12.5523 13 13 12.5523 13 12C13 11.4477 12.5523 11 12 11C11.4477 11 11 11.4477 11 12C11 12.5523 11.4477 13 12 13Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                                                        </svg>
+                                                                    </button>
+                                                                </td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Documents List */}
+                            {(documents.length > 0 || isLoadingDocuments) && (
+                                <div className="mt-6">
+                                    {isLoadingDocuments ? (
+                                        <div className="border rounded-md overflow-hidden bg-white p-8">
+                                            <div className="animate-pulse space-y-4">
+                                                <div className="h-6 w-32 bg-gray-200 rounded"></div>
+                                                <div className="space-y-3">
+                                                    <div className="h-4 bg-gray-200 rounded"></div>
+                                                    <div className="h-4 bg-gray-200 rounded"></div>
+                                                    <div className="h-4 bg-gray-200 rounded"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <h3 className="text-lg font-medium mb-4">Documents: {documents.length}</h3>
+                                            <div className="border rounded-md overflow-hidden bg-white">
+                                                <table className="w-full">
+                                                    <thead>
+                                                        <tr className="bg-gray-50 border-b">
+                                                            <th className="w-8 px-4 py-3 text-left">
+                                                                <input type="checkbox" className="rounded" />
+                                                            </th>
+                                                            <th className="px-4 py-3 text-left font-medium text-sm">Name</th>
+                                                            <th className="px-4 py-3 text-left font-medium text-sm">Status</th>
+                                                            <th className="px-4 py-3 text-left font-medium text-sm">Created at</th>
+                                                            <th className="w-8 px-4 py-3"></th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {documents.map((doc, index) => (
+                                                            <tr key={doc.id} className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}>
+                                                                <td className="px-4 py-3">
+                                                                    <input type="checkbox" className="rounded" />
+                                                                </td>
+                                                                <td className="px-4 py-3 text-sm">{doc.name}</td>
+                                                                <td className="px-4 py-3">
+                                                                    <span className={`inline-block px-2 py-1 rounded-md text-xs ${doc.status === "Used" ? "bg-green-100 text-green-800" :
+                                                                        doc.status === "Failed" ? "bg-red-100 text-red-800" :
+                                                                            "bg-yellow-100 text-yellow-800"
+                                                                        }`}>
+                                                                        {doc.status}
+                                                                    </span>
+                                                                </td>
+                                                                <td className="px-4 py-3 text-sm">{doc.createdAt}</td>
+                                                                <td className="px-4 py-3 text-right">
+                                                                    <button className="text-gray-400 hover:text-gray-500">
+                                                                        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none">
+                                                                            <path d="M12 12V12.01M12 6V6.01M12 18V18.01M12 13C12.5523 13 13 12.5523 13 12C13 11.4477 12.5523 11 12 11C11.4477 11 11 11.4477 11 12C11 12.5523 11.4477 13 12 13Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                                                        </svg>
+                                                                    </button>
+                                                                </td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
                             )}
                         </>
@@ -338,41 +599,123 @@ export default function TrainAiPage() {
                                     {urlInputs.map((url, index) => (
                                         <div key={index} className="flex items-center gap-2">
                                             <Input
-                                                placeholder={`Enter URL of your website e.g http://mypage.com/faq`}
+                                                placeholder="Enter URL of your website e.g http://mypage.com/faq"
                                                 value={url}
                                                 onChange={(e) => handleUrlChange(index, e.target.value)}
                                                 className="flex-1"
+                                                disabled={isUploading}
                                             />
-                                            <button
-                                                onClick={() => handleRemoveUrlInput(index)}
-                                                className="flex-shrink-0 w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600"
-                                            >
-                                                <X className="w-4 h-4" />
-                                            </button>
+                                            {urlInputs.length > 1 && (
+                                                <button
+                                                    onClick={() => handleRemoveUrlInput(index)}
+                                                    className="flex-shrink-0 w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600"
+                                                    disabled={isUploading}
+                                                >
+                                                    <X className="w-4 h-4" />
+                                                </button>
+                                            )}
                                         </div>
                                     ))}
 
                                     <button
                                         onClick={handleAddUrlInput}
                                         className="flex items-center gap-2 text-blue-500 hover:text-blue-600"
+                                        disabled={isUploading || urlInputs.length >= 10}
                                     >
                                         <Plus className="w-4 h-4" />
-                                        +Add Website
+                                        Add Another URL
                                     </button>
                                 </div>
 
                                 <div className="flex justify-end gap-3 mt-8">
                                     <Button
                                         variant="outline"
-                                        onClick={() => setShowUrlModal(false)}
+                                        onClick={() => {
+                                            setShowUrlModal(false);
+                                            setUrlInputs([""]);
+                                        }}
+                                        disabled={isUploading}
                                     >
                                         Cancel
                                     </Button>
                                     <Button
                                         onClick={handleUrlSubmit}
                                         className="bg-black text-white hover:bg-gray-800"
+                                        disabled={isUploading}
                                     >
-                                        Upload
+                                        {isUploading ? (
+                                            <LoadingSpinner size="sm" />
+                                        ) : null}
+                                        {isUploading ? 'Uploading...' : 'Upload'}
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* PDF Upload Modal */}
+                    {showPdfModal && (
+                        <div className="fixed inset-[-31px] flex items-center justify-center bg-black bg-opacity-30 z-50">
+                            <div className="bg-white rounded-lg p-6 max-w-3xl w-full mx-auto shadow-lg">
+                                <h3 className="text-lg font-medium mb-4">Upload PDF Documents</h3>
+                                <p className="text-sm text-gray-500 mb-6">Train your Bay AI with knowledge from PDF documents</p>
+
+                                <div className="space-y-4">
+                                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
+                                        <input
+                                            type="file"
+                                            accept=".pdf"
+                                            multiple
+                                            onChange={handleFileSelect}
+                                            className="hidden"
+                                            id="pdf-upload"
+                                            disabled={isUploading}
+                                        />
+                                        <label
+                                            htmlFor="pdf-upload"
+                                            className="flex flex-col items-center justify-center cursor-pointer"
+                                        >
+                                            <Upload className="w-8 h-8 text-gray-400 mb-2" />
+                                            <p className="text-sm text-gray-600">Click to upload or drag and drop</p>
+                                            <p className="text-xs text-gray-500">PDF files only</p>
+                                        </label>
+                                    </div>
+
+                                    {selectedFiles.length > 0 && (
+                                        <div className="space-y-2">
+                                            {selectedFiles.map((file, index) => (
+                                                <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
+                                                    <span className="text-sm truncate">{file.name}</span>
+                                                    <button
+                                                        onClick={() => handleRemoveFile(index)}
+                                                        className="text-gray-400 hover:text-gray-600"
+                                                        disabled={isUploading}
+                                                    >
+                                                        <X className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="flex justify-end gap-3 mt-8">
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => setShowPdfModal(false)}
+                                        disabled={isUploading}
+                                    >
+                                        Cancel
+                                    </Button>
+                                    <Button
+                                        onClick={handlePdfSubmit}
+                                        className="bg-black text-white hover:bg-gray-800"
+                                        disabled={isUploading || selectedFiles.length === 0}
+                                    >
+                                        {isUploading ? (
+                                            <LoadingSpinner size="sm" />
+                                        ) : null}
+                                        {isUploading ? 'Uploading...' : 'Upload'}
                                     </Button>
                                 </div>
                             </div>
@@ -475,8 +818,8 @@ export default function TrainAiPage() {
                     {/* Success Message */}
                     {showSuccessMessage && (
                         <div className="fixed bottom-4 right-4 bg-green-100 border border-green-200 text-green-800 px-4 py-3 rounded-md shadow-md flex items-center gap-2 z-50">
-                            <Check className="w-5 h-5" />
-                            <span>Websites added successfully!</span>
+                            <Check className="w-5 h-4" />
+                            <span>Content added successfully!</span>
                         </div>
                     )}
                 </div>

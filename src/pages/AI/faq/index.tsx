@@ -33,6 +33,7 @@ export default function FAQAutomation() {
     const [expandedQuestionId, setExpandedQuestionId] = useState<string | null>(null);
     const [showPersonalizeModal, setShowPersonalizeModal] = useState(false);
     const [showSuccessModal, setShowSuccessModal] = useState(false);
+    const [isCreatingFaq, setIsCreatingFaq] = useState(false);
 
     // Helper function to get character count
     const getCharCount = (text: string): number => {
@@ -133,6 +134,7 @@ export default function FAQAutomation() {
     };
 
     const addQuestion = async () => {
+        setIsCreatingFaq(true);
         const newFaq = {
             question: "New Question",
             response: "Enter your response here...",
@@ -158,6 +160,8 @@ export default function FAQAutomation() {
         } catch (error) {
             console.error('Error creating FAQ:', error);
             toast.error('Failed to create new FAQ');
+        } finally {
+            setIsCreatingFaq(false);
         }
     };
 
@@ -274,6 +278,18 @@ export default function FAQAutomation() {
 
     return (
         <div className="mx-6 mt-4">
+            {/* Loading Overlay */}
+            {isCreatingFaq && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg p-6 flex flex-col items-center">
+                        <LoadingSpinner
+                            size="lg"
+                            text="Creating new FAQ..."
+                        />
+                    </div>
+                </div>
+            )}
+
             <ContentSection title="Frequently Asked Questions">
                 <div className="space-y-6">
                     <div className="flex justify-end mb-6">
@@ -497,7 +513,7 @@ export default function FAQAutomation() {
                             Learn more about automation
                         </a>
                         <div className="flex gap-4">
-                            <Button variant="outline" className="px-6">
+                            <Button onClick={() => navigate("/dashboard/train-ai")} variant="outline" className="px-6">
                                 Cancel
                             </Button>
                             <Button className="px-6" onClick={handleSave}>
@@ -566,4 +582,4 @@ export default function FAQAutomation() {
             </ContentSection>
         </div>
     );
-} 
+}  

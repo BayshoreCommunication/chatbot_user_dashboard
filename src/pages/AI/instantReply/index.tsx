@@ -211,7 +211,7 @@ export default function InstantReply() {
                             Learn more about automation
                         </a>
                         <div className="flex gap-4">
-                            <Button variant="outline" className="px-6">
+                            <Button onClick={() => navigate("/dashboard/train-ai")} variant="outline" className="px-6">
                                 Cancel
                             </Button>
                             <Button
