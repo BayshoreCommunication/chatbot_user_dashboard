@@ -1,37 +1,156 @@
 import ContentSection from "@/pages/settings/components/content-section";
 import { Button } from "@/components/custom/button";
 import { Input } from "@/components/ui/input";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Switch } from "@/components/ui/switch";
 import { Link, useNavigate } from "react-router-dom";
+import useAxiosPublic from "@/hooks/useAxiosPublic";
+import { AxiosInstance } from "axios";
+import { useApiKey } from "@/hooks/useApiKey";
+import { toast } from "sonner";
+
+interface FAQResponse {
+    id: string;
+    question: string;
+    response: string;
+    is_active: boolean;
+    created_at: string;
+}
+
+interface InstantReplyResponse {
+    status: string;
+    data: {
+        message: string;
+        isActive: boolean;
+    };
+}
+
+interface TrainingResponse {
+    id: string;
+    org_id: string;
+    url?: string;
+    file_name?: string;
+    status: string;
+    type: string;
+    created_at: string;
+}
 
 interface Automation {
     id: string;
     name: string;
     status: boolean;
     type: "instant-reply" | "faq" | "training";
+    createdAt: string;
 }
 
 export default function AutomationSMS() {
     const navigate = useNavigate();
-    const [automations, setAutomations] = useState<Automation[]>([
-        { id: "1", name: "Frequently Asked Questions 1", status: true, type: "faq" },
-        { id: "2", name: "Instant Reply", status: false, type: "instant-reply" },
-        { id: "3", name: "Frequently Asked Questions 2", status: true, type: "faq" },
-        { id: "4", name: "Training A", status: false, type: "training" },
-    ]);
+    const axiosPublic = useAxiosPublic() as AxiosInstance;
+    const [automations, setAutomations] = useState<Automation[]>([]);
+    const [searchTerm, setSearchTerm] = useState("");
+    const [loading, setLoading] = useState(true);
+    const { apiKey } = useApiKey();
 
-    const toggleStatus = (id: string) => {
-        setAutomations(automations.map(automation =>
-            automation.id === id
-                ? { ...automation, status: !automation.status }
-                : automation
-        ));
+    const fetchAllAutomations = async () => {
+        try {
+            setLoading(true);
+
+            // Fetch FAQ data
+            const faqResponse = await axiosPublic.get<FAQResponse[]>('/api/faq/list', {
+                headers: {
+                    'X-API-Key': apiKey,
+                }
+            });
+            const faqAutomations = faqResponse.data.map((faq) => ({
+                id: faq.id,
+                name: faq.question,
+                status: faq.is_active,
+                type: 'faq' as const,
+                createdAt: faq.created_at
+            }));
+
+            // Fetch Instant Reply data
+            const instantReplyResponse = await axiosPublic.get<InstantReplyResponse>('/api/instant-reply', {
+                headers: {
+                    'X-API-Key': apiKey,
+                }
+            });
+            const instantReplyAutomations = instantReplyResponse.data.data.message ? [{
+                id: 'instant-reply',
+                name: 'Instant Reply Message',
+                status: instantReplyResponse.data.data.isActive,
+                type: 'instant-reply' as const,
+                createdAt: new Date().toISOString() // Instant reply doesn't have a creation date
+            }] : [];
+
+            // Fetch Training data
+            const trainingResponse = await axiosPublic.get<TrainingResponse[]>('/api/chatbot/upload_history', {
+                headers: {
+                    'X-API-Key': apiKey,
+                }
+            });
+            const trainingAutomations = trainingResponse.data.map((training) => ({
+                id: training.id,
+                name: training.file_name || training.url || `Training ${training.type}`,
+                status: training.status === 'completed',
+                type: 'training' as const,
+                createdAt: training.created_at
+            }));
+
+            // Combine all automations
+            const allAutomations = [...faqAutomations, ...instantReplyAutomations, ...trainingAutomations]
+                .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+            setAutomations(allAutomations);
+        } catch (error) {
+            console.error('Error fetching automations:', error);
+            toast.error('Failed to fetch automations');
+        } finally {
+            setLoading(false);
+        }
     };
+
+    const toggleStatus = async (id: string, type: string) => {
+        try {
+            if (type === 'faq') {
+                await axiosPublic.put(`/api/faq/${id}/toggle`, null, {
+                    headers: {
+                        'X-API-Key': apiKey,
+                    }
+                });
+            } else if (type === 'instant-reply') {
+                const currentAutomation = automations.find(a => a.id === id);
+                if (currentAutomation) {
+                    await axiosPublic.post('/api/instant-reply', {
+                        message: currentAutomation.name,
+                        isActive: !currentAutomation.status
+                    }, {
+                        headers: {
+                            'X-API-Key': apiKey,
+                        }
+                    });
+                }
+            }
+            // Training items can't be toggled
+            await fetchAllAutomations(); // Refresh data after toggle
+            toast.success('Status updated successfully');
+        } catch (error) {
+            console.error('Error toggling automation status:', error);
+            toast.error('Failed to update status');
+        }
+    };
+
+    useEffect(() => {
+        fetchAllAutomations();
+    }, [apiKey]);
 
     const handleStartTraining = () => {
         navigate("/dashboard/train-ai-page");
     };
+
+    const filteredAutomations = automations.filter(automation =>
+        automation.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
     return (
         <div className="mx-6 mt-4">
@@ -108,7 +227,12 @@ export default function AutomationSMS() {
                         <h3 className="text-lg font-medium">Your Automations</h3>
                         <div className="mt-4 space-y-4">
                             <div className="relative">
-                                <Input placeholder="Search" className="pl-8" />
+                                <Input
+                                    placeholder="Search"
+                                    className="pl-8"
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                />
                                 <svg className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                     <circle cx="11" cy="11" r="8"></circle>
                                     <path d="m21 21-4.3-4.3"></path>
@@ -122,24 +246,50 @@ export default function AutomationSMS() {
                                         <tr>
                                             <th className="px-4 py-3 text-left text-sm font-medium">Status</th>
                                             <th className="px-4 py-3 text-left text-sm font-medium">Name</th>
+                                            <th className="px-4 py-3 text-left text-sm font-medium">Type</th>
                                             <th className="px-4 py-3 text-right text-sm font-medium">Action</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {automations.map((automation, index) => (
-                                            <tr key={automation.id} className={index % 2 === 1 ? "bg-muted" : ""}>
-                                                <td className="px-4 py-3">
-                                                    <Switch
-                                                        checked={automation.status}
-                                                        onCheckedChange={() => toggleStatus(automation.id)}
-                                                    />
-                                                </td>
-                                                <td className="px-4 py-3 text-sm">{automation.name}</td>
-                                                <td className="px-4 py-3 text-right">
-                                                    <Button variant="link" className="text-blue-500 h-auto p-0">Edit</Button>
+                                        {loading ? (
+                                            <tr>
+                                                <td colSpan={4} className="px-4 py-3 text-center">
+                                                    Loading automations...
                                                 </td>
                                             </tr>
-                                        ))}
+                                        ) : filteredAutomations.length === 0 ? (
+                                            <tr>
+                                                <td colSpan={4} className="px-4 py-3 text-center">
+                                                    No automations found
+                                                </td>
+                                            </tr>
+                                        ) : (
+                                            filteredAutomations.map((automation, index) => (
+                                                <tr key={automation.id} className={index % 2 === 1 ? "bg-muted" : ""}>
+                                                    <td className="px-4 py-3">
+                                                        <Switch
+                                                            checked={automation.status}
+                                                            onCheckedChange={() => toggleStatus(automation.id, automation.type)}
+                                                        />
+                                                    </td>
+                                                    <td className="px-4 py-3 text-sm">{automation.name}</td>
+                                                    <td className="px-4 py-3 text-sm capitalize">{automation.type.replace('-', ' ')}</td>
+                                                    <td className="px-4 py-3 text-right">
+                                                        <Link
+                                                            to={`/dashboard/${automation.type === 'instant-reply'
+                                                                ? 'instant-reply'
+                                                                : automation.type === 'faq'
+                                                                    ? 'faq'
+                                                                    : 'train-ai-page'}/${automation.id}`}
+                                                        >
+                                                            <Button variant="link" className="text-blue-500 h-auto p-0">
+                                                                Edit
+                                                            </Button>
+                                                        </Link>
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        )}
                                     </tbody>
                                 </table>
                             </div>
