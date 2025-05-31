@@ -7,50 +7,71 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuShortcut,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { useUser } from '@/context/UserContext'
+import { useNavigate } from 'react-router-dom'
+import { User, CreditCard, Settings, LogOut } from 'lucide-react'
 
 export function UserNav() {
+  const { user, setUser } = useUser()
+  const navigate = useNavigate()
+
+  const handleLogout = () => {
+    localStorage.removeItem('user')
+    localStorage.removeItem('organization')
+    setUser(null)
+    navigate('/')
+  }
+
+  // Get user initials for avatar fallback
+  const getInitials = () => {
+    if (!user?.name) return 'U'
+    return user.name
+      .split(' ')
+      .map(n => n[0])
+      .join('')
+      .toUpperCase()
+  }
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant='ghost' className='relative h-8 w-8 rounded-full'>
           <Avatar className='h-8 w-8'>
-            <AvatarImage src='/avatars/01.png' alt='@shadcn' />
-            <AvatarFallback>SN</AvatarFallback>
+            <AvatarImage src='https://bayshore.nyc3.cdn.digitaloceanspaces.com/ai_bot/avatars/61f75ea9a680def2ed1c6929fe75aeee.jpg' alt={user?.name || 'User'} />
+            <AvatarFallback>{getInitials()}</AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className='w-56' align='end' forceMount>
         <DropdownMenuLabel className='font-normal'>
           <div className='flex flex-col space-y-1'>
-            <p className='text-sm font-medium leading-none'>satnaing</p>
+            <p className='text-sm font-medium leading-none'>{user?.name}</p>
             <p className='text-xs leading-none text-muted-foreground'>
-              satnaingdev@gmail.com
+              {user?.email}
             </p>
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
-          <DropdownMenuItem>
+          <DropdownMenuItem onClick={() => navigate('/dashboard/user-profile')} className="flex items-center gap-2">
+            <User className="h-4 w-4" />
             Profile
-            <DropdownMenuShortcut>⇧⌘P</DropdownMenuShortcut>
           </DropdownMenuItem>
-          <DropdownMenuItem>
+          <DropdownMenuItem onClick={() => navigate('/dashboard/user-settings')} className="flex items-center gap-2">
+            <CreditCard className="h-4 w-4" />
             Billing
-            <DropdownMenuShortcut>⌘B</DropdownMenuShortcut>
           </DropdownMenuItem>
-          <DropdownMenuItem>
+          <DropdownMenuItem onClick={() => navigate('/dashboard/system-settings')} className="flex items-center gap-2">
+            <Settings className="h-4 w-4" />
             Settings
-            <DropdownMenuShortcut>⌘S</DropdownMenuShortcut>
           </DropdownMenuItem>
-          <DropdownMenuItem>New Team</DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem>
+        <DropdownMenuItem onClick={handleLogout} className="flex items-center gap-2">
+          <LogOut className="h-4 w-4" />
           Log out
-          <DropdownMenuShortcut>⇧⌘Q</DropdownMenuShortcut>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

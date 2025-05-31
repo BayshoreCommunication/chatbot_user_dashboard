@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { CheckCircle, Zap, Shield, Bot, MessageSquare, BarChart3, Settings, Users, ArrowRight, Star, Sparkles } from 'lucide-react';
 import { useUser } from '@/context/UserContext';
 import { loadStripe } from '@stripe/stripe-js';
+import { UserNav } from '@/components/user-nav';
 
 // Lazy load components that are below the fold
 const Spotlight = lazy(() => import('@/components/ui/spotlight').then(module => ({ default: module.Spotlight })));
@@ -261,7 +262,7 @@ const CTASection = memo(() => {
 CTASection.displayName = 'CTASection';
 
 export default function LandingPage() {
-    const { user, isAuthenticated, setUser } = useUser();
+    const { user, isAuthenticated } = useUser();
     const navigate = useNavigate();
     const [loading, setLoading] = useState<string | null>(null);
     const prefersReducedMotion = useReducedMotion();
@@ -269,13 +270,6 @@ export default function LandingPage() {
     const { scrollY } = useScroll();
     const y1 = useTransform(scrollY, [0, 300], prefersReducedMotion ? [0, 0] : [0, -25]);
     const y2 = useTransform(scrollY, [0, 300], prefersReducedMotion ? [0, 0] : [0, -50]);
-
-    const handleLogout = () => {
-        localStorage.removeItem('user');
-        localStorage.removeItem('organization');
-        setUser(null);
-        navigate('/');
-    };
 
     const handleSubscribe = async (plan: PricingPlan) => {
         if (!isAuthenticated) {
@@ -420,30 +414,17 @@ export default function LandingPage() {
                             <div className="flex items-center space-x-4">
                                 {isAuthenticated ? (
                                     <div className="flex items-center space-x-4">
-                                        <div className="text-gray-300">
-                                            Welcome, {user?.name}
-                                        </div>
-                                        <div className="flex space-x-2">
-                                            {user?.has_paid_subscription === true && (
-                                                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                                                    <Button
-                                                        onClick={() => navigate('/dashboard')}
-                                                        className="text-sm sm:text-base bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white border-0"
-                                                    >
-                                                        Dashboard
-                                                    </Button>
-                                                </motion.div>
-                                            )}
+                                        {user?.has_paid_subscription === true && (
                                             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                                                 <Button
-                                                    onClick={handleLogout}
-                                                    variant="ghost"
-                                                    className="text-sm sm:text-base text-gray-300 hover:text-white hover:bg-gray-800"
+                                                    onClick={() => navigate('/dashboard')}
+                                                    className="text-sm sm:text-base bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white border-0"
                                                 >
-                                                    Log Out
+                                                    Dashboard
                                                 </Button>
                                             </motion.div>
-                                        </div>
+                                        )}
+                                        <UserNav />
                                     </div>
                                 ) : (
                                     <>
