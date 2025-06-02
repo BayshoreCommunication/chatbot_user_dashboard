@@ -24,6 +24,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     useEffect(() => {
         // Get user data from localStorage
         const userData = localStorage.getItem('user');
+        console.log("userData",userData)
         if (userData) {
             setUser(JSON.parse(userData));
         }

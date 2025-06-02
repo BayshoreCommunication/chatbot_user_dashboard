@@ -20,13 +20,15 @@ export function AccountSetting() {
   const [loading, setLoading] = useState(true)
   const { user } = useAuth() // Get user from auth context
 
+  // console.log("user",user)
+
   useEffect(() => {
     const fetchSubscriptionData = async () => {
       try {
         if (user?.id) {
           console.log('Fetching subscription for user:', user.id);
           const response = await axios.get(`${import.meta.env.VITE_API_URL}/payment/user-subscription/${user.id}`);
-          console.log('Subscription response:', response.data);
+          // console.log('Subscription response:', response.data);
 
           if (response.data.status === 'success') {
             setSubscriptionData(response.data.data);
@@ -63,6 +65,9 @@ export function AccountSetting() {
       </div>
     )
   }
+
+
+  console.log("subscriptionData",subscriptionData)
 
   return (
     <div className="w-full flex flex-col h-[calc(100vh-120px)]">

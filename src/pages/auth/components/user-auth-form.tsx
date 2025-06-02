@@ -24,7 +24,6 @@ interface UserAuthFormProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 const API_URL = 'http://localhost:8000';
-const GOOGLE_CLIENT_ID = '580986048415-qpgtv2kvij47ae4if8ep47jjq8o2qtmj.apps.googleusercontent.com';
 
 const formSchema = z.object({
   email: z

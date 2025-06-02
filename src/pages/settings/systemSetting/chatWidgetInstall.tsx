@@ -27,7 +27,7 @@ export function ChatWidgetInstall() {
         if (!apiKey) return
 
         // Generate script tag with API key as data attribute
-        setScriptTag(`<script src="${import.meta.env.VITE_BOT_URL}/chatbot-widget.min.js" data-api-key="${apiKey}" async></script>`)
+        setScriptTag(`<script src="${import.meta.env.VITE_BOT_URL}" data-api-key="${apiKey}" async></script>`)
 
         // Update states from settings when they're available
         if (settings) {
