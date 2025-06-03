@@ -2,10 +2,13 @@ import { useQuery } from '@tanstack/react-query'
 import axios from 'axios'
 import { useApiKey } from './useApiKey'
 
-interface ChatWidgetSettings {
-    name: string
-    selectedColor: string
-    avatarUrl: string
+type ChatWidgetSettings = {
+    name: string;
+    selectedColor: string;
+    avatarUrl: string;
+    leadCapture: boolean;
+    botBehavior: string;
+    is_bot_connected: boolean;
 }
 
 export function useChatWidgetSettings() {
@@ -28,7 +31,10 @@ export function useChatWidgetSettings() {
                 return {
                     name: response.data.settings.name,
                     selectedColor: response.data.settings.selectedColor,
-                    avatarUrl: response.data.settings.avatarUrl || ''
+                    avatarUrl: response.data.settings.avatarUrl || '',
+                    leadCapture: response.data.settings.leadCapture || true,
+                    botBehavior: response.data.settings.botBehavior || '2',
+                    is_bot_connected: response.data.settings.is_bot_connected || false
                 }
             }
 

@@ -291,7 +291,7 @@ export default function LandingPage() {
 
         try {
             // First check if user has an existing organization
-            const orgCheckResponse = await fetch(`http://localhost:8000/organization/user/${user?.id}`);
+            const orgCheckResponse = await fetch(`https://botapi.bayshorecommunication.org/organization/user/${user?.id}`);
             let organizationData;
 
             if (orgCheckResponse.ok) {
@@ -300,7 +300,7 @@ export default function LandingPage() {
                 console.log('Found existing organization:', organizationData);
             } else if (orgCheckResponse.status === 500 || orgCheckResponse.status === 400) {
                 // Create new organization only if none exists
-                const createOrgResponse = await fetch('http://localhost:8000/organization/register', {
+                const createOrgResponse = await fetch('https://botapi.bayshorecommunication.org/organization/register', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -332,7 +332,7 @@ export default function LandingPage() {
             // localStorage.setItem('organization', JSON.stringify(organizationData));
 
             // Create checkout session
-            const response = await fetch('http://localhost:8000/payment/create-checkout-session', {
+            const response = await fetch('https://botapi.bayshorecommunication.org/payment/create-checkout-session', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

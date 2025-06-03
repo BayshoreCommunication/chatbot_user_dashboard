@@ -29,7 +29,8 @@ export function ChatWidgetSetup() {
         selectedColor: '',
         leadCapture: true,
         botBehavior: '',
-        avatarUrl: ''
+        avatarUrl: '',
+        is_bot_connected: false
     })
 
     // Add state to track if any changes were made
@@ -61,7 +62,8 @@ export function ChatWidgetSetup() {
                         selectedColor: settings.selectedColor,
                         leadCapture: settings.leadCapture,
                         botBehavior: settings.botBehavior,
-                        avatarUrl: settings.avatarUrl || ''
+                        avatarUrl: settings.avatarUrl || '',
+                        is_bot_connected: settings.is_bot_connected
                     })
                 }
             } catch (error) {
@@ -86,7 +88,8 @@ export function ChatWidgetSetup() {
             selectedColor,
             leadCapture,
             botBehavior,
-            avatarUrl
+            avatarUrl,
+            is_bot_connected: false
         }
 
         const hasAnyChanges = Object.keys(initialValues).some(key => {
@@ -147,7 +150,8 @@ export function ChatWidgetSetup() {
                     selectedColor,
                     leadCapture,
                     botBehavior,
-                    avatarUrl: response.data.url
+                    avatarUrl: response.data.url,
+                    is_bot_connected: false
                 }, {
                     headers: {
                         'X-API-Key': apiKey
@@ -161,7 +165,8 @@ export function ChatWidgetSetup() {
                     // Update initial values
                     setInitialValues(prev => ({
                         ...prev,
-                        avatarUrl: response.data.url
+                        avatarUrl: response.data.url,
+                        is_bot_connected: false
                     }))
                 }
 
@@ -203,7 +208,8 @@ export function ChatWidgetSetup() {
                 selectedColor,
                 leadCapture,
                 botBehavior,
-                avatarUrl
+                avatarUrl,
+                is_bot_connected: false
             }, {
                 headers: {
                     'X-API-Key': apiKey
@@ -220,7 +226,8 @@ export function ChatWidgetSetup() {
                     selectedColor,
                     leadCapture,
                     botBehavior,
-                    avatarUrl
+                    avatarUrl,
+                    is_bot_connected: false
                 })
 
                 // Navigate to the installation page

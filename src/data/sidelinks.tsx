@@ -28,7 +28,7 @@ export const sidelinks: SideLink[] = [
   {
     title: 'Dashboard',
     label: '',
-    href: '/',
+    href: '/dashboard',
     icon: <IconLayoutDashboard size={18} />,
   },
   {
@@ -104,12 +104,7 @@ export const sidelinks: SideLink[] = [
         href: '/dashboard/user-settings',
         icon: <IconBoxSeam size={18} />,
       },
-      {
-        title: 'System Settings',
-        label: '',
-        href: '/dashboard/system-settings',
-        icon: <IconBoxSeam size={18} />,
-      },
+
     ],
   },
   {
@@ -122,6 +117,12 @@ export const sidelinks: SideLink[] = [
         title: 'Train AI',
         href: '/dashboard/train-ai',
         icon: <IconTruck size={18} />,
+      },
+      {
+        title: 'System Settings',
+        label: '',
+        href: '/dashboard/system-settings',
+        icon: <IconBoxSeam size={18} />,
       },
       // {
       //   title: 'Account Settings',

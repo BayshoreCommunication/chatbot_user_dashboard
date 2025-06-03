@@ -23,7 +23,7 @@ interface UserAuthFormProps extends HTMLAttributes<HTMLDivElement> {
   isSignUp?: boolean;
 }
 
-const API_URL = 'http://localhost:8000';
+const API_URL = 'https://botapi.bayshorecommunication.org';
 
 const formSchema = z.object({
   email: z
@@ -89,7 +89,13 @@ export function UserAuthForm({ className, isSignUp = false, ...props }: UserAuth
       localStorage.setItem('user', JSON.stringify(user))
       localStorage.setItem('token', access_token)
       setUser(user)
-      navigate('/')
+
+      // Redirect based on subscription status
+      if (user.has_paid_subscription) {
+        navigate('/dashboard')
+      } else {
+        navigate('/landing')
+      }
     } catch (error) {
       console.error('Google login error:', error)
       setError(error instanceof Error ? error.message : 'Failed to authenticate with Google')
@@ -131,9 +137,16 @@ export function UserAuthForm({ className, isSignUp = false, ...props }: UserAuth
       localStorage.setItem('user', JSON.stringify(user))
       localStorage.setItem('token', access_token)
       setUser(user)
-      navigate('/')
+
+      // Redirect based on subscription status
+      if (user.has_paid_subscription) {
+        navigate('/dashboard')
+      } else {
+        navigate('/landing')
+      }
     } catch (error) {
       console.error('Authentication error:', error)
+      setError(error instanceof Error ? error.message : 'Authentication failed')
     } finally {
       setIsLoading(false)
     }

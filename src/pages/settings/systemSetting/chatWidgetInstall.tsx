@@ -8,6 +8,8 @@ import { useToast } from '@/components/ui/use-toast'
 import { useApiKey } from '@/hooks/useApiKey'
 import { LoadingSpinner } from '@/components/custom/loading-spinner'
 import { useChatWidgetSettings } from '@/hooks/useChatWidgetSettings'
+import { useQueryClient } from '@tanstack/react-query'
+import axios from 'axios'
 
 export function ChatWidgetInstall() {
     const navigate = useNavigate()
@@ -16,6 +18,7 @@ export function ChatWidgetInstall() {
     const { toast } = useToast()
     const { apiKey, isLoading: isApiKeyLoading } = useApiKey()
     const { data: settings, isLoading: isSettingsLoading } = useChatWidgetSettings()
+    const queryClient = useQueryClient()
 
     // Add states for chat widget settings
     const [name, setName] = useState('Bay AI')
@@ -43,14 +46,54 @@ export function ChatWidgetInstall() {
         navigate('/dashboard/chat-widget-setup')
     }
 
-    const handleConnect = () => {
-        // Show success modal
-        setShowSuccessModal(true)
+    const handleConnect = async () => {
+        try {
+            console.log('[DEBUG] Current settings:', settings)
 
-        // Automatically navigate to system settings after 1.5s
-        setTimeout(() => {
-            navigate('/dashboard/system-settings')
-        }, 1500)
+            // Prepare settings payload
+            const settingsPayload = {
+                name: settings?.name || name,
+                selectedColor: settings?.selectedColor || selectedColor,
+                leadCapture: settings?.leadCapture || true,
+                botBehavior: settings?.botBehavior || '2',
+                avatarUrl: settings?.avatarUrl || avatarUrl,
+                is_bot_connected: true  // Always true when connecting
+            }
+
+            console.log('[DEBUG] Sending settings payload:', settingsPayload)
+
+            // Save settings to MongoDB with bot connected status
+            const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/chatbot/save-settings`,
+                settingsPayload,
+                {
+                    headers: {
+                        'X-API-Key': apiKey
+                    }
+                }
+            )
+
+            console.log('[DEBUG] Save settings response:', response.data)
+
+            if (response.data.status === 'success') {
+                // Invalidate and refetch chatWidgetSettings query
+                await queryClient.invalidateQueries({ queryKey: ['chatWidgetSettings'] })
+
+                // Show success modal
+                setShowSuccessModal(true)
+
+                // Automatically navigate to system settings after 1.5s
+                setTimeout(() => {
+                    navigate('/dashboard/system-settings')
+                }, 1500)
+            }
+        } catch (error) {
+            console.error('Error connecting bot:', error)
+            toast({
+                title: 'Error',
+                description: 'Failed to connect the bot',
+                variant: 'destructive'
+            })
+        }
     }
 
     const handleCopyToClipboard = () => {

@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 const axiosPublic = axios.create({
-    baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000'
+    baseURL: import.meta.env.VITE_API_URL || 'https://botapi.bayshorecommunication.org'
 })
 
 const useAxiosPublic = () => {

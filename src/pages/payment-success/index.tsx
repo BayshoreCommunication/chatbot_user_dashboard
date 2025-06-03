@@ -24,7 +24,7 @@ export default function PaymentSuccess() {
         // Verify payment and update user subscription
         const verifyPayment = async () => {
             try {
-                const response = await fetch('http://localhost:8000/payment/verify-session', {
+                const response = await fetch('https://botapi.bayshorecommunication.org/payment/verify-session', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
