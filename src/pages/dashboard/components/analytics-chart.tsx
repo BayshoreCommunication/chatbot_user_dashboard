@@ -1,17 +1,35 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Line, LineChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
-
-const data = [
-    { name: 'Jan', thisYear: 10000, lastYear: 8000 },
-    { name: 'Feb', thisYear: 14000, lastYear: 10000 },
-    { name: 'Mar', thisYear: 18000, lastYear: 12000 },
-    { name: 'Apr', thisYear: 16000, lastYear: 20000 },
-    { name: 'May', thisYear: 25000, lastYear: 22000 },
-    { name: 'Jun', thisYear: 30000, lastYear: 25000 },
-    { name: 'Jul', thisYear: 22000, lastYear: 20000 },
-];
+import { useAnalyticsData } from '@/hooks/useAnalyticsData';
+import { LoadingSpinner } from '@/components/custom/loading-spinner';
 
 export function AnalyticsChart() {
+    const { data, isLoading, error } = useAnalyticsData();
+
+    if (isLoading) {
+        return (
+            <Card className="col-span-1 lg:col-span-7 border-none shadow-sm dark:bg-gray-900/40">
+                <CardContent className="pt-6 px-6">
+                    <div className="flex items-center justify-center h-[350px]">
+                        <LoadingSpinner size="lg" />
+                    </div>
+                </CardContent>
+            </Card>
+        );
+    }
+
+    if (error) {
+        return (
+            <Card className="col-span-1 lg:col-span-7 border-none shadow-sm dark:bg-gray-900/40">
+                <CardContent className="pt-6 px-6">
+                    <div className="flex items-center justify-center h-[350px] text-red-500">
+                        Error loading analytics data
+                    </div>
+                </CardContent>
+            </Card>
+        );
+    }
+
     return (
         <Card className="col-span-1 lg:col-span-7 border-none shadow-sm dark:bg-gray-900/40">
             <CardContent className="pt-6 px-6">
@@ -22,7 +40,7 @@ export function AnalyticsChart() {
                             <span className="text-gray-400 dark:text-gray-500 pl-3">Total Visitors</span>
                         </div>
                     </div>
-                    <div className="flex space-x-4">
+                    <div className="flex items-center space-x-4">
                         <div className="flex items-center">
                             <div className="w-3 h-3 rounded-full border-2 border-blue-400 dark:border-blue-500 mr-2"></div>
                             <span className="text-xs text-gray-600 dark:text-gray-400">This year</span>
@@ -42,7 +60,7 @@ export function AnalyticsChart() {
                         <div>0</div>
                     </div>
 
-                    <ResponsiveContainer width="100%" height={300}>
+                    <ResponsiveContainer width="100%" height={350}>
                         <LineChart data={data}>
                             <defs>
                                 <linearGradient id="colorThisYear" x1="0" y1="0" x2="0" y2="1">
@@ -98,7 +116,7 @@ export function AnalyticsChart() {
 
                     <div className="flex items-center justify-center my-2">
                         <div className="bg-blue-500/20 dark:bg-blue-500/20 text-blue-600 dark:text-blue-300 px-2 py-1 rounded text-xs">
-                            18,254,598
+                            {data.reduce((sum, item) => sum + item.thisYear, 0).toLocaleString()}
                         </div>
                     </div>
                 </div>

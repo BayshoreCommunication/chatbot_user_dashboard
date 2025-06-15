@@ -4,7 +4,7 @@ import ThemeSwitch from '@/components/theme-switch'
 import { UserNav } from '@/components/user-nav'
 import { AnalyticsCards } from './components/analytics-cards'
 import { AnalyticsChart } from './components/analytics-chart'
-import { TrafficSources } from './components/traffic-sources'
+// import { TrafficSources } from './components/traffic-sources'
 import { MessageList } from './components/message-list'
 import { Notifications, ActiveUsers } from './components/notifications'
 
@@ -49,9 +49,8 @@ export default function Dashboard() {
               <AnalyticsCards />
 
               {/* Analytics Chart and Traffic Sources */}
-              <div className="grid grid-cols-1 gap-4 lg:grid-cols-10 mt-4">
+              <div className="">
                 <AnalyticsChart />
-                <TrafficSources />
               </div>
 
               {/* Messages Table */}

@@ -15,8 +15,8 @@ const GOOGLE_CLIENT_ID = '580986048415-qpgtv2kvij47ae4if8ep47jjq8o2qtmj.apps.goo
 const queryClient = new QueryClient({
     defaultOptions: {
         queries: {
-            staleTime: 1000 * 60 * 5, // Data is considered fresh for 5 minutes
-            gcTime: 1000 * 60 * 30, // Cache will be garbage collected after 30 minutes
+            refetchOnWindowFocus: false, // Disable refetch on window focus
+            retry: 1, // Only retry failed requests once
         },
     },
 })

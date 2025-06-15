@@ -23,7 +23,7 @@ interface UserAuthFormProps extends HTMLAttributes<HTMLDivElement> {
   isSignUp?: boolean;
 }
 
-const API_URL = 'https://botapi.bayshorecommunication.org';
+const API_URL = 'http://localhost:8000';
 
 const formSchema = z.object({
   email: z

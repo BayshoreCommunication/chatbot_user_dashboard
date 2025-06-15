@@ -1,95 +1,99 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { useOrganizationUsage } from '@/hooks/useOrganizationUsage';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { LoadingSpinner } from '@/components/custom/loading-spinner';
 
 export function AnalyticsCards() {
+    const { data: usageData, isLoading, isError } = useOrganizationUsage();
+
+    if (isLoading) {
+        return (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                {[...Array(4)].map((_, i) => (
+                    <Card key={i}>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">
+                                <LoadingSpinner size="sm" />
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">Loading...</div>
+                        </CardContent>
+                    </Card>
+                ))}
+            </div>
+        );
+    }
+
+    if (isError || !usageData) {
+        return (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Error</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold text-red-500">Failed to load data</div>
+                    </CardContent>
+                </Card>
+            </div>
+        );
+    }
+
+    const formatNumber = (num: number) => {
+        return new Intl.NumberFormat().format(num);
+    };
+
+    const formatStorage = (bytes: number) => {
+        const mb = bytes / (1024 * 1024);
+        return `${mb.toFixed(2)} MB`;
+    };
+
     return (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <Card className="bg-blue-50 dark:bg-gray-900/40 border-none shadow-none">
-                <CardHeader className="pb-0 pt-4 px-5">
-                    <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-300">Total Chat</CardTitle>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Total Users</CardTitle>
                 </CardHeader>
-                <CardContent className="px-5 pb-4">
-                    <div className="flex justify-between items-center">
-                        <div className="text-2xl font-bold dark:text-white">721K</div>
-                        <p className="text-xs text-emerald-500 dark:text-emerald-400 flex items-center">
-                            <span className="mr-1">+11.02%</span>
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                viewBox="0 0 20 20"
-                                fill="currentColor"
-                                className="w-4 h-4"
-                            >
-                                <path fillRule="evenodd" d="M10 17a.75.75 0 01-.75-.75V5.612L5.29 9.77a.75.75 0 01-1.08-1.04l5.25-5.5a.75.75 0 011.08 0l5.25 5.5a.75.75 0 11-1.08 1.04l-3.96-4.158V16.25A.75.75 0 0110 17z" clipRule="evenodd" />
-                            </svg>
-                        </p>
-                    </div>
+                <CardContent>
+                    <div className="text-2xl font-bold">{formatNumber(usageData.total_users)}</div>
+                    <p className="text-xs text-muted-foreground">
+                        Unique visitors
+                    </p>
                 </CardContent>
             </Card>
-
-            <Card className="bg-gray-100 dark:bg-gray-900/60 border-none shadow-none">
-                <CardHeader className="pb-0 pt-4 px-5">
-                    <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-300">Total Visitors</CardTitle>
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">API Calls</CardTitle>
                 </CardHeader>
-                <CardContent className="px-5 pb-4">
-                    <div className="flex justify-between items-center">
-                        <div className="text-2xl font-bold dark:text-white">367K</div>
-                        <p className="text-xs text-red-500 dark:text-red-400 flex items-center">
-                            <span className="mr-1">-0.03%</span>
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                viewBox="0 0 20 20"
-                                fill="currentColor"
-                                className="w-4 h-4"
-                            >
-                                <path fillRule="evenodd" d="M10 3a.75.75 0 01.75.75v10.638l3.96-4.158a.75.75 0 111.08 1.04l-5.25 5.5a.75.75 0 01-1.08 0l-5.25-5.5a.75.75 0 111.08-1.04l3.96 4.158V3.75A.75.75 0 0110 3z" clipRule="evenodd" />
-                            </svg>
-                        </p>
-                    </div>
+                <CardContent>
+                    <div className="text-2xl font-bold">{formatNumber(usageData.api_calls)}</div>
+                    <p className="text-xs text-muted-foreground">
+                        Total conversations
+                    </p>
                 </CardContent>
             </Card>
-
-            <Card className="bg-blue-50 dark:bg-gray-900/40 border-none shadow-none">
-                <CardHeader className="pb-0 pt-4 px-5">
-                    <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-300">New Users</CardTitle>
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Storage Used</CardTitle>
                 </CardHeader>
-                <CardContent className="px-5 pb-4">
-                    <div className="flex justify-between items-center">
-                        <div className="text-2xl font-bold dark:text-white">1,156</div>
-                        <p className="text-xs text-emerald-500 dark:text-emerald-400 flex items-center">
-                            <span className="mr-1">+15.03%</span>
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                viewBox="0 0 20 20"
-                                fill="currentColor"
-                                className="w-4 h-4"
-                            >
-                                <path fillRule="evenodd" d="M10 17a.75.75 0 01-.75-.75V5.612L5.29 9.77a.75.75 0 01-1.08-1.04l5.25-5.5a.75.75 0 011.08 0l5.25 5.5a.75.75 0 11-1.08 1.04l-3.96-4.158V16.25A.75.75 0 0110 17z" clipRule="evenodd" />
-                            </svg>
-                        </p>
-                    </div>
+                <CardContent>
+                    <div className="text-2xl font-bold">{formatStorage(usageData.storage_used)}</div>
+                    <p className="text-xs text-muted-foreground">
+                        Vector embeddings
+                    </p>
                 </CardContent>
             </Card>
-
-            <Card className="bg-gray-100 dark:bg-gray-900/60 border-none shadow-none">
-                <CardHeader className="pb-0 pt-4 px-5">
-                    <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-300">Active Chat</CardTitle>
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Documents</CardTitle>
                 </CardHeader>
-                <CardContent className="px-5 pb-4">
-                    <div className="flex justify-between items-center">
-                        <div className="text-2xl font-bold dark:text-white">239K</div>
-                        <p className="text-xs text-emerald-500 dark:text-emerald-400 flex items-center">
-                            <span className="mr-1">+0.08%</span>
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                viewBox="0 0 20 20"
-                                fill="currentColor"
-                                className="w-4 h-4"
-                            >
-                                <path fillRule="evenodd" d="M10 17a.75.75 0 01-.75-.75V5.612L5.29 9.77a.75.75 0 01-1.08-1.04l5.25-5.5a.75.75 0 011.08 0l5.25 5.5a.75.75 0 11-1.08 1.04l-3.96-4.158V16.25A.75.75 0 0110 17z" clipRule="evenodd" />
-                            </svg>
-                        </p>
-                    </div>
+                <CardContent>
+                    <div className="text-2xl font-bold">{formatNumber(usageData.documents)}</div>
+                    <p className="text-xs text-muted-foreground">
+                        Uploaded files
+                    </p>
                 </CardContent>
             </Card>
         </div>
-    )
+    );
 } 

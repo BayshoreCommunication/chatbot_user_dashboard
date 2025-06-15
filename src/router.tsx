@@ -232,6 +232,12 @@ const router = createBrowserRouter([
         }),
       },
       {
+        path: 'ai-behavior',
+        lazy: async () => ({
+          Component: (await import('@/pages/AI/aiBehavior/index.tsx')).default,
+        }),
+      },
+      {
         path: 'instant-reply',
         lazy: async () => ({
           Component: (await import('@/pages/AI/instantReply/index.tsx')).default,

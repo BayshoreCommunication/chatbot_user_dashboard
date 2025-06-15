@@ -161,7 +161,7 @@ export default function AutomationSMS() {
                     </p>
 
                     {/* Automation Cards */}
-                    <div className="grid grid-cols-1 lg:mr-60 mr-0 md:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 lg:mr-60 mr-0 md:grid-cols-4 gap-6">
                         {/* Instant Reply Card */}
                         <div className="border rounded-lg overflow-hidden">
                             <div className="p-4 space-y-4">
@@ -217,7 +217,26 @@ export default function AutomationSMS() {
                                 <div>
                                     <Button onClick={handleStartTraining} className="w-full" variant="outline">Start Training</Button>
                                 </div>
+                            </div>
+                        </div>
 
+                        {/* AI Behavior Card */}
+                        <div className="border rounded-lg overflow-hidden">
+                            <div className="p-4 space-y-4">
+                                <img
+                                    src="https://bayshore.nyc3.cdn.digitaloceanspaces.com/ai_bot/behavior.jpeg"
+                                    alt="AI Behavior"
+                                    className="w-full h-full object-cover rounded-md"
+                                />
+                                <h3 className="font-medium">AI Behavior</h3>
+                                <p className="text-sm text-muted-foreground">
+                                    Customize how your AI assistant behaves and responds to users.
+                                </p>
+                                <div>
+                                    <Link to="/dashboard/ai-behavior">
+                                        <Button className="w-full" variant="outline">Configure Behavior</Button>
+                                    </Link>
+                                </div>
                             </div>
                         </div>
                     </div>

@@ -13,6 +13,7 @@ export function ChatWidgetSetup() {
     const navigate = useNavigate()
     const queryClient = useQueryClient()
     const [selectedColor, setSelectedColor] = useState('black')
+    const [aiBehavior, setAiBehavior] = useState('')
     const [botBehavior, setBotBehavior] = useState('2')
     const [leadCapture, setLeadCapture] = useState(true)
     const [name, setName] = useState('Byewind')
@@ -52,6 +53,9 @@ export function ChatWidgetSetup() {
                     setSelectedColor(settings.selectedColor)
                     setLeadCapture(settings.leadCapture)
                     setBotBehavior(settings.botBehavior)
+                    if (settings.ai_behavior) {
+                        setAiBehavior(settings.ai_behavior)
+                    }
                     if (settings.avatarUrl) {
                         setAvatarUrl(settings.avatarUrl)
                     }
@@ -209,6 +213,7 @@ export function ChatWidgetSetup() {
                 leadCapture,
                 botBehavior,
                 avatarUrl,
+                ai_behavior: aiBehavior,
                 is_bot_connected: false
             }, {
                 headers: {
