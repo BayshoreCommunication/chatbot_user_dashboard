@@ -89,7 +89,7 @@ export const sidelinks: SideLink[] = [
   // },
   {
     title: 'Settings',
-    label: '3',
+    label: '2',
     href: '/dashboard/requests',
     icon: <IconRouteAltLeft size={18} />,
     sub: [
@@ -109,7 +109,7 @@ export const sidelinks: SideLink[] = [
   },
   {
     title: 'Ai',
-    label: '1',
+    label: '2',
     href: '/requests',
     icon: <IconRouteAltLeft size={18} />,
     sub: [

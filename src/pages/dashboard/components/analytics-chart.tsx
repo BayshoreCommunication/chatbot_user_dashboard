@@ -2,9 +2,13 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Line, LineChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
 import { useAnalyticsData } from '@/hooks/useAnalyticsData';
 import { LoadingSpinner } from '@/components/custom/loading-spinner';
+import { useState } from 'react';
+
+type TabType = 'chat' | 'visitor';
 
 export function AnalyticsChart() {
     const { data, isLoading, error } = useAnalyticsData();
+    const [activeTab, setActiveTab] = useState<TabType>('chat');
 
     if (isLoading) {
         return (
@@ -30,14 +34,34 @@ export function AnalyticsChart() {
         );
     }
 
+    if (!data) {
+        return null;
+    }
+
     return (
         <Card className="col-span-1 lg:col-span-7 border-none shadow-sm dark:bg-gray-900/40">
             <CardContent className="pt-6 px-6">
                 <div className="flex items-start justify-between mb-6">
                     <div className="flex items-center space-x-3">
                         <div className="flex space-x-1 text-sm font-medium">
-                            <span className="text-black dark:text-white border-b-2 border-black dark:border-white pb-1">Total Chat</span>
-                            <span className="text-gray-400 dark:text-gray-500 pl-3">Total Visitors</span>
+                            <button
+                                onClick={() => setActiveTab('chat')}
+                                className={`pb-1 transition-colors ${activeTab === 'chat'
+                                    ? 'text-black dark:text-white border-b-2 border-black dark:border-white'
+                                    : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'
+                                    }`}
+                            >
+                                Total Chat
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('visitor')}
+                                className={`pl-3 pb-1 transition-colors ${activeTab === 'visitor'
+                                    ? 'text-black dark:text-white border-b-2 border-black dark:border-white'
+                                    : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'
+                                    }`}
+                            >
+                                Total Visitors
+                            </button>
                         </div>
                     </div>
                     <div className="flex items-center space-x-4">
@@ -93,7 +117,7 @@ export function AnalyticsChart() {
                             />
                             <Line
                                 type="monotone"
-                                dataKey="thisYear"
+                                dataKey={activeTab === 'chat' ? 'thisYear' : 'visitorThisYear'}
                                 stroke="#60a5fa"
                                 strokeWidth={2}
                                 dot={false}
@@ -103,7 +127,7 @@ export function AnalyticsChart() {
                             />
                             <Line
                                 type="monotone"
-                                dataKey="lastYear"
+                                dataKey={activeTab === 'chat' ? 'lastYear' : 'visitorLastYear'}
                                 stroke="#000000"
                                 strokeWidth={1.5}
                                 strokeDasharray="5 5"
@@ -116,7 +140,7 @@ export function AnalyticsChart() {
 
                     <div className="flex items-center justify-center my-2">
                         <div className="bg-blue-500/20 dark:bg-blue-500/20 text-blue-600 dark:text-blue-300 px-2 py-1 rounded text-xs">
-                            {data.reduce((sum, item) => sum + item.thisYear, 0).toLocaleString()}
+                            {data.reduce((sum, item) => sum + (activeTab === 'chat' ? item.thisYear : item.visitorThisYear), 0).toLocaleString()}
                         </div>
                     </div>
                 </div>

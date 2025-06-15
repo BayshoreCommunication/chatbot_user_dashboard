@@ -1,35 +1,37 @@
-import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { API_ENDPOINTS } from '@/config/api';
+import { useApiKey } from './useApiKey';
 
 interface AnalyticsData {
     name: string;
     thisYear: number;
     lastYear: number;
+    visitorThisYear: number;
+    visitorLastYear: number;
 }
 
 export function useAnalyticsData() {
-    const [data, setData] = useState<AnalyticsData[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<Error | null>(null);
+    const { apiKey } = useApiKey();
 
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const response = await fetch(API_ENDPOINTS.analytics);
-                if (!response.ok) {
-                    throw new Error('Failed to fetch analytics data');
-                }
-                const analyticsData = await response.json();
-                setData(analyticsData);
-            } catch (err) {
-                setError(err instanceof Error ? err : new Error('An error occurred'));
-            } finally {
-                setIsLoading(false);
+    return useQuery({
+        queryKey: ['analytics'],
+        queryFn: async () => {
+            if (!apiKey) {
+                throw new Error('API key not found');
             }
-        };
 
-        fetchData();
-    }, []);
+            const response = await fetch(API_ENDPOINTS.analytics, {
+                headers: {
+                    'X-API-Key': apiKey
+                }
+            });
 
-    return { data, isLoading, error };
+            if (!response.ok) {
+                throw new Error('Failed to fetch analytics data');
+            }
+
+            return response.json() as Promise<AnalyticsData[]>;
+        },
+        enabled: !!apiKey,
+    });
 } 

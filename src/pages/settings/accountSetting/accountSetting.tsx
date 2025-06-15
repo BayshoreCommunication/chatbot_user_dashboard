@@ -14,7 +14,7 @@ interface SubscriptionData {
 }
 
 export function AccountSetting() {
-  const [colorValue, setColorValue] = useState('#34dsf89D')
+  // const [colorValue, setColorValue] = useState('#34dsf89D')
   const [showPassword, setShowPassword] = useState(false)
   const [subscriptionData, setSubscriptionData] = useState<SubscriptionData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -108,10 +108,10 @@ export function AccountSetting() {
           </div>
         </div>
 
-        <Separator />
+        {/* <Separator /> */}
 
         {/* Connect your website Section */}
-        <div className='dark:bg-gray-950'>
+        {/* <div className='dark:bg-gray-950'>
           <h3 className="text-lg font-medium">Connect your website</h3>
           <p className="text-sm text-muted-foreground mt-1">
             Connect the website from which you want to receive SMS.
@@ -124,12 +124,12 @@ export function AccountSetting() {
               Connect your website
             </Button>
           </div>
-        </div>
+        </div> */}
 
-        <Separator />
+        {/* <Separator /> */}
 
         {/* Brand Color Section */}
-        <div>
+        {/* <div>
           <h3 className="text-lg font-medium">Brand Color</h3>
           <div className="mt-4 space-y-4">
             <div className="h-8 w-full max-w-xs rounded-md bg-gradient-to-r from-red-500 via-green-500 to-purple-500 relative">
@@ -150,7 +150,7 @@ export function AccountSetting() {
               />
             </div>
           </div>
-        </div>
+        </div> */}
 
         <Separator />
 

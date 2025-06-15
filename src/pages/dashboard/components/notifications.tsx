@@ -4,7 +4,7 @@ import { useActiveUsers } from '@/hooks/useActiveUsers'
 import { LoadingSpinner } from '@/components/custom/loading-spinner'
 
 export function Notifications() {
-    const { notifications, isLoading, error } = useNotifications();
+    const { data: notifications, isLoading, error } = useNotifications();
 
     if (isLoading) {
         return (
@@ -36,6 +36,10 @@ export function Notifications() {
         );
     }
 
+    if (!notifications) {
+        return null;
+    }
+
     return (
         <Card className="w-full border-none shadow-sm dark:bg-gray-900/40">
             <CardHeader>
@@ -63,7 +67,7 @@ export function Notifications() {
 }
 
 export function ActiveUsers() {
-    const { users, isLoading, error } = useActiveUsers();
+    const { data: users, isLoading, error } = useActiveUsers();
 
     if (isLoading) {
         return (
@@ -95,6 +99,10 @@ export function ActiveUsers() {
         );
     }
 
+    if (!users) {
+        return null;
+    }
+
     return (
         <Card className="mt-6 border-none shadow-sm dark:bg-gray-900/40">
             <CardHeader>
@@ -102,7 +110,7 @@ export function ActiveUsers() {
             </CardHeader>
             <CardContent>
                 <div className="space-y-4">
-                    {users.map((user: { id: number; name: string; status: 'online' | 'offline'; initials: string }) => (
+                    {users.map((user) => (
                         <div key={user.id} className="flex items-center">
                             <div className="bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 w-8 h-8 rounded-full flex items-center justify-center">
                                 {user.initials}
