@@ -18,7 +18,9 @@ export default function Chats() {
     selectedSessionId,
     conversationsLoading,
     messagesLoading,
-    handleSelectConversation
+    incomingMessageLoading,
+    handleSelectConversation,
+    socket
   } = useChat(apiKey);
 
   return (
@@ -73,6 +75,8 @@ export default function Chats() {
             isLoading={messagesLoading}
             selectedSessionId={selectedSessionId}
             userInfo={userInfo}
+            socket={socket}
+            incomingMessageLoading={incomingMessageLoading}
           />
 
           {/* Right Sidebar */}
