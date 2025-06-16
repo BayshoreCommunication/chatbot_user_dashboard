@@ -66,7 +66,7 @@ export function AnalyticsCards() {
                     <CardTitle className="text-sm font-medium">API Calls</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <div className="text-2xl font-bold">{formatNumber(usageData.api_calls)}</div>
+                    <div className="text-2xl font-bold">{formatNumber(usageData.api_calls /2)}</div>
                     <p className="text-xs text-muted-foreground">
                         Total conversations
                     </p>

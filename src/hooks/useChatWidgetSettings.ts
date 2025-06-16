@@ -9,6 +9,7 @@ type ChatWidgetSettings = {
     leadCapture: boolean;
     botBehavior: string;
     is_bot_connected: boolean;
+    ai_behavior?: string;
 }
 
 export function useChatWidgetSettings() {
@@ -27,6 +28,8 @@ export function useChatWidgetSettings() {
                 }
             })
 
+            console.log(response.data, 'useChatWidgetSettings')
+
             if (response.data.status === 'success') {
                 return {
                     name: response.data.settings.name,
@@ -34,7 +37,8 @@ export function useChatWidgetSettings() {
                     avatarUrl: response.data.settings.avatarUrl || '',
                     leadCapture: response.data.settings.leadCapture || true,
                     botBehavior: response.data.settings.botBehavior || '2',
-                    is_bot_connected: response.data.settings.is_bot_connected || false
+                    is_bot_connected: response.data.settings.is_bot_connected || false,
+                    ai_behavior: response.data.settings.ai_behavior
                 }
             }
 
