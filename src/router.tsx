@@ -249,6 +249,12 @@ const router = createBrowserRouter([
           Component: (await import('@/pages/AI/faq/index.tsx')).default,
         }),
       },
+      {
+        path: 'appointments',
+        lazy: async () => ({
+          Component: (await import('@/pages/appointments/index.tsx')).default,
+        }),
+      },
     ],
   },
 

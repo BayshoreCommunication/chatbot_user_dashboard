@@ -10,6 +10,7 @@ import {
   IconMessages,
   IconRouteAltLeft,
   IconTruck,
+  IconCalendar,
   // IconUserShield,
 } from '@tabler/icons-react'
 
@@ -109,7 +110,7 @@ export const sidelinks: SideLink[] = [
   },
   {
     title: 'Ai',
-    label: '2',
+    label: '3',
     href: '/requests',
     icon: <IconRouteAltLeft size={18} />,
     sub: [
@@ -124,18 +125,12 @@ export const sidelinks: SideLink[] = [
         href: '/dashboard/system-settings',
         icon: <IconBoxSeam size={18} />,
       },
-      // {
-      //   title: 'Account Settings',
-      //   label: '',
-      //   href: '/user-settings',
-      //   icon: <IconBoxSeam size={18} />,
-      // },
-      // {
-      //   title: 'System Settings',
-      //   label: '',
-      //   href: '/system-settings',
-      //   icon: <IconBoxSeam size={18} />,
-      // },
+      {
+        title: 'Appointments',
+        label: '',
+        href: '/dashboard/appointments',
+        icon: <IconCalendar size={18} />,
+      },
     ],
   },
   // {
