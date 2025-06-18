@@ -4,500 +4,664 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Trash2, Plus, Save, Calendar, Clock } from 'lucide-react';
+import { Save, Calendar, Clock, User, Settings, ExternalLink, Edit } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
 import { useApiKey } from '@/hooks/useApiKey';
 import { LoadingSpinner } from '@/components/custom/loading-spinner';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
-interface TimeSlot {
-    id: string;
+interface CalendlySettings {
+    calendly_url: string;
+    calendly_access_token: string;
+    event_type_uri: string;
+    auto_embed: boolean;
+}
+
+interface CalendlyEvent {
+    uri: string;
+    name: string;
+    duration: number;
+    status: string;
+    booking_url: string;
+}
+
+interface CalendlySlot {
     start_time: string;
-    end_time: string;
+    scheduling_url: string;
 }
-
-interface AppointmentAvailability {
-    date: string;
-    time_slots: TimeSlot[];
-}
-
-// Helper function to convert 24-hour format to 12-hour AM/PM format
-const convertTo12Hour = (time24: string): string => {
-    if (!time24) return '';
-
-    // If already in AM/PM format, return as is
-    if (time24.includes('AM') || time24.includes('PM')) {
-        return time24;
-    }
-
-    try {
-        const [hours, minutes] = time24.split(':').map(Number);
-        const period = hours >= 12 ? 'PM' : 'AM';
-        const displayHours = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
-        return `${displayHours}:${minutes.toString().padStart(2, '0')} ${period}`;
-    } catch (error) {
-        return time24;
-    }
-};
-
-// Helper function to convert 12-hour AM/PM format to 24-hour format for input
-// const convertTo24Hour = (time12: string): string => {
-//     if (!time12) return '';
-
-//     // If already in 24-hour format, return as is
-//     if (!time12.includes('AM') && !time12.includes('PM')) {
-//         return time12;
-//     }
-
-//     try {
-//         const [time, period] = time12.split(' ');
-//         const [hours, minutes] = time.split(':').map(Number);
-
-//         let hour24 = hours;
-//         if (period === 'AM' && hours === 12) {
-//             hour24 = 0;
-//         } else if (period === 'PM' && hours !== 12) {
-//             hour24 = hours + 12;
-//         }
-
-//         return `${hour24.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-//     } catch (error) {
-//         return time12;
-//     }
-// };
 
 export default function AppointmentsPage() {
     const { apiKey } = useApiKey();
-    const [selectedDate, setSelectedDate] = useState<string>('');
-    const [availabilities, setAvailabilities] = useState<AppointmentAvailability[]>([]);
-    const [currentTimeSlots, setCurrentTimeSlots] = useState<TimeSlot[]>([]);
-    const [loading, setLoading] = useState(false);
-    const [saving, setSaving] = useState(false);
-    const [deletingSlotId, setDeletingSlotId] = useState<string | null>(null);
-    const [newSlot, setNewSlot] = useState({ start_time: '', end_time: '' });
+    const queryClient = useQueryClient();
+    const [settings, setSettings] = useState<CalendlySettings>({
+        calendly_url: '',
+        calendly_access_token: '',
+        event_type_uri: '',
+        auto_embed: true
+    });
+    const [isEditing, setIsEditing] = useState(false);
 
-    // Get current month and year for calendar
-    const currentDate = new Date();
-    const [currentMonth, setCurrentMonth] = useState(currentDate.getMonth());
-    const [currentYear, setCurrentYear] = useState(currentDate.getFullYear());
-
-    // Load existing availabilities
-    useEffect(() => {
-        if (apiKey) {
-            loadAvailabilities();
-        }
-    }, [apiKey]);
-
-    console.log('apiKey : ', apiKey)
-
-    // Load time slots for selected date
-    useEffect(() => {
-        if (selectedDate) {
-            const availability = availabilities.find(a => a.date === selectedDate);
-            setCurrentTimeSlots(availability ? availability.time_slots : []);
-        }
-    }, [selectedDate, availabilities]);
-
-    const loadAvailabilities = async () => {
-        if (!apiKey) return;
-
-        setLoading(true);
-        try {
-            const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/appointments/availability`, {
+    // Query for Calendly settings
+    const { data: settingsData, isLoading: settingsLoading } = useQuery({
+        queryKey: ['calendly-settings', apiKey],
+        queryFn: async () => {
+            if (!apiKey) throw new Error('No API key');
+            const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/appointments/calendly/settings`, {
                 headers: { 'X-API-Key': apiKey }
             });
-            setAvailabilities(response.data);
-        } catch (error) {
-            console.error('Error loading availabilities:', error);
-            toast.error('Failed to load appointment availabilities');
-        } finally {
-            setLoading(false);
-        }
-    };
+            return response.data.settings;
+        },
+        enabled: !!apiKey,
+        staleTime: 5 * 60 * 1000, // 5 minutes
+        gcTime: 30 * 60 * 1000, // 30 minutes
+    });
 
-    const saveAvailability = async () => {
-        console.log('selectedDate : ', selectedDate, "apiKey : ", apiKey)
-        if (!apiKey || !selectedDate) return;
-
-        setSaving(true);
-        try {
-            // Convert time slots to AM/PM format before sending
-            const formattedTimeSlots = currentTimeSlots.map(slot => ({
-                ...slot,
-                start_time: convertTo12Hour(slot.start_time),
-                end_time: convertTo12Hour(slot.end_time)
-            }));
-
-            await axios.post(`${import.meta.env.VITE_API_URL}/api/appointments/availability`, {
-                date: selectedDate,
-                time_slots: formattedTimeSlots
-            }, {
+    // Query for Calendly events
+    const { data: events = [] } = useQuery<CalendlyEvent[]>({
+        queryKey: ['calendly-events', apiKey],
+        queryFn: async () => {
+            if (!apiKey) throw new Error('No API key');
+            const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/appointments/calendly/events`, {
                 headers: { 'X-API-Key': apiKey }
             });
+            return response.data.events || [];
+        },
+        enabled: !!apiKey && !!settingsData?.calendly_access_token,
+        staleTime: 10 * 60 * 1000, // 10 minutes
+        gcTime: 30 * 60 * 1000, // 30 minutes
+    });
 
-            // Update local state
-            const existingIndex = availabilities.findIndex(a => a.date === selectedDate);
-            if (existingIndex >= 0) {
-                const updated = [...availabilities];
-                updated[existingIndex] = { date: selectedDate, time_slots: formattedTimeSlots };
-                setAvailabilities(updated);
-                setCurrentTimeSlots(formattedTimeSlots);
-            } else {
-                setAvailabilities([...availabilities, { date: selectedDate, time_slots: formattedTimeSlots }]);
-                setCurrentTimeSlots(formattedTimeSlots);
-            }
+    // Query for Calendly stats
+    const { data: stats = { total_events: 0, active_events: 0, upcoming_bookings: 0 } } = useQuery({
+        queryKey: ['calendly-stats', apiKey],
+        queryFn: async () => {
+            if (!apiKey) throw new Error('No API key');
+            const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/appointments/calendly/stats`, {
+                headers: { 'X-API-Key': apiKey }
+            });
+            return response.data.stats || { total_events: 0, active_events: 0, upcoming_bookings: 0 };
+        },
+        enabled: !!apiKey && !!settingsData?.calendly_access_token,
+        staleTime: 10 * 60 * 1000, // 10 minutes
+        gcTime: 30 * 60 * 1000, // 30 minutes
+    });
 
-            toast.success('Appointment availability saved successfully');
-        } catch (error) {
-            console.error('Error saving availability:', error);
-            toast.error('Failed to save appointment availability');
-        } finally {
-            setSaving(false);
-        }
-    };
-
-    const deleteTimeSlot = async (slotId: string) => {
-        if (!apiKey || !selectedDate) return;
-
-        setDeletingSlotId(slotId);
-        try {
-            await axios.delete(`${import.meta.env.VITE_API_URL}/api/appointments/availability/slot`, {
+    // Query for available slots
+    const { data: availableSlots = [] } = useQuery<CalendlySlot[]>({
+        queryKey: ['calendly-availability', apiKey, settings.event_type_uri],
+        queryFn: async () => {
+            if (!apiKey || !settings.event_type_uri) throw new Error('Missing requirements');
+            const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/appointments/calendly/availability`, {
                 headers: { 'X-API-Key': apiKey },
-                data: {
-                    date: selectedDate,
-                    slot_id: slotId
-                }
+                params: { event_type_uri: settings.event_type_uri }
             });
+            return response.data.slots || [];
+        },
+        enabled: !!apiKey && !!settings.event_type_uri && !!settingsData?.calendly_access_token,
+        staleTime: 5 * 60 * 1000, // 5 minutes
+        gcTime: 15 * 60 * 1000, // 15 minutes
+    });
 
-            // Update local state
-            const updatedSlots = currentTimeSlots.filter(slot => slot.id !== slotId);
-            setCurrentTimeSlots(updatedSlots);
-
-            // Update availabilities state
-            const existingIndex = availabilities.findIndex(a => a.date === selectedDate);
-            if (existingIndex >= 0) {
-                const updated = [...availabilities];
-                if (updatedSlots.length === 0) {
-                    // Remove the entire date if no slots remain
-                    updated.splice(existingIndex, 1);
-                } else {
-                    updated[existingIndex] = { date: selectedDate, time_slots: updatedSlots };
-                }
-                setAvailabilities(updated);
+    // Test connection mutation
+    const testConnectionMutation = useMutation({
+        mutationFn: async (accessToken: string) => {
+            const response = await axios.post(
+                `${import.meta.env.VITE_API_URL}/api/appointments/calendly/test-connection`,
+                { access_token: accessToken },
+                { headers: { 'X-API-Key': apiKey } }
+            );
+            return response.data;
+        },
+        onSuccess: (data) => {
+            if (data.valid) {
+                toast.success('Calendly connection successful!');
+                // Invalidate and refetch related queries
+                queryClient.invalidateQueries({ queryKey: ['calendly-events', apiKey] });
+                queryClient.invalidateQueries({ queryKey: ['calendly-stats', apiKey] });
+            } else {
+                toast.error('Invalid Calendly access token');
             }
-
-            toast.success('Time slot deleted successfully');
-        } catch (error) {
-            console.error('Error deleting time slot:', error);
-            toast.error('Failed to delete time slot');
-        } finally {
-            setDeletingSlotId(null);
+        },
+        onError: () => {
+            toast.error('Failed to connect to Calendly');
         }
+    });
+
+    // Save settings mutation
+    const saveSettingsMutation = useMutation({
+        mutationFn: async (settingsToSave: CalendlySettings) => {
+            await axios.post(
+                `${import.meta.env.VITE_API_URL}/api/appointments/calendly/settings`,
+                settingsToSave,
+                { headers: { 'X-API-Key': apiKey } }
+            );
+        },
+        onSuccess: () => {
+            toast.success('Calendly settings saved successfully');
+            setIsEditing(false);
+            // Invalidate all related queries
+            queryClient.invalidateQueries({ queryKey: ['calendly-settings', apiKey] });
+            queryClient.invalidateQueries({ queryKey: ['calendly-events', apiKey] });
+            queryClient.invalidateQueries({ queryKey: ['calendly-stats', apiKey] });
+        },
+        onError: () => {
+            toast.error('Failed to save Calendly settings');
+        }
+    });
+
+    // Update settings when data is loaded
+    useEffect(() => {
+        if (settingsData) {
+            setSettings(settingsData);
+        }
+    }, [settingsData]);
+
+    // Check if connection is valid (has events)
+    const connectionValid = events.length > 0;
+
+    const handleTestConnection = () => {
+        if (!settings.calendly_access_token) {
+            toast.error('Please enter your Calendly access token');
+            return;
+        }
+        testConnectionMutation.mutate(settings.calendly_access_token);
     };
 
-    const addTimeSlot = () => {
-        if (!newSlot.start_time || !newSlot.end_time) {
-            toast.error('Please enter both start and end times');
-            return;
-        }
+    const handleSaveSettings = () => {
+        if (!apiKey) return;
+        saveSettingsMutation.mutate(settings);
+    };
 
-        if (newSlot.start_time >= newSlot.end_time) {
-            toast.error('End time must be after start time');
-            return;
-        }
+    const handleEditToken = () => {
+        setIsEditing(true);
+    };
 
-        const slot: TimeSlot = {
-            id: Date.now().toString(),
-            start_time: convertTo12Hour(newSlot.start_time),
-            end_time: convertTo12Hour(newSlot.end_time)
+    const formatDateTime = (dateTimeString: string) => {
+        const date = new Date(dateTimeString);
+        return {
+            date: date.toLocaleDateString('en-US', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            }),
+            time: date.toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: true
+            })
         };
-
-        setCurrentTimeSlots([...currentTimeSlots, slot]);
-        setNewSlot({ start_time: '', end_time: '' });
     };
 
-    const generateCalendar = () => {
-        const firstDay = new Date(currentYear, currentMonth, 1);
-        const startDate = new Date(firstDay);
-        startDate.setDate(startDate.getDate() - firstDay.getDay());
-
-        const days = [];
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        for (let i = 0; i < 42; i++) {
-            const date = new Date(startDate);
-            date.setDate(startDate.getDate() + i);
-
-            const dateString = date.toISOString().split('T')[0];
-            const isCurrentMonth = date.getMonth() === currentMonth;
-            const isPast = date < today;
-            const isSelected = dateString === selectedDate;
-            const hasAvailability = availabilities.some(a => a.date === dateString);
-
-            days.push({
-                date,
-                dateString,
-                day: date.getDate(),
-                isCurrentMonth,
-                isPast,
-                isSelected,
-                hasAvailability
-            });
-        }
-
-        return days;
-    };
-
-    const navigateMonth = (direction: 'prev' | 'next') => {
-        if (direction === 'prev') {
-            if (currentMonth === 0) {
-                setCurrentMonth(11);
-                setCurrentYear(currentYear - 1);
-            } else {
-                setCurrentMonth(currentMonth - 1);
-            }
-        } else {
-            if (currentMonth === 11) {
-                setCurrentMonth(0);
-                setCurrentYear(currentYear + 1);
-            } else {
-                setCurrentMonth(currentMonth + 1);
-            }
-        }
-    };
-
-    const monthNames = [
-        'January', 'February', 'March', 'April', 'May', 'June',
-        'July', 'August', 'September', 'October', 'November', 'December'
-    ];
-
-    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    console.log('Calendly stats data:', stats);
+    console.log('Calendly events data:', events);
 
     return (
         <div className="p-6 space-y-6">
             <div>
-                <h1 className="text-3xl font-bold tracking-tight">Appointment Management</h1>
+                <h1 className="text-3xl font-bold tracking-tight">Calendly Integration</h1>
                 <p className="text-muted-foreground">
-                    Set your available time slots for appointments. Select dates and configure time ranges.
+                    Connect your Calendly account to enable AI-powered appointment booking.
                 </p>
             </div>
 
+            {/* Setup Instructions */}
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <Settings className="h-5 w-5" />
+                        Setup Instructions
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                        <h4 className="font-medium">How to get your Calendly Access Token:</h4>
+                        <ol className="list-decimal list-inside space-y-1 text-sm text-muted-foreground">
+                            <li>Go to your <a href="https://calendly.com/integrations/api_webhooks" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Calendly API & Webhooks page</a></li>
+                            <li>Click "Create token" under Personal Access Tokens</li>
+                            <li>Give your token a name (e.g., "AI Assistant")</li>
+                            <li>Copy the generated token and paste it below</li>
+                        </ol>
+                    </div>
+                </CardContent>
+            </Card>
+
+            {/* Configuration */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Calendar */}
+                {/* Settings Form */}
                 <Card>
                     <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <Calendar className="h-5 w-5" />
-                            Select Date
-                        </CardTitle>
+                        <CardTitle>Calendly Configuration</CardTitle>
                     </CardHeader>
-                    <CardContent>
-                        {loading ? (
+                    <CardContent className="space-y-4">
+                        {settingsLoading ? (
                             <div className="flex justify-center py-8">
                                 <LoadingSpinner size="sm" />
                             </div>
                         ) : (
-                            <div className="space-y-4">
-                                {/* Month Navigation */}
-                                <div className="flex items-center justify-between">
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => navigateMonth('prev')}
-                                    >
-                                        ←
-                                    </Button>
-                                    <h3 className="text-lg font-semibold">
-                                        {monthNames[currentMonth]} {currentYear}
-                                    </h3>
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => navigateMonth('next')}
-                                    >
-                                        →
-                                    </Button>
+                            <>
+                                <div className="space-y-2">
+                                    <Label htmlFor="calendly-url">Calendly Profile URL (Optional)</Label>
+                                    <Input
+                                        id="calendly-url"
+                                        type="url"
+                                        placeholder="https://calendly.com/your-username"
+                                        value={settings.calendly_url}
+                                        onChange={(e) => setSettings({ ...settings, calendly_url: e.target.value })}
+                                        disabled={connectionValid && !isEditing}
+                                    />
+                                    <p className="text-xs text-muted-foreground">
+                                        Your public Calendly profile URL for reference
+                                    </p>
                                 </div>
 
-                                {/* Calendar Grid */}
-                                <div className="grid grid-cols-7 gap-1">
-                                    {/* Day Headers */}
-                                    {dayNames.map(day => (
-                                        <div key={day} className="p-2 text-center text-sm font-medium text-muted-foreground">
-                                            {day}
-                                        </div>
-                                    ))}
+                                <div className="space-y-2">
+                                    <Label htmlFor="access-token">Calendly Access Token *</Label>
+                                    <Input
+                                        id="access-token"
+                                        type="password"
+                                        placeholder="Enter your Calendly Personal Access Token"
+                                        value={settings.calendly_access_token}
+                                        onChange={(e) => setSettings({ ...settings, calendly_access_token: e.target.value })}
+                                        disabled={connectionValid && !isEditing}
+                                    />
+                                    {connectionValid && (
+                                        <p className="text-xs text-green-600">✓ Connection verified</p>
+                                    )}
+                                </div>
 
-                                    {/* Calendar Days */}
-                                    {generateCalendar().map((day, index) => (
-                                        <button
-                                            key={index}
-                                            onClick={() => !day.isPast && day.isCurrentMonth && setSelectedDate(day.dateString)}
-                                            disabled={day.isPast || !day.isCurrentMonth}
-                                            className={`
-                        p-2 text-sm relative rounded-md transition-colors
-                        ${day.isCurrentMonth ? 'text-foreground' : 'text-muted-foreground'}
-                        ${day.isPast ? 'opacity-40 cursor-not-allowed' : 'hover:bg-muted'}
-                        ${day.isSelected ? 'bg-primary text-primary-foreground' : ''}
-                        ${!day.isCurrentMonth ? 'opacity-40' : ''}
-                      `}
+                                <div className="flex gap-2">
+                                    {/* Only show Test Connection button when editing */}
+                                    {isEditing && (
+                                        <Button
+                                            variant="outline"
+                                            onClick={handleTestConnection}
+                                            disabled={testConnectionMutation.isPending || !settings.calendly_access_token}
                                         >
-                                            {day.day}
-                                            {day.hasAvailability && (
-                                                <div className="absolute top-1 right-1 w-2 h-2 bg-green-500 rounded-full"></div>
-                                            )}
-                                        </button>
-                                    ))}
+                                            <div className="flex items-center gap-2">
+                                                {testConnectionMutation.isPending ? (
+                                                    <>
+                                                        <LoadingSpinner size="sm" />
+                                                        <span>Testing...</span>
+                                                    </>
+                                                ) : (
+                                                    <span>Test Connection</span>
+                                                )}
+                                            </div>
+                                        </Button>
+                                    )}
+
+                                    {/* Show different buttons based on state */}
+                                    {!connectionValid || isEditing ? (
+                                        <Button
+                                            onClick={handleSaveSettings}
+                                            disabled={saveSettingsMutation.isPending || !settings.calendly_access_token}
+                                        >
+                                            <div className="flex items-center gap-2">
+                                                {saveSettingsMutation.isPending ? (
+                                                    <>
+                                                        <LoadingSpinner size="sm" />
+                                                        <span>Saving...</span>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Save className="h-4 w-4" />
+                                                        <span>
+                                                            {connectionValid ? 'Update Token' : 'Save & Connect'}
+                                                        </span>
+                                                    </>
+                                                )}
+                                            </div>
+                                        </Button>
+                                    ) : (
+                                        <Button
+                                            variant="outline"
+                                            onClick={handleEditToken}
+                                        >
+                                            <div className="flex items-center gap-2">
+                                                <Edit className="h-4 w-4" />
+                                                <span>Edit Token</span>
+                                            </div>
+                                        </Button>
+                                    )}
                                 </div>
 
-                                <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                                    <div className="flex items-center gap-1">
-                                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                                        <span>Has availability</span>
+                                {events.length > 0 && (
+                                    <div className="space-y-2">
+                                        <Label htmlFor="event-type">Select Event Type for AI Booking</Label>
+                                        <select
+                                            id="event-type"
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                                            value={settings.event_type_uri}
+                                            onChange={(e) => {
+                                                const newSettings = { ...settings, event_type_uri: e.target.value };
+                                                setSettings(newSettings);
+                                                // Auto-save when event type is selected
+                                                if (apiKey && e.target.value) {
+                                                    saveSettingsMutation.mutate(newSettings);
+                                                }
+                                            }}
+                                        >
+                                            <option value="">Select an event type...</option>
+                                            {events.map((event: CalendlyEvent) => (
+                                                <option key={event.uri} value={event.uri}>
+                                                    {event.name} ({event.duration} min)
+                                                </option>
+                                            ))}
+                                        </select>
+                                        <p className="text-xs text-muted-foreground">
+                                            This event type will be used for AI-powered booking
+                                        </p>
+                                        {saveSettingsMutation.isPending && (
+                                            <p className="text-xs text-blue-600 flex items-center gap-1">
+                                                <LoadingSpinner size="sm" />
+                                                Saving selection...
+                                            </p>
+                                        )}
                                     </div>
-                                </div>
-                            </div>
+                                )}
+
+                                {/* Your Event Types Section - Moved here */}
+                                {events.length > 0 && (
+                                    <div className="space-y-4">
+                                        <div className="border-t pt-4">
+                                            <h4 className="font-medium mb-3">Your Event Types</h4>
+                                            <div className="space-y-3">
+                                                {events.map((event: CalendlyEvent) => (
+                                                    <div key={event.uri} className="p-3 border rounded-lg bg-gray-50">
+                                                        <div className="flex items-start justify-between mb-2">
+                                                            <h5 className="font-medium text-sm">{event.name}</h5>
+                                                            {settings.event_type_uri === event.uri && (
+                                                                <Badge variant="outline" className="bg-green-100 text-green-800 border-green-300 text-xs">
+                                                                    AI Enabled
+                                                                </Badge>
+                                                            )}
+                                                        </div>
+                                                        <div className="flex items-center justify-between">
+                                                            <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                                                                <div className="flex items-center gap-1">
+                                                                    <Clock className="w-3 h-3" />
+                                                                    <span>{event.duration} minutes</span>
+                                                                </div>
+                                                                <Badge variant={event.status === 'active' ? 'default' : 'secondary'} className="text-xs">
+                                                                    {event.status}
+                                                                </Badge>
+                                                            </div>
+                                                            <Button variant="outline" size="sm" asChild>
+                                                                <a href={event.booking_url} target="_blank" rel="noopener noreferrer">
+                                                                    <span className="flex items-center text-xs">
+                                                                        <ExternalLink className="w-3 h-3 mr-1" />
+                                                                        View Page
+                                                                    </span>
+                                                                </a>
+                                                            </Button>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </>
                         )}
                     </CardContent>
                 </Card>
 
-                {/* Time Slots Management */}
+                {/* Stats & Status */}
                 <Card>
                     <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <Clock className="h-5 w-5" />
-                            Time Slots
-                            {selectedDate && (
-                                <Badge variant="outline">
-                                    {new Date(selectedDate).toLocaleDateString()}
-                                </Badge>
-                            )}
-                        </CardTitle>
+                        <CardTitle>Account Overview</CardTitle>
+                        <p className="text-sm text-muted-foreground">
+                            Your Calendly integration status and key metrics
+                        </p>
                     </CardHeader>
-                    <CardContent className="space-y-4">
-                        {!selectedDate ? (
-                            <div className="text-center py-8 text-muted-foreground">
-                                Select a date from the calendar to manage time slots
-                            </div>
-                        ) : (
-                            <>
-                                {/* Add New Time Slot */}
-                                <div className="space-y-3">
-                                    <Label>Add Time Slot</Label>
-                                    <div className="grid grid-cols-2 gap-2">
-                                        <div>
-                                            <Label htmlFor="start-time" className="text-xs">Start Time</Label>
-                                            <Input
-                                                id="start-time"
-                                                type="time"
-                                                value={newSlot.start_time}
-                                                onChange={(e) => setNewSlot({ ...newSlot, start_time: e.target.value })}
-                                            />
+                    <CardContent>
+                        {connectionValid ? (
+                            <div className="space-y-6">
+                                {/* Main Stats Grid */}
+                                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                                    <div className="text-center p-4 border rounded-lg bg-blue-50">
+                                        <div className="text-2xl font-bold text-blue-600">{stats.total_events}</div>
+                                        <div className="text-sm text-muted-foreground">Total Events</div>
+                                    </div>
+                                    <div className="text-center p-4 border rounded-lg bg-green-50">
+                                        <div className="text-2xl font-bold text-green-600">{stats.active_events}</div>
+                                        <div className="text-sm text-muted-foreground">Active Events</div>
+                                    </div>
+                                    <div className="text-center p-4 border rounded-lg bg-purple-50">
+                                        <div className="text-2xl font-bold text-purple-600">{availableSlots.length}</div>
+                                        <div className="text-sm text-muted-foreground">Available Slots</div>
+                                        <div className="text-xs text-muted-foreground mt-1">Next 7 days</div>
+                                    </div>
+                                    <div className="text-center p-4 border rounded-lg bg-orange-50">
+                                        <div className="text-2xl font-bold text-orange-600">
+                                            {settings.event_type_uri ? '✓' : '⚠'}
                                         </div>
-                                        <div>
-                                            <Label htmlFor="end-time" className="text-xs">End Time</Label>
-                                            <Input
-                                                id="end-time"
-                                                type="time"
-                                                value={newSlot.end_time}
-                                                onChange={(e) => setNewSlot({ ...newSlot, end_time: e.target.value })}
-                                            />
+                                        <div className="text-sm text-muted-foreground">AI Integration</div>
+                                        <div className="text-xs text-muted-foreground mt-1">
+                                            {settings.event_type_uri ? 'Configured' : 'Setup needed'}
                                         </div>
                                     </div>
-                                    <Button onClick={addTimeSlot} className="w-full" size="sm">
-                                        <Plus className="h-4 w-4 mr-2" />
-                                        Add Time Slot
-                                    </Button>
                                 </div>
 
-                                {/* Current Time Slots */}
-                                {currentTimeSlots.length > 0 && (
-                                    <div className="space-y-3">
-                                        <Label>Current Time Slots</Label>
-                                        <div className="space-y-2">
-                                            {currentTimeSlots.map((slot) => (
-                                                <div
-                                                    key={slot.id}
-                                                    className="flex items-center justify-between p-3 border rounded-md"
-                                                >
-                                                    <span className="font-mono text-sm">
-                                                        {slot.start_time} - {slot.end_time}
+                                {/* Connection Status */}
+                                <div className="p-4 border rounded-lg bg-green-50 border-green-200">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                                        <span className="font-medium text-green-800">Connected to Calendly</span>
+                                    </div>
+                                    <p className="text-sm text-green-700">
+                                        Your AI assistant can now access your calendar and book appointments automatically.
+                                    </p>
+                                </div>
+
+                                {/* Quick Insights
+                                {availableSlots.length > 0 && (
+                                    <div className="p-4 border rounded-lg bg-blue-50">
+                                        <h4 className="font-medium text-blue-800 mb-2">📊 Availability Insights</h4>
+                                        <div className="space-y-2 text-sm text-blue-700">
+                                            <p>• Next available: {(() => {
+                                                const nextSlot = availableSlots[0];
+                                                if (nextSlot) {
+                                                    const { date, time } = formatDateTime(nextSlot.start_time);
+                                                    return `${date} at ${time}`;
+                                                }
+                                                return 'Loading...';
+                                            })()}</p>
+                                            <p>• Total slots this week: {availableSlots.length}</p>
+                                            <p>• Average slots per day: {Math.round(availableSlots.length / 7)}</p>
+                                        </div>
+                                    </div>
+                                )} */}
+
+                                {/* AI Configuration Status */}
+                                <div className="p-4 border rounded-lg">
+                                    <h4 className="font-medium mb-3">🤖 AI Assistant Configuration</h4>
+                                    <div className="space-y-2">
+                                        <div className="flex items-center justify-between text-sm">
+                                            <span>Calendly Access Token</span>
+                                            <Badge variant="outline" className="bg-green-100 text-green-800">
+                                                ✓ Connected
+                                            </Badge>
+                                        </div>
+                                        <div className="flex items-center justify-between text-sm">
+                                            <span>Event Type Selected</span>
+                                            {settings.event_type_uri ? (
+                                                <Badge variant="outline" className="bg-green-100 text-green-800">
+                                                    ✓ Configured
+                                                </Badge>
+                                            ) : (
+                                                <Badge variant="outline" className="bg-yellow-100 text-yellow-800">
+                                                    ⚠ Required
+                                                </Badge>
+                                            )}
+                                        </div>
+                                        <div className="flex items-center justify-between text-sm">
+                                            <span>AI Booking Status</span>
+                                            {settings.event_type_uri ? (
+                                                <Badge variant="outline" className="bg-green-100 text-green-800">
+                                                    ✓ Active
+                                                </Badge>
+                                            ) : (
+                                                <Badge variant="outline" className="bg-gray-100 text-gray-800">
+                                                    Inactive
+                                                </Badge>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Quick Actions */}
+                                <div className="space-y-3">
+                                    <h4 className="font-medium">⚡ Quick Actions</h4>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        {settings.calendly_url && (
+                                            <Button variant="outline" asChild size="sm">
+                                                <a href={settings.calendly_url} target="_blank" rel="noopener noreferrer">
+                                                    <span className="flex items-center">
+                                                        <ExternalLink className="h-4 w-4 mr-2" />
+                                                        View Public Profile
                                                     </span>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        onClick={() => deleteTimeSlot(slot.id)}
-                                                        disabled={deletingSlotId === slot.id}
-                                                        className="text-red-500 hover:text-red-700"
-                                                    >
-                                                        {deletingSlotId === slot.id ? (
-                                                            <LoadingSpinner size="sm" />
-                                                        ) : (
-                                                            <Trash2 className="h-4 w-4" />
-                                                        )}
-                                                    </Button>
-                                                </div>
-                                            ))}
+                                                </a>
+                                            </Button>
+                                        )}
+                                        <Button variant="outline" asChild size="sm">
+                                            <a href="https://calendly.com/app/scheduled_events" target="_blank" rel="noopener noreferrer">
+                                                <span className="flex items-center">
+                                                    <Calendar className="h-4 w-4 mr-2" />
+                                                    Manage Bookings
+                                                </span>
+                                            </a>
+                                        </Button>
+                                        <Button variant="outline" asChild size="sm">
+                                            <a href="https://calendly.com/app/event_types" target="_blank" rel="noopener noreferrer">
+                                                <span className="flex items-center">
+                                                    <Settings className="h-4 w-4 mr-2" />
+                                                    Edit Event Types
+                                                </span>
+                                            </a>
+                                        </Button>
+                                        <Button variant="outline" asChild size="sm">
+                                            <a href="https://calendly.com/app/availability" target="_blank" rel="noopener noreferrer">
+                                                <span className="flex items-center">
+                                                    <Clock className="h-4 w-4 mr-2" />
+                                                    Set Availability
+                                                </span>
+                                            </a>
+                                        </Button>
+                                    </div>
+                                </div>
+
+                                {/* Integration Tips */}
+                                {!settings.event_type_uri && (
+                                    <div className="p-4 border rounded-lg bg-yellow-50 border-yellow-200">
+                                        <div className="flex items-start gap-2">
+                                            <div className="text-yellow-600 mt-0.5">💡</div>
+                                            <div>
+                                                <h4 className="font-medium text-yellow-800 mb-1">Complete Your Setup</h4>
+                                                <p className="text-sm text-yellow-700 mb-2">
+                                                    Select an event type above to enable AI-powered booking for your customers.
+                                                </p>
+                                                <p className="text-xs text-yellow-600">
+                                                    This allows your AI assistant to automatically show available times and provide direct booking links.
+                                                </p>
+                                            </div>
                                         </div>
                                     </div>
                                 )}
-
-                                {/* Save Button */}
-                                <Button
-                                    onClick={saveAvailability}
-                                    disabled={saving || !selectedDate}
-                                    className="w-full"
-                                >
-                                    {saving ? (
-                                        <>
-                                            <LoadingSpinner size="sm" />
-                                            Saving...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Save className="h-4 w-4 mr-2" />
-                                            Save Availability
-                                        </>
-                                    )}
-                                </Button>
-                            </>
+                            </div>
+                        ) : (
+                            <div className="text-center py-8 text-muted-foreground">
+                                <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                                <h3 className="font-medium mb-2">Connect Your Calendly Account</h3>
+                                <p className="text-sm mb-4">
+                                    Get detailed insights about your booking performance and AI integration status.
+                                </p>
+                                <p className="text-xs">
+                                    Add your access token above to get started with powerful analytics and automation.
+                                </p>
+                            </div>
                         )}
                     </CardContent>
                 </Card>
             </div>
 
-            {/* Summary */}
-            {availabilities.length > 0 && (
+            {/* Available Slots Preview */}
+            {availableSlots.length > 0 && (
                 <Card>
                     <CardHeader>
-                        <CardTitle>Availability Summary</CardTitle>
+                        <CardTitle>Next Available Slots</CardTitle>
+                        <p className="text-sm text-muted-foreground">
+                            These are the slots your AI assistant will offer to customers
+                        </p>
                     </CardHeader>
                     <CardContent>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {availabilities.map((availability) => (
-                                <div key={availability.date} className="p-3 border rounded-md">
-                                    <h4 className="font-medium mb-2">
-                                        {new Date(availability.date).toLocaleDateString('en-US', {
-                                            weekday: 'long',
-                                            year: 'numeric',
-                                            month: 'long',
-                                            day: 'numeric'
-                                        })}
-                                    </h4>
-                                    <div className="space-y-1">
-                                        {availability.time_slots.map((slot) => (
-                                            <div key={slot.id} className="text-sm font-mono text-muted-foreground">
-                                                {slot.start_time} - {slot.end_time}
-                                            </div>
-                                        ))}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                            {availableSlots.slice(0, 6).map((slot: CalendlySlot, index: number) => {
+                                const { date, time } = formatDateTime(slot.start_time);
+                                return (
+                                    <div key={index} className="p-3 border rounded-lg bg-gradient-to-r from-blue-50 to-green-50">
+                                        <div className="text-sm font-medium">{date}</div>
+                                        <div className="text-lg font-semibold">{time}</div>
+                                        <Button variant="outline" size="sm" asChild className="w-full mt-2">
+                                            <a href={slot.scheduling_url} target="_blank" rel="noopener noreferrer">
+                                                <span className="flex items-center justify-center">
+                                                    <ExternalLink className="w-3 h-3 mr-1" />
+                                                    Booking URL
+                                                </span>
+                                            </a>
+                                        </Button>
                                     </div>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
+                        {availableSlots.length > 6 && (
+                            <p className="text-sm text-muted-foreground text-center mt-4">
+                                ... and {availableSlots.length - 6} more slots available
+                            </p>
+                        )}
                     </CardContent>
                 </Card>
             )}
+
+            {/* How it Works */}
+            <Card>
+                <CardHeader>
+                    <CardTitle>How AI Booking Works</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="text-center">
+                            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                <Calendar className="w-6 h-6 text-blue-600" />
+                            </div>
+                            <h4 className="font-medium mb-2">1. AI Fetches Availability</h4>
+                            <p className="text-sm text-muted-foreground">
+                                Your AI assistant automatically checks your Calendly for available time slots
+                            </p>
+                        </div>
+                        <div className="text-center">
+                            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                <User className="w-6 h-6 text-green-600" />
+                            </div>
+                            <h4 className="font-medium mb-2">2. Customer Selects Time</h4>
+                            <p className="text-sm text-muted-foreground">
+                                Customers chat with AI and choose from available appointment slots
+                            </p>
+                        </div>
+                        <div className="text-center">
+                            <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                <ExternalLink className="w-6 h-6 text-purple-600" />
+                            </div>
+                            <h4 className="font-medium mb-2">3. Direct Calendly Booking</h4>
+                            <p className="text-sm text-muted-foreground">
+                                AI provides a direct Calendly booking link for the selected time slot
+                            </p>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
         </div>
     );
 } 

@@ -37,7 +37,7 @@ const buttonVariants = cva(
 
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
-    VariantProps<typeof buttonVariants> {
+  VariantProps<typeof buttonVariants> {
   asChild?: boolean
   loading?: boolean
   leftSection?: JSX.Element
@@ -61,6 +61,23 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     ref
   ) => {
     const Comp = asChild ? Slot : 'button'
+
+    // When asChild is true, we only pass through the children
+    // All loading states and sections are ignored for asChild usage
+    if (asChild) {
+      return (
+        <Comp
+          className={cn(buttonVariants({ variant, size, className }))}
+          disabled={loading || disabled}
+          ref={ref}
+          {...props}
+        >
+          {children}
+        </Comp>
+      )
+    }
+
+    // Normal button behavior when asChild is false
     return (
       <Comp
         className={cn(buttonVariants({ variant, size, className }))}
@@ -70,8 +87,8 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       >
         {((leftSection && loading) ||
           (!leftSection && !rightSection && loading)) && (
-          <IconLoader2 className='mr-2 h-4 w-4 animate-spin' />
-        )}
+            <IconLoader2 className='mr-2 h-4 w-4 animate-spin' />
+          )}
         {!loading && leftSection && <div className='mr-2'>{leftSection}</div>}
         {children}
         {!loading && rightSection && <div className='ml-2'>{rightSection}</div>}
