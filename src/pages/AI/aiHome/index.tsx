@@ -1,13 +1,16 @@
 import ContentSection from "@/pages/settings/components/content-section";
 import { Button } from "@/components/custom/button";
 import { Input } from "@/components/ui/input";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Switch } from "@/components/ui/switch";
 import { Link, useNavigate } from "react-router-dom";
 import useAxiosPublic from "@/hooks/useAxiosPublic";
 import { AxiosInstance } from "axios";
 import { useApiKey } from "@/hooks/useApiKey";
 import { toast } from "sonner";
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import Skeleton from 'react-loading-skeleton';
+import 'react-loading-skeleton/dist/skeleton.css';
 
 interface FAQResponse {
     id: string;
@@ -46,14 +49,15 @@ interface Automation {
 export default function AutomationSMS() {
     const navigate = useNavigate();
     const axiosPublic = useAxiosPublic() as AxiosInstance;
-    const [automations, setAutomations] = useState<Automation[]>([]);
     const [searchTerm, setSearchTerm] = useState("");
-    const [loading, setLoading] = useState(true);
     const { apiKey } = useApiKey();
+    const queryClient = useQueryClient();
 
-    const fetchAllAutomations = async () => {
-        try {
-            setLoading(true);
+    // Fetch all automations using TanStack Query
+    const { data: automations = [], isLoading, error } = useQuery({
+        queryKey: ['automations', apiKey],
+        queryFn: async (): Promise<Automation[]> => {
+            if (!apiKey) throw new Error('No API key available');
 
             // Fetch FAQ data
             const faqResponse = await axiosPublic.get<FAQResponse[]>('/api/faq/list', {
@@ -101,17 +105,18 @@ export default function AutomationSMS() {
             const allAutomations = [...faqAutomations, ...instantReplyAutomations, ...trainingAutomations]
                 .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-            setAutomations(allAutomations);
-        } catch (error) {
-            console.error('Error fetching automations:', error);
-            toast.error('Failed to fetch automations');
-        } finally {
-            setLoading(false);
-        }
-    };
+            return allAutomations;
+        },
+        enabled: !!apiKey,
+        staleTime: 1000 * 60 * 5, // 5 minutes
+        gcTime: 1000 * 60 * 10, // 10 minutes (formerly cacheTime)
+        retry: 2,
+        refetchOnWindowFocus: false,
+    });
 
-    const toggleStatus = async (id: string, type: string) => {
-        try {
+    // Mutation for toggling automation status
+    const toggleStatusMutation = useMutation({
+        mutationFn: async ({ id, type, currentStatus }: { id: string; type: string; currentStatus: boolean }) => {
             if (type === 'faq') {
                 await axiosPublic.put(`/api/faq/${id}/toggle`, null, {
                     headers: {
@@ -123,7 +128,7 @@ export default function AutomationSMS() {
                 if (currentAutomation) {
                     await axiosPublic.post('/api/instant-reply', {
                         message: currentAutomation.name,
-                        isActive: !currentAutomation.status
+                        isActive: !currentStatus
                     }, {
                         headers: {
                             'X-API-Key': apiKey,
@@ -132,17 +137,28 @@ export default function AutomationSMS() {
                 }
             }
             // Training items can't be toggled
-            await fetchAllAutomations(); // Refresh data after toggle
+        },
+        onSuccess: () => {
+            // Invalidate and refetch automations
+            queryClient.invalidateQueries({ queryKey: ['automations', apiKey] });
             toast.success('Status updated successfully');
-        } catch (error) {
+        },
+        onError: (error) => {
             console.error('Error toggling automation status:', error);
             toast.error('Failed to update status');
         }
-    };
+    });
 
-    useEffect(() => {
-        fetchAllAutomations();
-    }, [apiKey]);
+    const toggleStatus = (id: string, type: string) => {
+        const automation = automations.find(a => a.id === id);
+        if (automation) {
+            toggleStatusMutation.mutate({
+                id,
+                type,
+                currentStatus: automation.status
+            });
+        }
+    };
 
     const handleStartTraining = () => {
         navigate("/dashboard/train-ai-page");
@@ -151,6 +167,43 @@ export default function AutomationSMS() {
     const filteredAutomations = automations.filter(automation =>
         automation.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
+
+    // Loading skeleton component for table rows
+    const TableRowSkeleton = () => (
+        <tr>
+            <td className="px-4 py-3">
+                <Skeleton height={20} width={40} />
+            </td>
+            <td className="px-4 py-3">
+                <Skeleton height={16} width="70%" />
+            </td>
+            <td className="px-4 py-3">
+                <Skeleton height={16} width="50%" />
+            </td>
+            <td className="px-4 py-3 text-right">
+                <Skeleton height={16} width={40} />
+            </td>
+        </tr>
+    );
+
+    // Show error state
+    if (error) {
+        return (
+            <div className="mx-6 mt-4">
+                <ContentSection title="Automation SMS">
+                    <div className="text-center py-8">
+                        <p className="text-red-500">Failed to load automations. Please try again.</p>
+                        <Button
+                            onClick={() => queryClient.invalidateQueries({ queryKey: ['automations', apiKey] })}
+                            className="mt-4"
+                        >
+                            Retry
+                        </Button>
+                    </div>
+                </ContentSection>
+            </div>
+        );
+    }
 
     return (
         <div className="mx-6 mt-4">
@@ -168,7 +221,7 @@ export default function AutomationSMS() {
                                 <img
                                     src="https://res.cloudinary.com/dq9yrj7c9/image/upload/v1747212346/instantReply.png"
                                     alt="Instant Reply"
-                                    className="w-full h-full object-cover rounded-md"
+                                    className="w-full h-40 object-cover rounded-md"
                                 />
                                 <h3 className="font-medium">Instant Reply</h3>
                                 <p className="text-sm text-muted-foreground">
@@ -188,7 +241,7 @@ export default function AutomationSMS() {
                                 <img
                                     src="https://res.cloudinary.com/dq9yrj7c9/image/upload/v1747212404/FAQ.png"
                                     alt="Frequently Asked Questions"
-                                    className="w-full h-full object-cover rounded-md"
+                                    className="w-full h-40 object-cover rounded-md"
                                 />
                                 <h3 className="font-medium">Frequently Asked Questions</h3>
                                 <p className="text-sm text-muted-foreground">
@@ -208,7 +261,7 @@ export default function AutomationSMS() {
                                 <img
                                     src="https://res.cloudinary.com/dq9yrj7c9/image/upload/v1747212425/TrainAi.png"
                                     alt="Trained AI"
-                                    className="w-full h-full object-cover rounded-md"
+                                    className="w-full h-40 object-cover rounded-md"
                                 />
                                 <h3 className="font-medium">Trained AI</h3>
                                 <p className="text-sm text-muted-foreground">
@@ -226,7 +279,7 @@ export default function AutomationSMS() {
                                 <img
                                     src="https://bayshore.nyc3.cdn.digitaloceanspaces.com/ai_bot/behavior.jpeg"
                                     alt="AI Behavior"
-                                    className="w-full h-full object-cover rounded-md"
+                                    className="w-full h-[156px] object-cover rounded-md"
                                 />
                                 <h3 className="font-medium">AI Behavior</h3>
                                 <p className="text-sm text-muted-foreground">
@@ -270,12 +323,11 @@ export default function AutomationSMS() {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {loading ? (
-                                            <tr>
-                                                <td colSpan={4} className="px-4 py-3 text-center">
-                                                    Loading automations...
-                                                </td>
-                                            </tr>
+                                        {isLoading ? (
+                                            // Loading skeleton rows
+                                            Array.from({ length: 5 }).map((_, index) => (
+                                                <TableRowSkeleton key={index} />
+                                            ))
                                         ) : filteredAutomations.length === 0 ? (
                                             <tr>
                                                 <td colSpan={4} className="px-4 py-3 text-center">
@@ -289,6 +341,7 @@ export default function AutomationSMS() {
                                                         <Switch
                                                             checked={automation.status}
                                                             onCheckedChange={() => toggleStatus(automation.id, automation.type)}
+                                                            disabled={toggleStatusMutation.isPending}
                                                         />
                                                     </td>
                                                     <td className="px-4 py-3 text-sm">{automation.name}</td>

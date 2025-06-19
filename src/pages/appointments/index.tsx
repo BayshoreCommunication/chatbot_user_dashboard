@@ -241,20 +241,7 @@ export default function AppointmentsPage() {
                             </div>
                         ) : (
                             <>
-                                <div className="space-y-2">
-                                    <Label htmlFor="calendly-url">Calendly Profile URL (Optional)</Label>
-                                    <Input
-                                        id="calendly-url"
-                                        type="url"
-                                        placeholder="https://calendly.com/your-username"
-                                        value={settings.calendly_url}
-                                        onChange={(e) => setSettings({ ...settings, calendly_url: e.target.value })}
-                                        disabled={connectionValid && !isEditing}
-                                    />
-                                    <p className="text-xs text-muted-foreground">
-                                        Your public Calendly profile URL for reference
-                                    </p>
-                                </div>
+                                
 
                                 <div className="space-y-2">
                                     <Label htmlFor="access-token">Calendly Access Token *</Label>
@@ -513,7 +500,7 @@ export default function AppointmentsPage() {
                                 </div>
 
                                 {/* Quick Actions */}
-                                <div className="space-y-3">
+                                {/* <div className="space-y-3">
                                     <h4 className="font-medium">⚡ Quick Actions</h4>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                         {settings.calendly_url && (
@@ -551,7 +538,7 @@ export default function AppointmentsPage() {
                                             </a>
                                         </Button>
                                     </div>
-                                </div>
+                                </div> */}
 
                                 {/* Integration Tips */}
                                 {!settings.event_type_uri && (

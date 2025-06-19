@@ -5,16 +5,28 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import ContentSection from "@/pages/settings/components/content-section";
 import { useNavigate } from "react-router-dom";
-import { CheckIcon } from "lucide-react";
+import { CheckIcon, Plus, X } from "lucide-react";
 import { useChatWidgetSettings } from "@/hooks/useChatWidgetSettings";
 import { LoadingSpinner } from "@/components/custom/loading-spinner";
 import axios from "axios";
 import { useApiKey } from "@/hooks/useApiKey";
 
+interface InstantMessage {
+    id: string;
+    message: string;
+    order: number;
+}
+
+interface ApiResponseMessage {
+    message: string;
+    order: number;
+}
+
 export default function InstantReply() {
     const [isEnabled, setIsEnabled] = useState(false);
-    const [message, setMessage] = useState("Hi, thanks for contacting us. We've received your message and appreciate your getting in touch.");
-    const [charCount, setCharCount] = useState(95);
+    const [messages, setMessages] = useState<InstantMessage[]>([
+        { id: '1', message: "Hi, thanks for contacting us. We've received your message and appreciate your getting in touch.", order: 1 }
+    ]);
     const [showSuccessModal, setShowSuccessModal] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
@@ -22,10 +34,27 @@ export default function InstantReply() {
     const { data: settings, isLoading: isSettingsLoading } = useChatWidgetSettings();
     const { apiKey } = useApiKey();
 
-    const handleMessageChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-        const newMessage = e.target.value;
-        setMessage(newMessage);
-        setCharCount(newMessage.length);
+    const handleMessageChange = (id: string, newMessage: string) => {
+        setMessages(prev => prev.map(msg =>
+            msg.id === id ? { ...msg, message: newMessage } : msg
+        ));
+    };
+
+    const addMessage = () => {
+        const newMessage: InstantMessage = {
+            id: Date.now().toString(),
+            message: "",
+            order: messages.length + 1
+        };
+        setMessages(prev => [...prev, newMessage]);
+    };
+
+    const removeMessage = (id: string) => {
+        if (messages.length === 1) return; // Prevent removing the last message
+        setMessages(prev => prev.filter(msg => msg.id !== id).map((msg, index) => ({
+            ...msg,
+            order: index + 1
+        })));
     };
 
     useEffect(() => {
@@ -38,11 +67,16 @@ export default function InstantReply() {
                 });
 
                 if (response.data.status === 'success' && response.data.data) {
-                    setMessage(response.data.data.message || message);
-                    setIsEnabled(response.data.data.isActive);
-                    if (response.data.data.message) {
-                        setCharCount(response.data.data.message.length);
+                    const responseMessages = response.data.data.messages || [];
+                    if (responseMessages.length > 0) {
+                        const formattedMessages = responseMessages.map((msg: ApiResponseMessage, index: number) => ({
+                            id: `${index + 1}`,
+                            message: msg.message,
+                            order: msg.order || index + 1
+                        }));
+                        setMessages(formattedMessages);
                     }
+                    setIsEnabled(response.data.data.isActive);
                 }
             } catch (error) {
                 console.error('Error loading instant reply:', error);
@@ -60,9 +94,14 @@ export default function InstantReply() {
         try {
             setIsSaving(true);
 
+            const filteredMessages = messages.filter(msg => msg.message.trim() !== '');
+
             await axios.post(`${import.meta.env.VITE_API_URL}/api/instant-reply`,
                 {
-                    message,
+                    messages: filteredMessages.map(msg => ({
+                        message: msg.message,
+                        order: msg.order
+                    })),
                     isActive: isEnabled
                 },
                 {
@@ -114,36 +153,76 @@ export default function InstantReply() {
                     </div>
 
                     <p className="text-muted-foreground">
-                        Respond to the first message someone sends you in your website. You can customise your message to say hello, give them more information or let them know when to expect a response.
+                        These instant messages will automatically trigger when a user visits the bot page. The bot will proactively engage users by sending these messages to encourage them to start a conversation. This only happens before the conversation begins - once a user responds, normal chat flow takes over.
                     </p>
 
                     <div className="flex flex-col md:flex-row gap-6">
                         <div className="border rounded-lg p-6 space-y-6 flex-1">
                             <div className="space-y-2">
                                 <h3 className="font-medium">When this happens</h3>
-                                <p className="text-sm text-muted-foreground">You can receive message from your connected website.</p>
+                                <p className="text-sm text-muted-foreground">A user visits your website and opens the chat widget.</p>
                             </div>
 
                             <div className="space-y-2">
                                 <h3 className="font-medium">Take this action</h3>
-                                <p className="text-sm text-muted-foreground">Reply instantly to the customer</p>
+                                <p className="text-sm text-muted-foreground">Automatically send these messages to initiate conversation</p>
                             </div>
 
-                            <div className="space-y-2">
-                                <Label htmlFor="message" className="font-medium">Message</Label>
-                                <div className="relative">
-                                    <Textarea
-                                        id="message"
-                                        placeholder="Type your message here"
-                                        value={message}
-                                        onChange={handleMessageChange}
-                                        className="min-h-32 resize-none pr-16"
-                                        disabled={!isEnabled}
-                                    />
-                                    <div className="absolute bottom-3 right-3 text-sm text-muted-foreground">
-                                        {charCount}/500
-                                    </div>
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <Label className="font-medium">Messages ({messages.length})</Label>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={addMessage}
+                                        className="flex items-center gap-2"
+                                        disabled={!isEnabled || messages.length >= 5}
+                                    >
+                                        <Plus className="h-4 w-4" />
+                                        Add Message
+                                    </Button>
                                 </div>
+
+                                {messages.map((msg, index) => (
+                                    <div key={msg.id} className="space-y-2">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-sm font-medium text-muted-foreground">
+                                                Message {index + 1}
+                                            </span>
+                                            {messages.length > 1 && (
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => removeMessage(msg.id)}
+                                                    className="text-red-500 hover:text-red-700 h-6 w-6 p-0"
+                                                >
+                                                    <X className="h-4 w-4" />
+                                                </Button>
+                                            )}
+                                        </div>
+                                        <div className="relative">
+                                            <Textarea
+                                                placeholder={`Type your message ${index + 1} here`}
+                                                value={msg.message}
+                                                onChange={(e) => handleMessageChange(msg.id, e.target.value)}
+                                                className="min-h-24 resize-none pr-16"
+                                                disabled={!isEnabled}
+                                                maxLength={500}
+                                            />
+                                            <div className="absolute bottom-3 right-3 text-sm text-muted-foreground">
+                                                {msg.message.length}/500
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+
+                                {messages.length >= 5 && (
+                                    <p className="text-sm text-amber-600">
+                                        Maximum 5 messages allowed
+                                    </p>
+                                )}
                             </div>
                         </div>
 
@@ -170,13 +249,26 @@ export default function InstantReply() {
                                         </div>
 
                                         {/* Chat content */}
-                                        <div className="p-4 h-[350px] flex flex-col justify-end">
-                                            <div className="bg-gray-100 rounded-lg p-3 max-w-[75%] mb-2">
-                                                <p className="text-sm text-black">Hi yes, David have found it, ask our concierge <span className="font-bold text-lg">👋</span></p>
-                                            </div>
-                                            <div className="flex justify-end">
-                                                <div className="bg-gray-800 text-white rounded-lg p-3 max-w-[75%]">
-                                                    <p className="text-sm">{message}</p>
+                                        <div className="h-[350px] flex flex-col">
+                                            <div className="flex-1 p-4 overflow-y-auto space-y-2" style={{ scrollbarWidth: 'thin' }}>
+                                                <div className="flex flex-col justify-end min-h-full">
+                                                    <div className="space-y-2">
+                                                        {/* Bot messages (instant messages) - left side */}
+                                                        <div className="flex flex-col items-start gap-2">
+                                                            {messages.filter(msg => msg.message.trim() !== '').map((msg, index) => (
+                                                                <div key={msg.id} className="bg-gray-800 text-white rounded-lg p-3 max-w-[75%] break-words">
+                                                                    <p className="text-sm">{msg.message || `Message ${index + 1}`}</p>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+
+                                                        {/* User response - right side */}
+                                                        <div className="flex justify-end">
+                                                            <div className="bg-gray-100 rounded-lg p-3 max-w-[75%] break-words">
+                                                                <p className="text-sm text-black">Hi yes, David have found it, ask our concierge <span className="font-bold text-lg">👋</span></p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
