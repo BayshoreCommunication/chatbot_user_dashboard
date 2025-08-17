@@ -52,11 +52,14 @@ export default function ChatWidgetSetup() {
     if (!apiKey) return
 
     try {
-      const response = await fetch('/api/chatbot/settings', {
-        headers: {
-          'X-API-Key': apiKey,
-        },
-      })
+      const response = await fetch(
+        `http://localhost:8000/api/chatbot/settings`,
+        {
+          headers: {
+            'X-API-Key': apiKey,
+          },
+        }
+      )
       const data = await response.json()
 
       if (data.status === 'success') {
@@ -102,13 +105,16 @@ export default function ChatWidgetSetup() {
     formData.append('file', videoFile)
 
     try {
-      const response = await fetch('/api/chatbot/upload-video', {
-        method: 'POST',
-        headers: {
-          'X-API-Key': apiKey,
-        },
-        body: formData,
-      })
+      const response = await fetch(
+        'http://localhost:8000/api/chatbot/upload-video',
+        {
+          method: 'POST',
+          headers: {
+            'X-API-Key': apiKey,
+          },
+          body: formData,
+        }
+      )
 
       const data = await response.json()
 
@@ -141,7 +147,7 @@ export default function ChatWidgetSetup() {
     if (!apiKey) return
 
     try {
-      const response = await fetch('/api/chatbot/video', {
+      const response = await fetch('http://localhost:8000/api/chatbot/video', {
         method: 'DELETE',
         headers: {
           'X-API-Key': apiKey,
@@ -173,14 +179,17 @@ export default function ChatWidgetSetup() {
     if (!apiKey) return
 
     try {
-      const response = await fetch('/api/chatbot/save-settings', {
-        method: 'POST',
-        headers: {
-          'X-API-Key': apiKey,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(settings),
-      })
+      const response = await fetch(
+        'http://localhost:8000/api/chatbot/save-settings',
+        {
+          method: 'POST',
+          headers: {
+            'X-API-Key': apiKey,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(settings),
+        }
+      )
 
       const data = await response.json()
 
@@ -203,17 +212,20 @@ export default function ChatWidgetSetup() {
     if (!apiKey) return
 
     try {
-      const response = await fetch('/api/chatbot/video-settings', {
-        method: 'PUT',
-        headers: {
-          'X-API-Key': apiKey,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          autoplay: settings.video_autoplay,
-          duration: settings.video_duration,
-        }),
-      })
+      const response = await fetch(
+        'http://localhost:8000/api/chatbot/video-settings',
+        {
+          method: 'PUT',
+          headers: {
+            'X-API-Key': apiKey,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            autoplay: settings.video_autoplay,
+            duration: settings.video_duration,
+          }),
+        }
+      )
 
       const data = await response.json()
 
@@ -360,7 +372,11 @@ export default function ChatWidgetSetup() {
               <video
                 controls
                 className='w-full max-w-md rounded'
-                src={settings.video_url}
+                src={
+                  settings.video_url?.startsWith('http')
+                    ? settings.video_url
+                    : `http://localhost:8000${settings.video_url}`
+                }
               >
                 Your browser does not support the video tag.
               </video>
