@@ -1,16 +1,22 @@
+import { Button } from '@/components/custom/button'
 import { LoadingSpinner } from '@/components/custom/loading-spinner'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { useApiKey } from '@/hooks/useApiKey'
 import { cn } from '@/lib/utils'
 import {
   Bell,
   BellOff,
+  Bot,
   ChevronDown,
+  MessageSquare,
   MoreVertical,
   Paperclip,
   Search,
   Send,
+  User,
   Wifi,
   WifiOff,
 } from 'lucide-react'
@@ -28,8 +34,6 @@ interface Message {
   created_at: string
   metadata?: {
     mode?: string
-    agent_id?: string
-    type?: string
   }
 }
 
@@ -43,16 +47,6 @@ interface ChatPanelProps {
   } | null
   socket?: Socket | null // Socket.IO instance
   incomingMessageLoading?: boolean // New prop for typing animation
-  isAgentMode?: boolean
-  agentId?: string | null
-  agentTakeoverAt?: string | null
-  takeoverChat?: (sessionId: string, agentId?: string) => Promise<any>
-  releaseChat?: (sessionId: string) => Promise<any>
-  sendAgentMessage?: (
-    sessionId: string,
-    message: string,
-    agentId?: string
-  ) => Promise<any>
 }
 
 interface GroupedMessages {
@@ -124,12 +118,6 @@ export function ChatPanel({
   userInfo,
   socket,
   incomingMessageLoading,
-  isAgentMode = false,
-  agentId,
-  agentTakeoverAt,
-  takeoverChat,
-  releaseChat,
-  sendAgentMessage,
 }: ChatPanelProps) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -137,8 +125,9 @@ export function ChatPanel({
   const [connectionStatus, setConnectionStatus] = useState<
     'online' | 'offline'
   >('offline')
-  const [toggleModeLoading, setToggleModeLoading] = useState(false)
+  const [agentMode, setAgentMode] = useState(false)
   const [sendingMessage, setSendingMessage] = useState(false)
+  const { apiKey } = useApiKey()
 
   // Notification states
   const [isDocumentVisible, setIsDocumentVisible] = useState(true)
@@ -307,14 +296,28 @@ export function ChatPanel({
     }
   }, [newMessageIds])
 
-  // Monitor socket connection status
+  // Monitor socket connection status and agent mode events
   useEffect(() => {
     if (socket) {
       const handleConnect = () => setConnectionStatus('online')
       const handleDisconnect = () => setConnectionStatus('offline')
 
+      const handleAgentTakeover = (data: any) => {
+        if (data.session_id === selectedSessionId) {
+          setAgentMode(true)
+        }
+      }
+
+      const handleAgentRelease = (data: any) => {
+        if (data.session_id === selectedSessionId) {
+          setAgentMode(false)
+        }
+      }
+
       socket.on('connect', handleConnect)
       socket.on('disconnect', handleDisconnect)
+      socket.on('agent_takeover', handleAgentTakeover)
+      socket.on('agent_release', handleAgentRelease)
 
       // Set initial status
       setConnectionStatus(socket.connected ? 'online' : 'offline')
@@ -322,11 +325,18 @@ export function ChatPanel({
       return () => {
         socket.off('connect', handleConnect)
         socket.off('disconnect', handleDisconnect)
+        socket.off('agent_takeover', handleAgentTakeover)
+        socket.off('agent_release', handleAgentRelease)
       }
     } else {
       setConnectionStatus('offline')
     }
-  }, [socket])
+  }, [socket, selectedSessionId])
+
+  // Reset agent mode when switching conversations
+  useEffect(() => {
+    setAgentMode(false)
+  }, [selectedSessionId])
 
   // Group messages by date
   const groupMessagesByDate = (messages: Message[]): GroupedMessages => {
@@ -372,52 +382,98 @@ export function ChatPanel({
 
   const handleSendMessage = async () => {
     if (
-      !newMessage.trim() ||
-      sendingMessage ||
-      !isAgentMode ||
-      !selectedSessionId ||
-      !sendAgentMessage
+      newMessage.trim() &&
+      agentMode &&
+      apiKey &&
+      selectedSessionId &&
+      !sendingMessage
     ) {
-      return
-    }
+      setSendingMessage(true)
+      try {
+        const response = await fetch(
+          `${import.meta.env.VITE_API_URL}/api/chatbot/send-agent-message`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-API-Key': apiKey,
+            },
+            body: JSON.stringify({
+              session_id: selectedSessionId,
+              message: newMessage,
+              agent_id: 'dashboard-agent', // You can make this dynamic
+            }),
+          }
+        )
 
-    setSendingMessage(true)
-    try {
-      await sendAgentMessage(
-        selectedSessionId,
-        newMessage.trim(),
-        agentId || 'dashboard-user'
-      )
-      setNewMessage('')
-    } catch (error) {
-      console.error('Error sending agent message:', error)
-      // You might want to show a toast notification here
-    } finally {
-      setSendingMessage(false)
+        if (response.ok) {
+          setNewMessage('')
+        } else {
+          console.error('Failed to send agent message')
+        }
+      } catch (error) {
+        console.error('Error sending agent message:', error)
+      } finally {
+        setSendingMessage(false)
+      }
     }
   }
 
-  const toggleChatMode = async () => {
-    if (
-      toggleModeLoading ||
-      !selectedSessionId ||
-      (!takeoverChat && !releaseChat)
-    ) {
-      return
-    }
+  const handleAgentTakeover = async () => {
+    if (!apiKey || !selectedSessionId) return
 
-    setToggleModeLoading(true)
     try {
-      if (isAgentMode && releaseChat) {
-        await releaseChat(selectedSessionId)
-      } else if (!isAgentMode && takeoverChat) {
-        await takeoverChat(selectedSessionId, 'dashboard-user')
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/api/chatbot/agent-takeover`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-API-Key': apiKey,
+          },
+          body: JSON.stringify({
+            session_id: selectedSessionId,
+            agent_id: 'dashboard-agent',
+          }),
+        }
+      )
+
+      if (response.ok) {
+        setAgentMode(true)
+      } else {
+        console.error('Failed to take over conversation')
       }
     } catch (error) {
-      console.error('Error toggling chat mode:', error)
-      // You might want to show a toast notification here
-    } finally {
-      setToggleModeLoading(false)
+      console.error('Error taking over conversation:', error)
+    }
+  }
+
+  const handleAgentRelease = async () => {
+    if (!apiKey || !selectedSessionId) return
+
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/api/chatbot/agent-release`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-API-Key': apiKey,
+          },
+          body: JSON.stringify({
+            session_id: selectedSessionId,
+            agent_id: 'dashboard-agent',
+          }),
+        }
+      )
+
+      if (response.ok) {
+        setAgentMode(false)
+      } else {
+        console.error('Failed to release conversation')
+      }
+    } catch (error) {
+      console.error('Error releasing conversation:', error)
     }
   }
 
@@ -510,56 +566,34 @@ export function ChatPanel({
           </div>
 
           <div className='flex items-center space-x-2'>
-            {/* Agent Mode Toggle Button */}
-            <button
-              onClick={toggleChatMode}
-              disabled={toggleModeLoading}
-              className={cn(
-                'rounded-lg border px-4 py-2 text-sm font-semibold shadow-sm transition-all duration-200',
-                isAgentMode
-                  ? 'border-red-200 bg-red-50 text-red-700 hover:bg-red-100 dark:border-red-800 dark:bg-red-900/20 dark:text-red-300'
-                  : 'border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-300',
-                toggleModeLoading && 'cursor-not-allowed opacity-50'
-              )}
-              title={
-                isAgentMode
-                  ? 'End session and let AI handle the conversation'
-                  : 'Take over this conversation and respond manually'
-              }
-            >
-              {toggleModeLoading ? (
-                <div className='flex items-center space-x-2'>
-                  <div className='h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent' />
-                  <span>Processing...</span>
+            {/* Agent Mode Toggle */}
+            {agentMode ? (
+              <div className='flex items-center space-x-2'>
+                <div className='flex items-center space-x-1 rounded-full bg-blue-100 px-2 py-1 text-xs text-blue-700 dark:bg-blue-900 dark:text-blue-300'>
+                  <User size={12} />
+                  <span>Agent Mode</span>
                 </div>
-              ) : (
-                <div className='flex items-center space-x-2'>
-                  <svg
-                    className='h-4 w-4'
-                    fill='none'
-                    stroke='currentColor'
-                    viewBox='0 0 24 24'
-                  >
-                    {isAgentMode ? (
-                      <path
-                        strokeLinecap='round'
-                        strokeLinejoin='round'
-                        strokeWidth={2}
-                        d='M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728L5.636 5.636m12.728 12.728L18.364 5.636M5.636 18.364l12.728-12.728'
-                      />
-                    ) : (
-                      <path
-                        strokeLinecap='round'
-                        strokeLinejoin='round'
-                        strokeWidth={2}
-                        d='M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z'
-                      />
-                    )}
-                  </svg>
-                  <span>{isAgentMode ? 'End Session' : 'Take Over'}</span>
-                </div>
-              )}
-            </button>
+                <Button
+                  onClick={handleAgentRelease}
+                  size='sm'
+                  variant='outline'
+                  className='h-7 text-xs'
+                >
+                  <Bot size={12} className='mr-1' />
+                  Back to AI
+                </Button>
+              </div>
+            ) : (
+              <Button
+                onClick={handleAgentTakeover}
+                size='sm'
+                variant='outline'
+                className='h-7 text-xs'
+              >
+                <MessageSquare size={12} className='mr-1' />
+                Take Over
+              </Button>
+            )}
 
             {/* Notification Settings */}
             <button
@@ -610,7 +644,7 @@ export function ChatPanel({
       <div
         className='relative overflow-hidden p-4'
         style={{
-          height: selectedSessionId ? 'calc(100% - 12rem)' : '100%',
+          height: selectedSessionId ? 'calc(100% - 10rem)' : '100%',
           marginTop: selectedSessionId ? '5rem' : '0',
         }}
       >
@@ -692,9 +726,6 @@ export function ChatPanel({
                   <div className='space-y-4'>
                     {dateMessages.map((message, index) => {
                       const isUser = message.role === 'user'
-                      const isAgentMessage =
-                        message.metadata?.agent_id ||
-                        message.metadata?.type === 'agent_message'
                       const showAvatar =
                         index === 0 ||
                         dateMessages[index - 1].role !== message.role
@@ -753,15 +784,8 @@ export function ChatPanel({
 
                           {!isUser && showAvatar && (
                             <Avatar className='h-8 w-8'>
-                              <AvatarFallback
-                                className={cn(
-                                  'text-xs',
-                                  isAgentMessage
-                                    ? 'bg-orange-100 text-orange-600 dark:bg-orange-900 dark:text-orange-300'
-                                    : 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-300'
-                                )}
-                              >
-                                {isAgentMessage ? 'AG' : 'AI'}
+                              <AvatarFallback className='bg-blue-100 text-xs text-blue-600 dark:bg-blue-900 dark:text-blue-300'>
+                                AI
                               </AvatarFallback>
                             </Avatar>
                           )}
@@ -792,129 +816,43 @@ export function ChatPanel({
 
       {/* Fixed Message Input at Bottom */}
       {selectedSessionId && (
-        <div className='absolute bottom-0 left-0 right-0 border-t border-gray-200 bg-white pb-6 pt-4 dark:border-gray-800 dark:bg-gray-900'>
-          <div className='px-6'>
-            {isAgentMode ? (
-              <div className='space-y-4'>
-                {/* Agent Mode Header */}
-                <div className='rounded-lg border border-orange-200 bg-orange-50 p-3 dark:border-orange-800 dark:bg-orange-900/20'>
-                  <div className='flex items-center justify-between'>
-                    <div className='flex items-center space-x-3'>
-                      <div className='flex h-8 w-8 items-center justify-center rounded-full bg-orange-100 dark:bg-orange-900'>
-                        <svg
-                          className='h-4 w-4 text-orange-600 dark:text-orange-400'
-                          fill='none'
-                          stroke='currentColor'
-                          viewBox='0 0 24 24'
-                        >
-                          <path
-                            strokeLinecap='round'
-                            strokeLinejoin='round'
-                            strokeWidth={2}
-                            d='M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z'
-                          />
-                        </svg>
-                      </div>
-                      <div>
-                        <span className='text-sm font-semibold text-orange-700 dark:text-orange-300'>
-                          You're in control
-                        </span>
-                        <p className='text-xs text-orange-600 dark:text-orange-400'>
-                          Respond manually • AI is paused
-                        </p>
-                      </div>
-                    </div>
-                    <div className='flex items-center space-x-1 rounded-full bg-orange-100 px-2 py-1 dark:bg-orange-900/50'>
-                      <div className='h-2 w-2 animate-pulse rounded-full bg-orange-500' />
-                      <span className='text-xs font-medium text-orange-700 dark:text-orange-300'>
-                        LIVE
-                      </span>
-                    </div>
-                  </div>
-                </div>
+        <div className='absolute bottom-0 left-0 right-0 h-20 border-t border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900'>
+          <div className='flex items-center space-x-2'>
+            <button className='rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-800'>
+              <Paperclip size={18} />
+            </button>
 
-                {/* Message Input */}
-                <div className='flex items-end space-x-3'>
-                  <button className='mb-2 rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800'>
-                    <Paperclip size={20} />
-                  </button>
-
-                  <div className='relative flex-1'>
-                    <Input
-                      type='text'
-                      placeholder='Type your response as support agent...'
-                      value={newMessage}
-                      onChange={(e) => setNewMessage(e.target.value)}
-                      onKeyPress={handleKeyPress}
-                      disabled={sendingMessage}
-                      className='min-h-[44px] border-gray-300 bg-white pr-12 shadow-sm focus:border-orange-500 focus:ring-orange-500 dark:border-gray-600 dark:bg-gray-800 dark:focus:border-orange-500'
-                    />
-                    <button
-                      onClick={handleSendMessage}
-                      className='absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 transform items-center justify-center rounded-lg bg-orange-500 text-white transition-all hover:bg-orange-600 disabled:cursor-not-allowed disabled:bg-gray-300'
-                      disabled={!newMessage.trim() || sendingMessage}
-                    >
-                      {sendingMessage ? (
-                        <div className='h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent' />
-                      ) : (
-                        <Send size={16} />
-                      )}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className='rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800/50'>
-                <div className='flex items-center justify-between'>
-                  <div className='flex items-center space-x-3'>
-                    <div className='flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900'>
-                      <svg
-                        className='h-4 w-4 text-blue-600 dark:text-blue-400'
-                        fill='none'
-                        stroke='currentColor'
-                        viewBox='0 0 24 24'
-                      >
-                        <path
-                          strokeLinecap='round'
-                          strokeLinejoin='round'
-                          strokeWidth={2}
-                          d='M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z'
-                        />
-                      </svg>
-                    </div>
-                    <div>
-                      <span className='text-sm font-medium text-gray-700 dark:text-gray-300'>
-                        {incomingMessageLoading
-                          ? 'AI is typing...'
-                          : 'AI Auto-Reply Active'}
-                      </span>
-                      <p className='text-xs text-gray-500 dark:text-gray-400'>
-                        {incomingMessageLoading
-                          ? 'Generating response automatically'
-                          : 'Click "Take Over" above to respond manually'}
-                      </p>
-                    </div>
-                  </div>
-                  <div className='flex items-center space-x-1 rounded-full bg-green-100 px-2 py-1 dark:bg-green-900/50'>
-                    {incomingMessageLoading ? (
-                      <>
-                        <div className='h-2 w-2 animate-pulse rounded-full bg-blue-500' />
-                        <span className='text-xs font-medium text-blue-700 dark:text-blue-300'>
-                          TYPING
-                        </span>
-                      </>
-                    ) : (
-                      <>
-                        <div className='h-2 w-2 rounded-full bg-green-500' />
-                        <span className='text-xs font-medium text-green-700 dark:text-green-300'>
-                          AUTO
-                        </span>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
+            <div className='relative flex-1'>
+              <Input
+                type='text'
+                placeholder={
+                  agentMode
+                    ? 'Type your response as agent...'
+                    : 'Agent mode required to send messages'
+                }
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                onKeyPress={handleKeyPress}
+                disabled={!agentMode || sendingMessage}
+                className='border-gray-200 bg-gray-50 pr-12 dark:border-gray-700 dark:bg-gray-800'
+              />
+              <button
+                onClick={handleSendMessage}
+                className={cn(
+                  'absolute right-1 top-1/2 flex h-8 w-8 -translate-y-1/2 transform items-center justify-center rounded-lg p-0 text-white transition-colors',
+                  agentMode && newMessage.trim() && !sendingMessage
+                    ? 'bg-blue-500 hover:bg-blue-600'
+                    : 'cursor-not-allowed bg-gray-300'
+                )}
+                disabled={!agentMode || !newMessage.trim() || sendingMessage}
+              >
+                {sendingMessage ? (
+                  <div className='h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent' />
+                ) : (
+                  <Send size={14} />
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}

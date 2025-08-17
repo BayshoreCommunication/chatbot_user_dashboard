@@ -1,4 +1,8 @@
-import { Outlet } from 'react-router-dom'
+import { Layout } from '@/components/custom/layout'
+import { Search } from '@/components/search'
+import ThemeSwitch from '@/components/theme-switch'
+import { Separator } from '@/components/ui/separator'
+import { UserNav } from '@/components/user-nav'
 import {
   IconBrowserCheck,
   IconExclamationCircle,
@@ -6,14 +10,11 @@ import {
   IconPalette,
   IconTool,
   IconUser,
+  IconVideo,
 } from '@tabler/icons-react'
-import { Layout } from '@/components/custom/layout'
-import { Search } from '@/components/search'
-import { Separator } from '@/components/ui/separator'
-import ThemeSwitch from '@/components/theme-switch'
-import { UserNav } from '@/components/user-nav'
-import SidebarNav from './components/sidebar-nav'
+import { Outlet } from 'react-router-dom'
 import HeaderSection from './components/header-section'
+import SidebarNav from './components/sidebar-nav'
 
 export default function Settings() {
   return (
@@ -28,10 +29,11 @@ export default function Settings() {
       </Layout.Header>
 
       <Layout.Body className='flex flex-col'>
-
-
         <div>
-          <HeaderSection title="Settings " subTitle="Manage your account settings and set e-mail preferences." />
+          <HeaderSection
+            title='Settings '
+            subTitle='Manage your account settings and set e-mail preferences.'
+          />
 
           <Separator className='my-4 lg:my-6' />
           <div className='flex flex-1 flex-col space-y-8 md:space-y-2 md:overflow-hidden lg:flex-row lg:space-x-12 lg:space-y-0'>
@@ -43,7 +45,6 @@ export default function Settings() {
             </div>
           </div>
         </div>
-
       </Layout.Body>
     </Layout>
   )
@@ -79,5 +80,10 @@ const sidebarNavItems = [
     title: 'Error Example',
     icon: <IconExclamationCircle size={18} />,
     href: '/settings/error-example',
+  },
+  {
+    title: 'Video Settings',
+    icon: <IconVideo size={18} />,
+    href: '/settings/video-settings',
   },
 ]

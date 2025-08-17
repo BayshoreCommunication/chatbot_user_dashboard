@@ -1,6 +1,7 @@
 import {
   IconApps,
   IconBoxSeam,
+  IconCalendar,
   // IconHexagonNumber1,
   // IconHexagonNumber2,
   // IconHexagonNumber3,
@@ -10,8 +11,6 @@ import {
   IconMessages,
   IconRouteAltLeft,
   IconTruck,
-  IconCalendar,
-  // IconUserShield,
 } from '@tabler/icons-react'
 
 export interface NavLink {
@@ -90,7 +89,7 @@ export const sidelinks: SideLink[] = [
   // },
   {
     title: 'Settings',
-    label: '2',
+    label: '3',
     href: '/dashboard/requests',
     icon: <IconRouteAltLeft size={18} />,
     sub: [
@@ -105,7 +104,12 @@ export const sidelinks: SideLink[] = [
         href: '/dashboard/user-settings',
         icon: <IconBoxSeam size={18} />,
       },
-
+      {
+        title: 'Chat Widget Setup',
+        label: '',
+        href: '/dashboard/chat-widget-setup',
+        icon: <IconMessages size={18} />,
+      },
     ],
   },
   {
