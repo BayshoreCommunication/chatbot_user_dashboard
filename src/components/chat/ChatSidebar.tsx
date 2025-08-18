@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
-import { Card } from '@/components/ui/card';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Search } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 interface GroupedConversation {
     session_id: string;
@@ -35,7 +35,7 @@ export function ChatSidebar({ apiKey, onSelectConversation, selectedConversation
 
             setIsLoading(true);
             try {
-                const response = await fetch(`http://localhost:8000/api/conversations`, {
+                const response = await fetch(`${import.meta.env.VITE_API_URL}/api/conversations`, {
                     headers: {
                         'X-API-Key': apiKey
                     }

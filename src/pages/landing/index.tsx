@@ -1,13 +1,13 @@
-import { useState, lazy, Suspense, memo } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { motion, useScroll, useTransform, useReducedMotion } from 'framer-motion';
 import { Button } from '@/components/custom/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle, Zap, Shield, Bot, MessageSquare, BarChart3, Settings, Users, ArrowRight, Star, Sparkles } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { UserNav } from '@/components/user-nav';
 import { useUser } from '@/context/UserContext';
 import { loadStripe } from '@stripe/stripe-js';
-import { UserNav } from '@/components/user-nav';
+import { motion, useReducedMotion, useScroll, useTransform } from 'framer-motion';
+import { ArrowRight, BarChart3, Bot, CheckCircle, MessageSquare, Settings, Shield, Sparkles, Star, Users, Zap } from 'lucide-react';
+import { lazy, memo, Suspense, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 
 // Lazy load components that are below the fold
 const Spotlight = lazy(() => import('@/components/ui/spotlight').then(module => ({ default: module.Spotlight })));
@@ -291,7 +291,7 @@ export default function LandingPage() {
 
         try {
             // First check if user has an existing organization
-            const orgCheckResponse = await fetch(`http://localhost:8000/organization/user/${user?.id}`);
+            const orgCheckResponse = await fetch(`${import.meta.env.VITE_API_URL}/organization/user/${user?.id}`);
             let organizationData;
 
             if (orgCheckResponse.ok) {
@@ -300,7 +300,7 @@ export default function LandingPage() {
                 console.log('Found existing organization:', organizationData);
             } else if (orgCheckResponse.status === 500 || orgCheckResponse.status === 400) {
                 // Create new organization only if none exists
-                const createOrgResponse = await fetch('http://localhost:8000/organization/register', {
+                const createOrgResponse = await fetch(`${import.meta.env.VITE_API_URL}/organization/register`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -332,7 +332,7 @@ export default function LandingPage() {
             // localStorage.setItem('organization', JSON.stringify(organizationData));
 
             // Create checkout session
-            const response = await fetch('http://localhost:8000/payment/create-checkout-session', {
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/payment/create-checkout-session`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

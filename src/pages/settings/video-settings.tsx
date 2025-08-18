@@ -1,4 +1,4 @@
-import { Button } from '@/components/ui/button'
+import { Button } from '@/components/custom/button'
 import {
   Card,
   CardContent,
@@ -8,9 +8,9 @@ import {
 } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Slider } from '@/components/ui/slider'
+// Slider component not available, will use input range instead
 import { Switch } from '@/components/ui/switch'
-import { useToast } from '@/hooks/use-toast'
+import { useToast } from '@/components/ui/use-toast'
 import { useApiKey } from '@/hooks/useApiKey'
 import { Play, Settings, Trash2, Upload } from 'lucide-react'
 import { useEffect, useState } from 'react'
@@ -31,11 +31,14 @@ export default function VideoSettings() {
 
   const loadVideoSettings = async () => {
     try {
-      const response = await fetch('/api/chatbot/settings', {
-        headers: {
-          'X-API-Key': apiKey,
-        },
-      })
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/api/chatbot/settings`,
+        {
+          headers: {
+            'X-API-Key': apiKey || '',
+          },
+        }
+      )
       const data = await response.json()
 
       if (data.status === 'success') {
@@ -78,13 +81,16 @@ export default function VideoSettings() {
     formData.append('file', videoFile)
 
     try {
-      const response = await fetch('/api/chatbot/upload-video', {
-        method: 'POST',
-        headers: {
-          'X-API-Key': apiKey,
-        },
-        body: formData,
-      })
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/api/chatbot/upload-video`,
+        {
+          method: 'POST',
+          headers: {
+            'X-API-Key': apiKey || '',
+          },
+          body: formData,
+        }
+      )
 
       const data = await response.json()
 
@@ -113,12 +119,15 @@ export default function VideoSettings() {
 
   const handleDelete = async () => {
     try {
-      const response = await fetch('/api/chatbot/video', {
-        method: 'DELETE',
-        headers: {
-          'X-API-Key': apiKey,
-        },
-      })
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/api/chatbot/video`,
+        {
+          method: 'DELETE',
+          headers: {
+            'X-API-Key': apiKey || '',
+          },
+        }
+      )
 
       const data = await response.json()
 
@@ -141,10 +150,10 @@ export default function VideoSettings() {
 
   const handleSaveSettings = async () => {
     try {
-      const response = await fetch('/api/chatbot/video-settings', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/chatbot/video-settings`, {
         method: 'PUT',
         headers: {
-          'X-API-Key': apiKey,
+          'X-API-Key': apiKey || '',
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -263,9 +272,10 @@ export default function VideoSettings() {
           <div className='space-y-2'>
             <Label>Video Duration (seconds)</Label>
             <div className='flex items-center gap-4'>
-              <Slider
-                value={duration}
-                onValueChange={setDuration}
+              <input
+                type="range"
+                value={duration[0]}
+                onChange={(e) => setDuration([parseInt(e.target.value)])}
                 max={30}
                 min={5}
                 step={1}

@@ -1,4 +1,4 @@
-import { Button } from '@/components/ui/button'
+import { Button } from '@/components/custom/button'
 import {
   Card,
   CardContent,
@@ -8,9 +8,9 @@ import {
 } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Slider } from '@/components/ui/slider'
+// Slider component not available, will use input range instead
 import { Switch } from '@/components/ui/switch'
-import { useToast } from '@/hooks/use-toast'
+import { useToast } from '@/components/ui/use-toast'
 import { useApiKey } from '@/hooks/useApiKey'
 import { MessageCircle, Play, Settings, Trash2, Video } from 'lucide-react'
 import { useEffect, useState } from 'react'
@@ -53,7 +53,7 @@ export default function ChatWidgetSetup() {
 
     try {
       const response = await fetch(
-        `http://localhost:8000/api/chatbot/settings`,
+        `${import.meta.env.VITE_API_URL}/api/chatbot/settings`,
         {
           headers: {
             'X-API-Key': apiKey,
@@ -106,7 +106,7 @@ export default function ChatWidgetSetup() {
 
     try {
       const response = await fetch(
-        'http://localhost:8000/api/chatbot/upload-video',
+        `${import.meta.env.VITE_API_URL}/api/chatbot/upload-video`,
         {
           method: 'POST',
           headers: {
@@ -147,12 +147,15 @@ export default function ChatWidgetSetup() {
     if (!apiKey) return
 
     try {
-      const response = await fetch('http://localhost:8000/api/chatbot/video', {
-        method: 'DELETE',
-        headers: {
-          'X-API-Key': apiKey,
-        },
-      })
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/api/chatbot/video`,
+        {
+          method: 'DELETE',
+          headers: {
+            'X-API-Key': apiKey,
+          },
+        }
+      )
 
       const data = await response.json()
 
@@ -180,7 +183,7 @@ export default function ChatWidgetSetup() {
 
     try {
       const response = await fetch(
-        'http://localhost:8000/api/chatbot/save-settings',
+        `${import.meta.env.VITE_API_URL}/api/chatbot/save-settings`,
         {
           method: 'POST',
           headers: {
@@ -213,7 +216,7 @@ export default function ChatWidgetSetup() {
 
     try {
       const response = await fetch(
-        'http://localhost:8000/api/chatbot/video-settings',
+        `${import.meta.env.VITE_API_URL}/api/chatbot/video-settings`,
         {
           method: 'PUT',
           headers: {
@@ -375,7 +378,7 @@ export default function ChatWidgetSetup() {
                 src={
                   settings.video_url?.startsWith('http')
                     ? settings.video_url
-                    : `http://localhost:8000${settings.video_url}`
+                    : `${import.meta.env.VITE_API_URL}${settings.video_url}`
                 }
               >
                 Your browser does not support the video tag.
@@ -415,10 +418,14 @@ export default function ChatWidgetSetup() {
           <div className='space-y-2'>
             <Label>Video Duration (seconds)</Label>
             <div className='flex items-center gap-4'>
-              <Slider
-                value={[settings.video_duration || 10]}
-                onValueChange={(value) =>
-                  setSettings((prev) => ({ ...prev, video_duration: value[0] }))
+              <input
+                type='range'
+                value={settings.video_duration || 10}
+                onChange={(e) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    video_duration: parseInt(e.target.value),
+                  }))
                 }
                 max={30}
                 min={5}

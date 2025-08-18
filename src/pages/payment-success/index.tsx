@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/custom/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CheckCircle, Loader2 } from 'lucide-react';
 import { useUser } from '@/context/UserContext';
+import { CheckCircle, Loader2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 export default function PaymentSuccess() {
     const [searchParams] = useSearchParams();
@@ -24,7 +24,7 @@ export default function PaymentSuccess() {
         // Verify payment and update user subscription
         const verifyPayment = async () => {
             try {
-                const response = await fetch('http://localhost:8000/payment/verify-session', {
+                const response = await fetch(`${import.meta.env.VITE_API_URL}/payment/verify-session`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

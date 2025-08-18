@@ -25,7 +25,7 @@ export function ChatWidgetSetup() {
   const [videoUrl, setVideoUrl] = useState('')
   const [videoAutoplay, setVideoAutoplay] = useState(true)
   const [videoDuration, setVideoDuration] = useState(10)
-  const [currentVideo, setCurrentVideo] = useState('')
+  // const [currentVideo, setCurrentVideo] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
   const videoFileInputRef = useRef<HTMLInputElement>(null)
   const { apiKey } = useApiKey()
@@ -83,7 +83,7 @@ export function ChatWidgetSetup() {
             setVideoDuration(settings.video_duration)
           }
           if (settings.video_filename) {
-            setCurrentVideo(settings.video_filename)
+            // setCurrentVideo(settings.video_filename)
           }
 
           // Store initial values
@@ -297,7 +297,7 @@ export function ChatWidgetSetup() {
 
       if (data.status === 'success') {
         setVideoUrl(data.video_url)
-        setCurrentVideo(data.filename)
+        // setCurrentVideo(data.filename)
         setVideoFile(null)
         toast({
           title: 'Video uploaded successfully',
@@ -335,7 +335,7 @@ export function ChatWidgetSetup() {
 
       if (data.status === 'success') {
         setVideoUrl('')
-        setCurrentVideo('')
+        // setCurrentVideo('')
         toast({
           title: 'Video deleted',
           description: 'Video has been removed from the chat widget',

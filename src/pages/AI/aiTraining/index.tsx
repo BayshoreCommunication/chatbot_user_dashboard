@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { Button } from '@/components/ui/button'
+import { Button } from '@/components/custom/button'
+import { Badge } from '@/components/ui/badge'
 import {
   Card,
   CardContent,
@@ -9,23 +9,22 @@ import {
 } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { useToast } from '@/hooks/use-toast'
-import { useApiKey } from '@/hooks/useApiKey'
-import { 
-  Brain,
-  BookOpen,
-  FileText,
-  Upload,
-  CheckCircle,
-  AlertCircle,
-  TrendingUp,
-  Target,
-  Lightbulb
-} from 'lucide-react'
-import { Progress } from '@/components/ui/progress'
-import { Badge } from '@/components/ui/badge'
+// Progress component not available, will create a simple one
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Textarea } from '@/components/ui/textarea'
+import { useToast } from '@/components/ui/use-toast'
+import { useApiKey } from '@/hooks/useApiKey'
+import {
+  AlertCircle,
+  BookOpen,
+  Brain,
+  CheckCircle,
+  FileText,
+  Lightbulb,
+  TrendingUp,
+  Upload,
+} from 'lucide-react'
+import { useEffect, useState } from 'react'
 
 interface TrainingStatus {
   ai_behavior_configured: boolean
@@ -37,38 +36,40 @@ interface TrainingStatus {
 }
 
 interface ImprovementAnalysis {
-  current_state: any
-  recommendations: any
+  current_state: Record<string, unknown>
+  recommendations: Record<string, unknown>
   quick_wins: Array<{
     action: string
     description: string
     impact: string
     effort: string
   }>
-  industry_templates: any
+  industry_templates: Record<string, unknown>
 }
 
 export default function AITrainingPage() {
-  const [trainingStatus, setTrainingStatus] = useState<TrainingStatus | null>(null)
+  const [trainingStatus, setTrainingStatus] = useState<TrainingStatus | null>(
+    null
+  )
   const [analysis, setAnalysis] = useState<ImprovementAnalysis | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('overview')
-  
+
   // AI Behavior form
   const [aiBehavior, setAiBehavior] = useState('')
   const [personalityTraits, setPersonalityTraits] = useState('')
   const [tone, setTone] = useState('professional')
   const [expertiseAreas, setExpertiseAreas] = useState('')
-  
+
   // Training data form
   const [trainingType, setTrainingType] = useState('faq')
   const [trainingContent, setTrainingContent] = useState('')
   const [trainingTitle, setTrainingTitle] = useState('')
-  
+
   // File upload
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [fileTrainingType, setFileTrainingType] = useState('services')
-  
+
   const { toast } = useToast()
   const { apiKey } = useApiKey()
 
@@ -80,17 +81,23 @@ export default function AITrainingPage() {
 
   const loadData = async () => {
     if (!apiKey) return
-    
+
     setIsLoading(true)
     try {
       // Load training status and analysis
       const [statusResponse, analysisResponse] = await Promise.all([
-        fetch(`http://localhost:8000/api/ai-training/training-status`, {
-          headers: { 'X-API-Key': apiKey }
-        }),
-        fetch(`http://localhost:8000/api/ai-training/improvement-analysis`, {
-          headers: { 'X-API-Key': apiKey }
-        })
+        fetch(
+          `${import.meta.env.VITE_API_URL}/api/ai-training/training-status`,
+          {
+            headers: { 'X-API-Key': apiKey },
+          }
+        ),
+        fetch(
+          `${import.meta.env.VITE_API_URL}/api/ai-training/improvement-analysis`,
+          {
+            headers: { 'X-API-Key': apiKey },
+          }
+        ),
       ])
 
       if (statusResponse.ok) {
@@ -125,19 +132,28 @@ export default function AITrainingPage() {
     }
 
     try {
-      const response = await fetch(`http://localhost:8000/api/ai-training/update-ai-behavior`, {
-        method: 'POST',
-        headers: {
-          'X-API-Key': apiKey,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          ai_behavior: aiBehavior,
-          personality_traits: personalityTraits.split(',').map(t => t.trim()).filter(Boolean),
-          tone: tone,
-          expertise_areas: expertiseAreas.split(',').map(t => t.trim()).filter(Boolean),
-        }),
-      })
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/api/ai-training/update-ai-behavior`,
+        {
+          method: 'POST',
+          headers: {
+            'X-API-Key': apiKey,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            ai_behavior: aiBehavior,
+            personality_traits: personalityTraits
+              .split(',')
+              .map((t) => t.trim())
+              .filter(Boolean),
+            tone: tone,
+            expertise_areas: expertiseAreas
+              .split(',')
+              .map((t) => t.trim())
+              .filter(Boolean),
+          }),
+        }
+      )
 
       if (response.ok) {
         toast({
@@ -171,18 +187,21 @@ export default function AITrainingPage() {
     }
 
     try {
-      const response = await fetch(`http://localhost:8000/api/ai-training/upload-training-data`, {
-        method: 'POST',
-        headers: {
-          'X-API-Key': apiKey,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          training_type: trainingType,
-          content: trainingContent,
-          title: trainingTitle,
-        }),
-      })
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/api/ai-training/upload-training-data`,
+        {
+          method: 'POST',
+          headers: {
+            'X-API-Key': apiKey,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            training_type: trainingType,
+            content: trainingContent,
+            title: trainingTitle,
+          }),
+        }
+      )
 
       if (response.ok) {
         toast({
@@ -218,15 +237,21 @@ export default function AITrainingPage() {
       const formData = new FormData()
       formData.append('file', selectedFile)
       formData.append('training_type', fileTrainingType)
-      formData.append('description', `Training document for ${fileTrainingType}`)
+      formData.append(
+        'description',
+        `Training document for ${fileTrainingType}`
+      )
 
-      const response = await fetch(`http://localhost:8000/api/ai-training/upload-document-for-training`, {
-        method: 'POST',
-        headers: {
-          'X-API-Key': apiKey,
-        },
-        body: formData,
-      })
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/api/ai-training/upload-document-for-training`,
+        {
+          method: 'POST',
+          headers: {
+            'X-API-Key': apiKey,
+          },
+          body: formData,
+        }
+      )
 
       if (response.ok) {
         toast({
@@ -255,10 +280,14 @@ export default function AITrainingPage() {
 
   const getImpactBadgeColor = (impact: string) => {
     switch (impact.toLowerCase()) {
-      case 'high': return 'bg-red-100 text-red-800'
-      case 'medium': return 'bg-yellow-100 text-yellow-800'
-      case 'low': return 'bg-green-100 text-green-800'
-      default: return 'bg-gray-100 text-gray-800'
+      case 'high':
+        return 'bg-red-100 text-red-800'
+      case 'medium':
+        return 'bg-yellow-100 text-yellow-800'
+      case 'low':
+        return 'bg-green-100 text-green-800'
+      default:
+        return 'bg-gray-100 text-gray-800'
     }
   }
 
@@ -267,7 +296,9 @@ export default function AITrainingPage() {
       <div className='flex h-64 items-center justify-center'>
         <div className='text-center'>
           <div className='mx-auto h-8 w-8 animate-spin rounded-full border-b-2 border-gray-900'></div>
-          <p className='mt-2 text-sm text-gray-600'>Loading AI training data...</p>
+          <p className='mt-2 text-sm text-gray-600'>
+            Loading AI training data...
+          </p>
         </div>
       </div>
     )
@@ -309,13 +340,22 @@ export default function AITrainingPage() {
                     <div className='space-y-2'>
                       <div className='flex justify-between'>
                         <span>Completeness Score</span>
-                        <span className={`font-bold ${getScoreColor(trainingStatus.completeness_score)}`}>
+                        <span
+                          className={`font-bold ${getScoreColor(trainingStatus.completeness_score)}`}
+                        >
                           {trainingStatus.completeness_score}%
                         </span>
                       </div>
-                      <Progress value={trainingStatus.completeness_score} className='h-2' />
+                      <div className='h-2 w-full rounded-full bg-gray-200'>
+                        <div
+                          className='h-2 rounded-full bg-blue-600'
+                          style={{
+                            width: `${trainingStatus.completeness_score}%`,
+                          }}
+                        ></div>
+                      </div>
                     </div>
-                    
+
                     <div className='grid grid-cols-2 gap-4 text-sm'>
                       <div className='flex items-center gap-2'>
                         {trainingStatus.ai_behavior_configured ? (
@@ -361,14 +401,16 @@ export default function AITrainingPage() {
                 {analysis?.quick_wins.map((win, index) => (
                   <div key={index} className='space-y-2'>
                     <div className='flex items-center justify-between'>
-                      <span className='font-medium text-sm'>{win.action}</span>
+                      <span className='text-sm font-medium'>{win.action}</span>
                       <div className='flex gap-1'>
                         <Badge className={getImpactBadgeColor(win.impact)}>
                           {win.impact}
                         </Badge>
                       </div>
                     </div>
-                    <p className='text-xs text-muted-foreground'>{win.description}</p>
+                    <p className='text-xs text-muted-foreground'>
+                      {win.description}
+                    </p>
                   </div>
                 ))}
               </CardContent>
@@ -536,13 +578,14 @@ export default function AITrainingPage() {
                 />
                 {selectedFile && (
                   <p className='text-sm text-muted-foreground'>
-                    Selected: {selectedFile.name} ({(selectedFile.size / 1024).toFixed(1)} KB)
+                    Selected: {selectedFile.name} (
+                    {(selectedFile.size / 1024).toFixed(1)} KB)
                   </p>
                 )}
               </div>
 
-              <Button 
-                onClick={handleFileUpload} 
+              <Button
+                onClick={handleFileUpload}
                 className='w-full'
                 disabled={!selectedFile}
               >

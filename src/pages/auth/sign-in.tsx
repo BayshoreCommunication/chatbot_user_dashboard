@@ -1,4 +1,4 @@
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { UserAuthForm } from './components/user-auth-form';
 import { Bot, ArrowLeft } from 'lucide-react';
@@ -6,10 +6,10 @@ import { useEffect } from 'react';
 import { useUser } from '@/context/UserContext';
 
 export default function SignIn() {
-  const location = useLocation();
+  // const location = useLocation();
   const navigate = useNavigate();
   const { user, isAuthenticated } = useUser();
-  const redirectPath = location.state?.from || '/';
+  // const redirectPath = location.state?.from || '/';
 
   useEffect(() => {
     // If user is authenticated, check subscription status and redirect accordingly
