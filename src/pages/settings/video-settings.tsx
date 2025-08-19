@@ -8,50 +8,42 @@ import {
 } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-// Slider component not available, will use input range instead
 import { Switch } from '@/components/ui/switch'
 import { useToast } from '@/components/ui/use-toast'
-import { useApiKey } from '@/hooks/useApiKey'
+import { 
+  useChatWidgetSettings,
+  useUploadVideo,
+  useDeleteVideo,
+  useUpdateVideoSettings
+} from '@/hooks/useChatWidgetSettings'
 import { Play, Settings, Trash2, Upload } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useState, useEffect } from 'react'
 
 export default function VideoSettings() {
   const [videoFile, setVideoFile] = useState<File | null>(null)
-  const [videoUrl, setVideoUrl] = useState<string>('')
-  const [autoplay, setAutoplay] = useState(true)
-  const [duration, setDuration] = useState([10])
-  const [isUploading, setIsUploading] = useState(false)
-  const [currentVideo, setCurrentVideo] = useState<string>('')
   const { toast } = useToast()
-  const { apiKey } = useApiKey()
+  
+  // Use the new hooks
+  const { data: settings, isLoading, error } = useChatWidgetSettings()
+  const uploadVideo = useUploadVideo()
+  const deleteVideo = useDeleteVideo()
+  const updateVideoSettings = useUpdateVideoSettings()
 
+  // Local state for form inputs
+  const [localSettings, setLocalSettings] = useState({
+    video_autoplay: true,
+    video_duration: 10,
+  })
+
+  // Update local state when settings are loaded
   useEffect(() => {
-    loadVideoSettings()
-  }, [])
-
-  const loadVideoSettings = async () => {
-    try {
-      const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/chatbot/settings`,
-        {
-          headers: {
-            'X-API-Key': apiKey || '',
-          },
-        }
-      )
-      const data = await response.json()
-
-      if (data.status === 'success') {
-        const settings = data.settings
-        setVideoUrl(settings.video_url || '')
-        setAutoplay(settings.video_autoplay ?? true)
-        setDuration([settings.video_duration || 10])
-        setCurrentVideo(settings.video_filename || '')
-      }
-    } catch (error) {
-      console.error('Error loading video settings:', error)
+    if (settings) {
+      setLocalSettings({
+        video_autoplay: settings.video_autoplay ?? true,
+        video_duration: settings.video_duration || 10,
+      })
     }
-  }
+  }, [settings])
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -76,69 +68,29 @@ export default function VideoSettings() {
       return
     }
 
-    setIsUploading(true)
-    const formData = new FormData()
-    formData.append('file', videoFile)
-
     try {
-      const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/chatbot/upload-video`,
-        {
-          method: 'POST',
-          headers: {
-            'X-API-Key': apiKey || '',
-          },
-          body: formData,
-        }
-      )
-
-      const data = await response.json()
-
-      if (data.status === 'success') {
-        setVideoUrl(data.video_url)
-        setCurrentVideo(data.filename)
-        setVideoFile(null)
-        toast({
-          title: 'Video uploaded successfully',
-          description: 'Your video is now ready for the chat widget',
-        })
-      } else {
-        throw new Error(data.message || 'Upload failed')
-      }
+      await uploadVideo.mutateAsync(videoFile)
+      setVideoFile(null)
+      toast({
+        title: 'Video uploaded successfully',
+        description: 'Your video is now ready for the chat widget',
+      })
     } catch (error) {
       toast({
         title: 'Upload failed',
-        description:
-          error instanceof Error ? error.message : 'Failed to upload video',
+        description: error instanceof Error ? error.message : 'Failed to upload video',
         variant: 'destructive',
       })
-    } finally {
-      setIsUploading(false)
     }
   }
 
   const handleDelete = async () => {
     try {
-      const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/chatbot/video`,
-        {
-          method: 'DELETE',
-          headers: {
-            'X-API-Key': apiKey || '',
-          },
-        }
-      )
-
-      const data = await response.json()
-
-      if (data.status === 'success') {
-        setVideoUrl('')
-        setCurrentVideo('')
-        toast({
-          title: 'Video deleted',
-          description: 'Video has been removed from the chat widget',
-        })
-      }
+      await deleteVideo.mutateAsync()
+      toast({
+        title: 'Video deleted',
+        description: 'Video has been removed from the chat widget',
+      })
     } catch (error) {
       toast({
         title: 'Delete failed',
@@ -150,26 +102,14 @@ export default function VideoSettings() {
 
   const handleSaveSettings = async () => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/chatbot/video-settings`, {
-        method: 'PUT',
-        headers: {
-          'X-API-Key': apiKey || '',
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          autoplay,
-          duration: duration[0],
-        }),
+      await updateVideoSettings.mutateAsync({
+        autoplay: localSettings.video_autoplay,
+        duration: localSettings.video_duration,
       })
-
-      const data = await response.json()
-
-      if (data.status === 'success') {
-        toast({
-          title: 'Settings saved',
-          description: 'Video settings have been updated',
-        })
-      }
+      toast({
+        title: 'Settings saved',
+        description: 'Video settings have been updated',
+      })
     } catch (error) {
       toast({
         title: 'Save failed',
@@ -177,6 +117,27 @@ export default function VideoSettings() {
         variant: 'destructive',
       })
     }
+  }
+
+  if (isLoading) {
+    return (
+      <div className='flex h-64 items-center justify-center'>
+        <div className='text-center'>
+          <div className='mx-auto h-8 w-8 animate-spin rounded-full border-b-2 border-gray-900'></div>
+          <p className='mt-2 text-sm text-gray-600'>Loading settings...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className='flex h-64 items-center justify-center'>
+        <div className='text-center'>
+          <p className='text-red-600'>Error loading settings: {error.message}</p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -207,38 +168,43 @@ export default function VideoSettings() {
               type='file'
               accept='video/*'
               onChange={handleFileChange}
-              disabled={isUploading}
+              disabled={uploadVideo.isPending}
             />
           </div>
 
           <div className='flex gap-2'>
             <Button
               onClick={handleUpload}
-              disabled={!videoFile || isUploading}
+              disabled={!videoFile || uploadVideo.isPending}
               className='flex items-center gap-2'
             >
-              {isUploading ? 'Uploading...' : 'Upload Video'}
+              {uploadVideo.isPending ? 'Uploading...' : 'Upload Video'}
             </Button>
 
-            {currentVideo && (
+            {settings?.video_url && (
               <Button
                 variant='destructive'
                 onClick={handleDelete}
+                disabled={deleteVideo.isPending}
                 className='flex items-center gap-2'
               >
                 <Trash2 className='h-4 w-4' />
-                Delete
+                {deleteVideo.isPending ? 'Deleting...' : 'Delete'}
               </Button>
             )}
           </div>
 
-          {videoUrl && (
+          {settings?.video_url && (
             <div className='mt-4 rounded-lg bg-muted p-4'>
               <h4 className='mb-2 font-medium'>Current Video</h4>
               <video
                 controls
                 className='w-full max-w-md rounded'
-                src={videoUrl}
+                src={
+                  settings.video_url?.startsWith('http')
+                    ? settings.video_url
+                    : `${import.meta.env.VITE_API_URL}${settings.video_url}`
+                }
               >
                 Your browser does not support the video tag.
               </video>
@@ -266,7 +232,10 @@ export default function VideoSettings() {
                 Automatically play video when widget opens
               </p>
             </div>
-            <Switch checked={autoplay} onCheckedChange={setAutoplay} />
+            <Switch 
+              checked={localSettings.video_autoplay} 
+              onCheckedChange={(checked) => setLocalSettings(prev => ({ ...prev, video_autoplay: checked }))} 
+            />
           </div>
 
           <div className='space-y-2'>
@@ -274,14 +243,14 @@ export default function VideoSettings() {
             <div className='flex items-center gap-4'>
               <input
                 type="range"
-                value={duration[0]}
-                onChange={(e) => setDuration([parseInt(e.target.value)])}
+                value={localSettings.video_duration}
+                onChange={(e) => setLocalSettings(prev => ({ ...prev, video_duration: parseInt(e.target.value) }))}
                 max={30}
                 min={5}
                 step={1}
                 className='flex-1'
               />
-              <span className='w-12 text-sm font-medium'>{duration[0]}s</span>
+              <span className='w-12 text-sm font-medium'>{localSettings.video_duration}s</span>
             </div>
             <p className='text-sm text-muted-foreground'>
               How long the video will play before stopping
@@ -290,10 +259,11 @@ export default function VideoSettings() {
 
           <Button
             onClick={handleSaveSettings}
+            disabled={updateVideoSettings.isPending}
             className='flex items-center gap-2'
           >
             <Settings className='h-4 w-4' />
-            Save Settings
+            {updateVideoSettings.isPending ? 'Saving...' : 'Save Settings'}
           </Button>
         </CardContent>
       </Card>
@@ -314,26 +284,29 @@ export default function VideoSettings() {
             <div className='mb-2 text-sm text-muted-foreground'>
               Chat Widget Preview
             </div>
-            {videoUrl ? (
+            {settings?.video_url ? (
               <div className='relative'>
                 <video
                   className='w-full max-w-sm rounded'
-                  autoPlay={autoplay}
+                  autoPlay={localSettings.video_autoplay}
                   muted
                   loop={false}
                   onLoadedMetadata={(e) => {
                     const video = e.target as HTMLVideoElement
                     setTimeout(() => {
                       video.pause()
-                    }, duration[0] * 1000)
+                    }, localSettings.video_duration * 1000)
                   }}
                 >
-                  <source src={videoUrl} type='video/mp4' />
+                  <source src={
+                    settings.video_url?.startsWith('http')
+                      ? settings.video_url
+                      : `${import.meta.env.VITE_API_URL}${settings.video_url}`
+                  } type='video/mp4' />
                   Your browser does not support the video tag.
                 </video>
                 <div className='mt-2 text-xs text-muted-foreground'>
-                  Auto-play: {autoplay ? 'Yes' : 'No'} | Duration: {duration[0]}
-                  s
+                  Auto-play: {localSettings.video_autoplay ? 'Yes' : 'No'} | Duration: {localSettings.video_duration}s
                 </div>
               </div>
             ) : (

@@ -6,6 +6,7 @@ import { UserNav } from '@/components/user-nav'
 import {
   IconBrowserCheck,
   IconExclamationCircle,
+  IconMessageCircle,
   IconNotification,
   IconPalette,
   IconTool,
@@ -85,5 +86,10 @@ const sidebarNavItems = [
     title: 'Video Settings',
     icon: <IconVideo size={18} />,
     href: '/settings/video-settings',
+  },
+  {
+    title: 'Chat Widget Setup',
+    icon: <IconMessageCircle size={18} />,
+    href: '/settings/chat-widget-setup',
   },
 ]
