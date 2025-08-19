@@ -1,11 +1,11 @@
-import { createBrowserRouter } from 'react-router-dom'
-import GeneralError from './pages/errors/general-error'
-import NotFoundError from './pages/errors/not-found-error'
-import MaintenanceError from './pages/errors/maintenance-error'
-import UnauthorisedError from './pages/errors/unauthorised-error.tsx'
 import SignIn from '@/pages/auth/sign-in'
 import SignUp from '@/pages/auth/sign-up'
 import LandingPage from '@/pages/landing'
+import { createBrowserRouter } from 'react-router-dom'
+import GeneralError from './pages/errors/general-error'
+import MaintenanceError from './pages/errors/maintenance-error'
+import NotFoundError from './pages/errors/not-found-error'
+import UnauthorisedError from './pages/errors/unauthorised-error.tsx'
 
 const router = createBrowserRouter([
   {
@@ -102,19 +102,22 @@ const router = createBrowserRouter([
       {
         path: 'user-profile',
         lazy: async () => ({
-          Component: (await import('@/pages/settings/account/index.tsx')).default,
+          Component: (await import('@/pages/settings/account/index.tsx'))
+            .default,
         }),
       },
       {
         path: 'user-settings',
         lazy: async () => ({
-          Component: (await import('@/pages/settings/accountSetting/index.tsx')).default,
+          Component: (await import('@/pages/settings/accountSetting/index.tsx'))
+            .default,
         }),
       },
       {
         path: 'system-settings',
         lazy: async () => ({
-          Component: (await import('./pages/settings/systemSetting/index.tsx')).default,
+          Component: (await import('./pages/settings/systemSetting/index.tsx'))
+            .default,
         }),
         errorElement: <GeneralError />,
         children: [
@@ -162,13 +165,17 @@ const router = createBrowserRouter([
       {
         path: 'chat-widget-setup',
         lazy: async () => ({
-          Component: (await import('./pages/settings/systemSetting/chatWidgetSetupPage')).default,
+          Component: (
+            await import('./pages/settings/systemSetting/chatWidgetSetupPage')
+          ).default,
         }),
       },
       {
         path: 'chat-widget-install',
         lazy: async () => ({
-          Component: (await import('./pages/settings/systemSetting/chatWidgetInstallPage')).default,
+          Component: (
+            await import('./pages/settings/systemSetting/chatWidgetInstallPage')
+          ).default,
         }),
       },
       // {
@@ -238,9 +245,16 @@ const router = createBrowserRouter([
         }),
       },
       {
+        path: 'ai-training',
+        lazy: async () => ({
+          Component: (await import('@/pages/AI/aiTraining/index.tsx')).default,
+        }),
+      },
+      {
         path: 'instant-reply',
         lazy: async () => ({
-          Component: (await import('@/pages/AI/instantReply/index.tsx')).default,
+          Component: (await import('@/pages/AI/instantReply/index.tsx'))
+            .default,
         }),
       },
       {
