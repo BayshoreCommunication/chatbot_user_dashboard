@@ -1,23 +1,18 @@
-import { type ClassValue, clsx } from "clsx"
-import { twMerge } from "tailwind-merge"
+import { type ClassValue, clsx } from 'clsx'
+import { twMerge } from 'tailwind-merge'
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-// Ensure HTTPS in production
+// Always use production backend URL since it's live
 export const getApiUrl = () => {
   const envUrl = import.meta.env.VITE_API_URL
   if (envUrl) {
     // If environment variable is set, use it
     return envUrl
   }
-  
-  // In production, default to HTTPS
-  if (import.meta.env.PROD) {
-    return 'https://api.bayshorecommunication.org'
-  }
-  
-  // In development, use localhost
-  return 'http://localhost:8000'
+
+  // Always default to production URL since backend is live
+  return 'https://api.bayshorecommunication.org'
 }

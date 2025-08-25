@@ -23,7 +23,10 @@ interface FAQResponse {
 interface InstantReplyResponse {
   status: string
   data: {
-    message: string
+    messages: Array<{
+      message: string
+      order: number
+    }>
     isActive: boolean
   }
 }
@@ -89,17 +92,19 @@ export default function AutomationSMS() {
               'X-API-Key': apiKey,
             },
           })
-        const instantReplyAutomations = instantReplyResponse.data.data.message
-          ? [
-              {
-                id: 'instant-reply',
-                name: 'Instant Reply Message',
-                status: instantReplyResponse.data.data.isActive,
-                type: 'instant-reply' as const,
-                createdAt: new Date().toISOString(), // Instant reply doesn't have a creation date
-              },
-            ]
-          : []
+        const instantReplyAutomations =
+          instantReplyResponse.data.data.messages &&
+          instantReplyResponse.data.data.messages.length > 0
+            ? [
+                {
+                  id: 'instant-reply',
+                  name: 'Instant Reply Message',
+                  status: instantReplyResponse.data.data.isActive,
+                  type: 'instant-reply' as const,
+                  createdAt: new Date().toISOString(), // Instant reply doesn't have a creation date
+                },
+              ]
+            : []
 
         // Fetch Training data
         const trainingResponse = await axiosPublic.get<TrainingResponse[]>(
