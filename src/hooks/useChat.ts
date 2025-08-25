@@ -73,7 +73,8 @@ export function useChat(apiKey: string | null) {
 
     console.log('Initializing Socket.IO connection with API key:', apiKey)
 
-    const socketInstance = io('http://localhost:8000', {
+    const socketUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+    const socketInstance = io(socketUrl, {
       transports: ['websocket', 'polling'],
       timeout: 10000,
       reconnection: true,
