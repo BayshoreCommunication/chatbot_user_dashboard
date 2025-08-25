@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { useToast } from '@/components/ui/use-toast'
+import { getApiUrl } from '@/lib/utils'
 
 interface UseApiKeyReturn {
     apiKey: string | null
@@ -17,7 +18,7 @@ const fetchApiKey = async () => {
     const userData = JSON.parse(userDataStr)
 
     // Fetch organization API key
-    const orgCheckResponse = await fetch(`${import.meta.env.VITE_API_URL}/organization/user/${userData.id}`)
+    const orgCheckResponse = await fetch(`${getApiUrl()}/organization/user/${userData.id}`)
     if (!orgCheckResponse.ok) {
         throw new Error('Failed to fetch API key')
     }

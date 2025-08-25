@@ -10,6 +10,7 @@ import { useChatWidgetSettings } from "@/hooks/useChatWidgetSettings";
 import { LoadingSpinner } from "@/components/custom/loading-spinner";
 import axios from "axios";
 import { useApiKey } from "@/hooks/useApiKey";
+import { getApiUrl } from "@/lib/utils";
 
 interface InstantMessage {
     id: string;
@@ -60,7 +61,7 @@ export default function InstantReply() {
     useEffect(() => {
         const loadInstantReply = async () => {
             try {
-                const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/instant-reply`, {
+                const response = await axios.get(`${getApiUrl()}/api/instant-reply`, {
                     headers: {
                         'X-API-Key': apiKey
                     }
@@ -96,7 +97,7 @@ export default function InstantReply() {
 
             const filteredMessages = messages.filter(msg => msg.message.trim() !== '');
 
-            await axios.post(`${import.meta.env.VITE_API_URL}/api/instant-reply`,
+            await axios.post(`${getApiUrl()}/api/instant-reply`,
                 {
                     messages: filteredMessages.map(msg => ({
                         message: msg.message,

@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import axios from 'axios'
 import { useApiKey } from './useApiKey'
+import { getApiUrl } from '@/lib/utils'
 
 type ChatWidgetSettings = {
     name: string;
@@ -22,7 +23,7 @@ export function useChatWidgetSettings() {
                 throw new Error('API key not found')
             }
 
-            const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/chatbot/settings`, {
+            const response = await axios.get(`${getApiUrl()}/api/chatbot/settings`, {
                 headers: {
                     'X-API-Key': apiKey
                 }

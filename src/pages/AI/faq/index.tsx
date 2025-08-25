@@ -12,6 +12,7 @@ import { LoadingSpinner } from "@/components/custom/loading-spinner";
 import { toast } from "sonner";
 import { useApiKey } from "@/hooks/useApiKey";
 import axios from "axios";
+import { getApiUrl } from "@/lib/utils";
 
 interface FAQ {
     id?: string;
@@ -47,7 +48,7 @@ export default function FAQAutomation() {
 
     const fetchFAQs = async () => {
         try {
-            const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/faq/list`, {
+            const response = await axios.get(`${getApiUrl()}/api/faq/list`, {
                 headers: {
                     'X-API-Key': apiKey || '',
                 }
@@ -81,7 +82,7 @@ export default function FAQAutomation() {
 
         try {
             const response = await axios.put(
-                `${import.meta.env.VITE_API_URL}/api/faq/${id}`,
+                `${getApiUrl()}/api/faq/${id}`,
                 {
                     ...faq,
                     persistent_menu: !faq.persistent_menu
@@ -112,7 +113,7 @@ export default function FAQAutomation() {
     const deleteQuestion = async (id: string) => {
         try {
             const response = await axios.delete(
-                `${import.meta.env.VITE_API_URL}/api/faq/${id}`,
+                `${getApiUrl()}/api/faq/${id}`,
                 {
                     headers: {
                         'X-API-Key': apiKey || '',
@@ -144,7 +145,7 @@ export default function FAQAutomation() {
 
         try {
             const response = await axios.post(
-                `${import.meta.env.VITE_API_URL}/api/faq/create`,
+                `${getApiUrl()}/api/faq/create`,
                 newFaq,
                 {
                     headers: {
@@ -173,7 +174,7 @@ export default function FAQAutomation() {
             if (faq.id && expandedQuestionId === faq.id) {
                 try {
                     const response = await axios.put(
-                        `${import.meta.env.VITE_API_URL}/api/faq/${faq.id}`,
+                        `${getApiUrl()}/api/faq/${faq.id}`,
                         {
                             question: faq.question,
                             response: faq.response,
@@ -222,7 +223,7 @@ export default function FAQAutomation() {
             ));
 
             const response = await axios.put(
-                `${import.meta.env.VITE_API_URL}/api/faq/${id}/toggle`,
+                `${getApiUrl()}/api/faq/${id}/toggle`,
                 {},
                 {
                     headers: {

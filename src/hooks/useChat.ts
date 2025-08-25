@@ -1,3 +1,4 @@
+import { getApiUrl } from '@/lib/utils'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import axios from 'axios'
 import { useEffect, useRef, useState } from 'react'
@@ -73,7 +74,7 @@ export function useChat(apiKey: string | null) {
 
     console.log('Initializing Socket.IO connection with API key:', apiKey)
 
-    const socketUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+    const socketUrl = getApiUrl()
     const socketInstance = io(socketUrl, {
       transports: ['websocket', 'polling'],
       timeout: 10000,

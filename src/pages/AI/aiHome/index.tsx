@@ -64,77 +64,82 @@ export default function AutomationSMS() {
     queryFn: async (): Promise<Automation[]> => {
       if (!apiKey) throw new Error('No API key available')
 
-      // Fetch FAQ data
-      const faqResponse = await axiosPublic.get<FAQResponse[]>(
-        '/api/faq/list',
-        {
-          headers: {
-            'X-API-Key': apiKey,
-          },
-        }
-      )
-      const faqAutomations = faqResponse.data.map((faq) => ({
-        id: faq.id,
-        name: faq.question,
-        status: faq.is_active,
-        type: 'faq' as const,
-        createdAt: faq.created_at,
-      }))
-
-      // Fetch Instant Reply data
-      const instantReplyResponse = await axiosPublic.get<InstantReplyResponse>(
-        '/api/instant-reply',
-        {
-          headers: {
-            'X-API-Key': apiKey,
-          },
-        }
-      )
-      const instantReplyAutomations = instantReplyResponse.data.data.message
-        ? [
-            {
-              id: 'instant-reply',
-              name: 'Instant Reply Message',
-              status: instantReplyResponse.data.data.isActive,
-              type: 'instant-reply' as const,
-              createdAt: new Date().toISOString(), // Instant reply doesn't have a creation date
+      try {
+        // Fetch FAQ data
+        const faqResponse = await axiosPublic.get<FAQResponse[]>(
+          '/api/faq/list',
+          {
+            headers: {
+              'X-API-Key': apiKey,
             },
-          ]
-        : []
+          }
+        )
+        const faqAutomations = faqResponse.data.map((faq) => ({
+          id: faq.id,
+          name: faq.question,
+          status: faq.is_active,
+          type: 'faq' as const,
+          createdAt: faq.created_at,
+        }))
 
-      // Fetch Training data
-      const trainingResponse = await axiosPublic.get<TrainingResponse[]>(
-        '/api/chatbot/upload_history',
-        {
-          headers: {
-            'X-API-Key': apiKey,
-          },
-        }
-      )
-      const trainingAutomations = trainingResponse.data.map((training) => ({
-        id: training.id,
-        name: training.file_name || training.url || `Training ${training.type}`,
-        status: training.status === 'completed',
-        type: 'training' as const,
-        createdAt: training.created_at,
-      }))
+        // Fetch Instant Reply data
+        const instantReplyResponse =
+          await axiosPublic.get<InstantReplyResponse>('/api/instant-reply', {
+            headers: {
+              'X-API-Key': apiKey,
+            },
+          })
+        const instantReplyAutomations = instantReplyResponse.data.data.message
+          ? [
+              {
+                id: 'instant-reply',
+                name: 'Instant Reply Message',
+                status: instantReplyResponse.data.data.isActive,
+                type: 'instant-reply' as const,
+                createdAt: new Date().toISOString(), // Instant reply doesn't have a creation date
+              },
+            ]
+          : []
 
-      // Combine all automations
-      const allAutomations = [
-        ...faqAutomations,
-        ...instantReplyAutomations,
-        ...trainingAutomations,
-      ].sort(
-        (a, b) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      )
+        // Fetch Training data
+        const trainingResponse = await axiosPublic.get<TrainingResponse[]>(
+          '/api/chatbot/upload_history',
+          {
+            headers: {
+              'X-API-Key': apiKey,
+            },
+          }
+        )
+        const trainingAutomations = trainingResponse.data.map((training) => ({
+          id: training.id,
+          name:
+            training.file_name || training.url || `Training ${training.type}`,
+          status: training.status === 'completed',
+          type: 'training' as const,
+          createdAt: training.created_at,
+        }))
 
-      return allAutomations
+        // Combine all automations
+        const allAutomations = [
+          ...faqAutomations,
+          ...instantReplyAutomations,
+          ...trainingAutomations,
+        ].sort(
+          (a, b) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        )
+
+        return allAutomations
+      } catch (error) {
+        console.error('Error fetching automations:', error)
+        // Return empty array instead of throwing to prevent complete failure
+        return []
+      }
     },
     enabled: !!apiKey,
     staleTime: 1000 * 60 * 5, // 5 minutes
     gcTime: 1000 * 60 * 10, // 10 minutes (formerly cacheTime)
-    retry: 2,
+    retry: 1, // Reduce retries to fail faster
     refetchOnWindowFocus: false,
   })
 
@@ -224,8 +229,11 @@ export default function AutomationSMS() {
       <div className='mx-6 mt-4'>
         <ContentSection title='Automation SMS'>
           <div className='py-8 text-center'>
-            <p className='text-red-500'>
+            <p className='mb-2 text-red-500'>
               Failed to load automations. Please try again.
+            </p>
+            <p className='mb-4 text-sm text-muted-foreground'>
+              Error: {error.message}
             </p>
             <Button
               onClick={() =>

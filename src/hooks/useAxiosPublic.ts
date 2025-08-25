@@ -1,7 +1,8 @@
 import axios from 'axios'
+import { getApiUrl } from '@/lib/utils'
 
 const axiosPublic = axios.create({
-    baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000'
+    baseURL: getApiUrl()
 })
 
 const useAxiosPublic = () => {
