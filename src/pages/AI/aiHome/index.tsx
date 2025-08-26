@@ -166,21 +166,31 @@ export default function AutomationSMS() {
           },
         })
       } else if (type === 'instant-reply') {
-        const currentAutomation = automations.find((a) => a.id === id)
-        if (currentAutomation) {
-          await axiosPublic.post(
-            '/api/instant-reply',
-            {
-              message: currentAutomation.name,
-              isActive: !currentStatus,
+        // For instant reply, we need to get the current messages and update the isActive status
+        const instantReplyResponse = await axiosPublic.get(
+          '/api/instant-reply',
+          {
+            headers: {
+              'X-API-Key': apiKey,
             },
-            {
-              headers: {
-                'X-API-Key': apiKey,
-              },
-            }
-          )
-        }
+          }
+        )
+
+        const currentData = instantReplyResponse.data.data
+        const currentMessages = currentData.messages || []
+
+        await axiosPublic.post(
+          '/api/instant-reply',
+          {
+            messages: currentMessages,
+            isActive: !currentStatus,
+          },
+          {
+            headers: {
+              'X-API-Key': apiKey,
+            },
+          }
+        )
       }
       // Training items can't be toggled - they're just status indicators
     },

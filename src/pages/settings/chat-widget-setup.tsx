@@ -26,6 +26,7 @@ interface ChatWidgetSettings {
   video_autoplay?: boolean
   video_duration?: number
   ai_behavior?: string
+  welcome_message?: string
 }
 
 export default function ChatWidgetSetup() {
@@ -37,6 +38,8 @@ export default function ChatWidgetSetup() {
     auto_open: false,
     video_autoplay: true,
     video_duration: 10,
+    welcome_message:
+      "👋 Welcome! I'm your AI assistant. I can help you with:\n• Scheduling appointments\n• Answering questions about our services\n• Providing information and support",
   })
   const [videoFile, setVideoFile] = useState<File | null>(null)
   const [isUploading, setIsUploading] = useState(false)
@@ -289,6 +292,26 @@ export default function ChatWidgetSetup() {
               }
               placeholder='Enter widget name'
             />
+          </div>
+
+          <div className='grid w-full max-w-sm items-center gap-1.5'>
+            <Label htmlFor='welcome_message'>Welcome Message</Label>
+            <textarea
+              id='welcome_message'
+              value={settings.welcome_message || ''}
+              onChange={(e) =>
+                setSettings((prev) => ({
+                  ...prev,
+                  welcome_message: e.target.value,
+                }))
+              }
+              placeholder='Enter welcome message for your chatbot'
+              className='min-h-[100px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50'
+            />
+            <p className='text-xs text-muted-foreground'>
+              This message will be displayed when users first open the chat
+              widget
+            </p>
           </div>
 
           <div className='space-y-2'>
