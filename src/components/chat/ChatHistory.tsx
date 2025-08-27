@@ -27,15 +27,39 @@ export function ChatHistory({ apiKey, sessionId }: ChatHistoryProps) {
           ? 'https://api.bayshorecommunication.org'
           : 'http://localhost:8000'),
       {
+        transports: ['polling', 'websocket'], // Try polling first, then websocket
+        timeout: 15000,
+        reconnection: true,
+        reconnectionAttempts: 3,
+        reconnectionDelay: 2000,
         auth: {
           apiKey: apiKey,
         },
+        query: {
+          apiKey: apiKey,
+        },
+        forceNew: true,
+        upgrade: true,
+        rememberUpgrade: true,
       }
     )
 
     // Join organization room
     socketInstance.emit('join_room', {
-      room: `org_${apiKey}`,
+      room: apiKey,
+    })
+
+    // Listen for connection events
+    socketInstance.on('connect', () => {
+      console.log('ChatHistory: Socket connected')
+    })
+
+    socketInstance.on('connect_error', (error) => {
+      console.error('ChatHistory: Socket connection error:', error)
+    })
+
+    socketInstance.on('disconnect', (reason) => {
+      console.log('ChatHistory: Socket disconnected:', reason)
     })
 
     // Listen for new messages

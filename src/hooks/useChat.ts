@@ -76,11 +76,12 @@ export function useChat(apiKey: string | null) {
 
     const socketUrl = getApiUrl()
     const socketInstance = io(socketUrl, {
-      transports: ['websocket', 'polling'],
-      timeout: 10000,
+      transports: ['polling', 'websocket'], // Try polling first, then websocket
+      timeout: 15000,
       reconnection: true,
-      reconnectionAttempts: 5,
-      reconnectionDelay: 1000,
+      reconnectionAttempts: 3,
+      reconnectionDelay: 2000,
+      reconnectionDelayMax: 5000,
       auth: {
         apiKey: apiKey,
       },
@@ -88,6 +89,8 @@ export function useChat(apiKey: string | null) {
         apiKey: apiKey,
       },
       forceNew: true,
+      upgrade: true,
+      rememberUpgrade: true,
     })
 
     socketRef.current = socketInstance
@@ -95,12 +98,15 @@ export function useChat(apiKey: string | null) {
     // Listen for connection events
     socketInstance.on('connect', () => {
       console.log('Socket connected successfully for real-time chat updates')
-      // Join organization room explicitly
-      socketInstance.emit('join_room', { room: `org_${apiKey}` })
+      // Join organization room explicitly - use the same room name as backend
+      socketInstance.emit('join_room', { room: apiKey })
     })
 
     socketInstance.on('connect_error', (error) => {
       console.error('Socket connection error:', error)
+      console.log(
+        'Socket.IO connection failed, falling back to polling mode or manual refresh'
+      )
     })
 
     socketInstance.on('disconnect', (reason) => {
