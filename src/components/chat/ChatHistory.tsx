@@ -22,7 +22,10 @@ export function ChatHistory({ apiKey, sessionId }: ChatHistoryProps) {
   useEffect(() => {
     // Connect to socket server
     const socketInstance = io(
-      import.meta.env.VITE_API_URL || 'http://localhost:8000',
+      import.meta.env.VITE_API_URL ||
+        (import.meta.env.PROD
+          ? 'https://api.bayshorecommunication.org'
+          : 'http://localhost:8000'),
       {
         auth: {
           apiKey: apiKey,
