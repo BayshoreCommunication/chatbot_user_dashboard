@@ -135,18 +135,28 @@ export function useChat(apiKey: string | null) {
           console.log(
             'Assistant message received via Socket.IO - keeping typing until UI updates'
           )
+          // Stop typing animation after a short delay to allow UI to update
+          setTimeout(() => {
+            setIncomingMessageLoading(false)
+          }, 1000)
         }
       }
 
-      // Invalidate and refetch conversations to update the sidebar
+      // Always invalidate and refetch conversations to update the sidebar
+      console.log('Invalidating conversations query')
       queryClient.invalidateQueries({ queryKey: ['conversations', apiKey] })
 
-      // If the message is for the currently selected session, update messages
+      // If the message is for the currently selected session, update messages immediately
       if (data.session_id === selectedSessionIdRef.current) {
         console.log('Invalidating messages for current session')
         queryClient.invalidateQueries({
           queryKey: ['messages', selectedSessionIdRef.current, apiKey],
         })
+
+        // Force refetch to ensure immediate update
+        setTimeout(() => {
+          refetchMessages()
+        }, 100)
       } else {
         console.log(
           'Message is for different session, not invalidating current messages'
@@ -207,6 +217,7 @@ export function useChat(apiKey: string | null) {
     queryKey: ['messages', selectedSessionId, apiKey],
     queryFn: async (): Promise<SessionData | null> => {
       if (!selectedSessionId || !apiKey) return null
+      console.log(`[DEBUG] Fetching messages for session: ${selectedSessionId}`)
       const response = await axios.get(
         `${import.meta.env.VITE_API_URL}/api/conversations/session/${selectedSessionId}`,
         {
@@ -215,12 +226,16 @@ export function useChat(apiKey: string | null) {
           },
         }
       )
+      console.log(
+        `[DEBUG] Received ${response.data.conversations?.length || 0} messages`
+      )
       return response.data
     },
     enabled: !!selectedSessionId && !!apiKey,
-    staleTime: 1000 * 60 * 2, // 2 minutes
-    gcTime: 1000 * 60 * 5, // 5 minutes
-    refetchOnWindowFocus: false,
+    staleTime: 1000 * 30, // 30 seconds - more frequent updates
+    gcTime: 1000 * 60 * 2, // 2 minutes
+    refetchOnWindowFocus: true, // Refetch when window gains focus
+    refetchOnMount: true, // Refetch when component mounts
     retry: (failureCount, error) => {
       if (
         axios.isAxiosError(error) &&
@@ -235,15 +250,33 @@ export function useChat(apiKey: string | null) {
 
   // Auto-select first conversation when conversations are loaded
   useEffect(() => {
-    if (conversations.length > 0 && !selectedSessionId && !hasAutoSelected) {
+    console.log('[DEBUG] Auto-selection effect triggered')
+    console.log('[DEBUG] Conversations length:', conversations.length)
+    console.log('[DEBUG] Selected session ID:', selectedSessionId)
+    console.log('[DEBUG] Has auto selected:', hasAutoSelected)
+
+    if (conversations.length > 0) {
       // Sort conversations by last message time to get the most recent one
       const sortedConversations = [...conversations].sort(
         (a, b) =>
           new Date(b.last_message_time).getTime() -
           new Date(a.last_message_time).getTime()
       )
-      setSelectedSessionId(sortedConversations[0].session_id)
-      setHasAutoSelected(true)
+      console.log(
+        '[DEBUG] Sorted conversations:',
+        sortedConversations.map((c) => ({
+          session_id: c.session_id,
+          last_message_time: c.last_message_time,
+        }))
+      )
+
+      // Auto-select if no session is selected OR if the most recent conversation is not the currently selected one
+      const mostRecentSessionId = sortedConversations[0].session_id
+      if (!selectedSessionId || selectedSessionId !== mostRecentSessionId) {
+        console.log('[DEBUG] Auto-selecting session:', mostRecentSessionId)
+        setSelectedSessionId(mostRecentSessionId)
+        setHasAutoSelected(true)
+      }
     }
   }, [conversations, selectedSessionId, hasAutoSelected])
 
@@ -257,6 +290,17 @@ export function useChat(apiKey: string | null) {
   // Handle conversation selection
   const handleSelectConversation = (sessionId: string) => {
     setSelectedSessionId(sessionId)
+  }
+
+  // Manual refresh function
+  const forceRefreshConversations = async () => {
+    console.log('[DEBUG] Force refreshing conversations')
+    try {
+      await refetchConversations()
+      console.log('[DEBUG] Conversations refreshed successfully')
+    } catch (error) {
+      console.error('[DEBUG] Error refreshing conversations:', error)
+    }
   }
 
   // Extract and sort messages
@@ -341,6 +385,7 @@ export function useChat(apiKey: string | null) {
     handleSelectConversation,
     refetchConversations,
     refetchMessages,
+    forceRefreshConversations,
 
     // Internal state (for debugging)
     hasAutoSelected,
