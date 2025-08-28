@@ -1,3 +1,4 @@
+import ApiUrlDebug from '@/components/debug/ApiUrlDebug'
 import { ThemeProvider } from '@/components/theme-provider'
 import { Toaster } from '@/components/ui/toaster'
 import { AuthProvider } from '@/context/AuthContext'
@@ -34,6 +35,7 @@ export default function App() {
                 <ThemeProvider defaultTheme='dark' storageKey='vite-ui-theme'>
                   <RouterProvider router={router} />
                   <Toaster />
+                  <ApiUrlDebug />
                 </ThemeProvider>
               </ThemeColorProvider>
             </UserProvider>
