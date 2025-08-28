@@ -5,7 +5,7 @@ import { useApiKey } from '@/hooks/useApiKey'
 import useAxiosPublic from '@/hooks/useAxiosPublic'
 import ContentSection from '@/pages/settings/components/content-section'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { AxiosInstance } from 'axios'
+import { AxiosError, AxiosInstance } from 'axios'
 import { useState } from 'react'
 import Skeleton from 'react-loading-skeleton'
 import 'react-loading-skeleton/dist/skeleton.css'
@@ -69,60 +69,123 @@ export default function AutomationSMS() {
 
       try {
         // Fetch FAQ data
-        const faqResponse = await axiosPublic.get<FAQResponse[]>(
-          '/api/faq/list',
-          {
-            headers: {
-              'X-API-Key': apiKey,
-            },
+        let faqAutomations: Automation[] = []
+        try {
+          console.log('Fetching FAQ data...')
+          const faqResponse = await axiosPublic.get<FAQResponse[]>(
+            '/api/faq/list',
+            {
+              headers: {
+                'X-API-Key': apiKey,
+              },
+            }
+          )
+          faqAutomations = faqResponse.data.map((faq) => ({
+            id: faq.id,
+            name: faq.question,
+            status: faq.is_active,
+            type: 'faq' as const,
+            createdAt: faq.created_at,
+          }))
+          console.log(
+            'FAQ data fetched successfully:',
+            faqAutomations.length,
+            'items'
+          )
+        } catch (faqError) {
+          if (faqError instanceof AxiosError) {
+            console.error(
+              'FAQ API Error:',
+              faqError.response?.status,
+              faqError.response?.data
+            )
+          } else {
+            console.error('Error fetching FAQ data:', faqError)
           }
-        )
-        const faqAutomations = faqResponse.data.map((faq) => ({
-          id: faq.id,
-          name: faq.question,
-          status: faq.is_active,
-          type: 'faq' as const,
-          createdAt: faq.created_at,
-        }))
+          faqAutomations = []
+        }
 
         // Fetch Instant Reply data
-        const instantReplyResponse =
-          await axiosPublic.get<InstantReplyResponse>('/api/instant-reply', {
-            headers: {
-              'X-API-Key': apiKey,
-            },
-          })
-        const instantReplyAutomations =
-          instantReplyResponse.data.data.messages &&
-          instantReplyResponse.data.data.messages.length > 0
-            ? [
-                {
-                  id: 'instant-reply',
-                  name: 'Instant Reply Message',
-                  status: instantReplyResponse.data.data.isActive,
-                  type: 'instant-reply' as const,
-                  createdAt: new Date().toISOString(), // Instant reply doesn't have a creation date
-                },
-              ]
-            : []
+        let instantReplyAutomations: Automation[] = []
+        try {
+          console.log('Fetching Instant Reply data...')
+          const instantReplyResponse =
+            await axiosPublic.get<InstantReplyResponse>('/api/instant-reply', {
+              headers: {
+                'X-API-Key': apiKey,
+              },
+            })
+          instantReplyAutomations =
+            instantReplyResponse.data.data.messages &&
+            instantReplyResponse.data.data.messages.length > 0
+              ? [
+                  {
+                    id: 'instant-reply',
+                    name: 'Instant Reply Message',
+                    status: instantReplyResponse.data.data.isActive,
+                    type: 'instant-reply' as const,
+                    createdAt: new Date().toISOString(), // Instant reply doesn't have a creation date
+                  },
+                ]
+              : []
+          console.log(
+            'Instant Reply data fetched successfully:',
+            instantReplyAutomations.length,
+            'items'
+          )
+        } catch (instantReplyError) {
+          if (instantReplyError instanceof AxiosError) {
+            console.error(
+              'Instant Reply API Error:',
+              instantReplyError.response?.status,
+              instantReplyError.response?.data
+            )
+          } else {
+            console.error(
+              'Error fetching Instant Reply data:',
+              instantReplyError
+            )
+          }
+          instantReplyAutomations = []
+        }
 
         // Fetch Training data
-        const trainingResponse = await axiosPublic.get<TrainingResponse[]>(
-          '/api/chatbot/upload_history',
-          {
-            headers: {
-              'X-API-Key': apiKey,
-            },
+        let trainingAutomations: Automation[] = []
+        try {
+          console.log('Fetching Training data...')
+          const trainingResponse = await axiosPublic.get<TrainingResponse[]>(
+            '/api/chatbot/upload_history',
+            {
+              headers: {
+                'X-API-Key': apiKey,
+              },
+            }
+          )
+          trainingAutomations = trainingResponse.data.map((training) => ({
+            id: training.id,
+            name:
+              training.file_name || training.url || `Training ${training.type}`,
+            status: training.status === 'completed',
+            type: 'training' as const,
+            createdAt: training.created_at,
+          }))
+          console.log(
+            'Training data fetched successfully:',
+            trainingAutomations.length,
+            'items'
+          )
+        } catch (trainingError) {
+          if (trainingError instanceof AxiosError) {
+            console.error(
+              'Training API Error:',
+              trainingError.response?.status,
+              trainingError.response?.data
+            )
+          } else {
+            console.error('Error fetching Training data:', trainingError)
           }
-        )
-        const trainingAutomations = trainingResponse.data.map((training) => ({
-          id: training.id,
-          name:
-            training.file_name || training.url || `Training ${training.type}`,
-          status: training.status === 'completed',
-          type: 'training' as const,
-          createdAt: training.created_at,
-        }))
+          trainingAutomations = []
+        }
 
         // Combine all automations
         const allAutomations = [
@@ -137,6 +200,19 @@ export default function AutomationSMS() {
         return allAutomations
       } catch (error) {
         console.error('Error fetching automations:', error)
+
+        // Log more detailed error information
+        if (error instanceof AxiosError) {
+          console.error('Response data:', error.response?.data)
+          console.error('Response status:', error.response?.status)
+          console.error('Response headers:', error.response?.headers)
+          console.error('Request error:', error.request)
+        } else if (error instanceof Error) {
+          console.error('Error message:', error.message)
+        } else {
+          console.error('Unknown error:', error)
+        }
+
         // Return empty array instead of throwing to prevent complete failure
         return []
       }
@@ -200,7 +276,15 @@ export default function AutomationSMS() {
       toast.success('Status updated successfully')
     },
     onError: (error) => {
-      console.error('Error toggling automation status:', error)
+      if (error instanceof AxiosError) {
+        console.error(
+          'Toggle Status API Error:',
+          error.response?.status,
+          error.response?.data
+        )
+      } else {
+        console.error('Error toggling automation status:', error)
+      }
       toast.error('Failed to update status')
     },
   })

@@ -22,10 +22,7 @@ export function ChatHistory({ apiKey, sessionId }: ChatHistoryProps) {
   useEffect(() => {
     // Connect to socket server
     const socketInstance = io(
-      import.meta.env.VITE_API_URL ||
-        (import.meta.env.PROD
-          ? 'https://api.bayshorecommunication.org'
-          : 'http://localhost:8000'),
+      import.meta.env.VITE_API_URL || 'https://api.bayshorecommunication.org',
       {
         transports: ['polling', 'websocket'], // Try polling first, then websocket
         timeout: 15000,

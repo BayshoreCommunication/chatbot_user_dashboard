@@ -8,7 +8,7 @@ export function cn(...inputs: ClassValue[]) {
 // Always use production backend URL since it's live
 export const getApiUrl = () => {
   const envUrl = import.meta.env.VITE_API_URL
- 
+
   // If environment variable is set, use it
   if (envUrl) {
     // Ensure HTTPS in production
