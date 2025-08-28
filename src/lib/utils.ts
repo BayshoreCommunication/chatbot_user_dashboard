@@ -8,7 +8,7 @@ export function cn(...inputs: ClassValue[]) {
 // Always use production backend URL since it's live
 export const getApiUrl = () => {
   const envUrl = import.meta.env.VITE_API_URL
-
+ 
   // If environment variable is set, use it
   if (envUrl) {
     // Ensure HTTPS in production
@@ -18,6 +18,11 @@ export const getApiUrl = () => {
     return envUrl
   }
 
-  // Always default to production HTTPS URL since backend is live
-  return 'https://api.bayshorecommunication.org'
+  // Force HTTPS in production - this is the critical fix
+  if (import.meta.env.PROD) {
+    return 'https://api.bayshorecommunication.org'
+  }
+
+  // Development fallback
+  return 'http://localhost:8000'
 }
