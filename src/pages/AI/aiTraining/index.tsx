@@ -18,7 +18,7 @@ import {
 import { useApiKey } from '@/hooks/useApiKey'
 import useAxiosPublic from '@/hooks/useAxiosPublic'
 import ContentSection from '@/pages/settings/components/content-section'
-import { AxiosInstance } from 'axios'
+import { AxiosInstance, isAxiosError } from 'axios'
 import {
   Edit,
   ExternalLink,
@@ -36,7 +36,7 @@ import {
   X,
   Youtube,
 } from 'lucide-react'
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 
@@ -83,21 +83,44 @@ export default function AITraining() {
   const { apiKey } = useApiKey()
   const navigate = useNavigate()
 
-  const [trainingUrls, setTrainingUrls] = useState<TrainingUrl[]>([
-    {
-      id: '1',
-      type: 'website',
-      url: 'https://www.carterinjurylaw.com',
-      status: 'pending',
-    },
-  ])
+  const [trainingUrls, setTrainingUrls] = useState<TrainingUrl[]>([])
+  const [trainedSources, setTrainedSources] = useState<
+    Array<{
+      id?: string
+      url?: string
+      file_name?: string
+      type?: string
+      status?: string
+      created_at?: string
+    }>
+  >([])
 
   const [newUrl, setNewUrl] = useState('')
-  const [selectedType, setSelectedType] = useState<string>('website')
+  const [selectedType, setSelectedType] =
+    useState<TrainingUrl['type']>('website')
   const [isTraining, setIsTraining] = useState(false)
   const [quickMode, setQuickMode] = useState(true) // Quick mode by default
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editUrl, setEditUrl] = useState('')
+
+  // Load previously trained sources
+  const fetchHistory = useCallback(async () => {
+    try {
+      const res = await axiosPublic.get('/api/chatbot/upload_history', {
+        headers: { 'X-API-Key': apiKey },
+        timeout: 15000,
+      })
+      setTrainedSources(res.data || [])
+    } catch (e: unknown) {
+      console.error('Failed to load trained sources', e)
+    }
+  }, [apiKey, axiosPublic])
+
+  useEffect(() => {
+    if (apiKey) {
+      fetchHistory()
+    }
+  }, [apiKey, fetchHistory])
 
   const addUrl = () => {
     if (!newUrl.trim()) {
@@ -122,7 +145,7 @@ export default function AITraining() {
 
     const newTrainingUrl: TrainingUrl = {
       id: Date.now().toString(),
-      type: selectedType as any,
+      type: selectedType,
       url: newUrl.trim(),
       status: 'pending',
     }
@@ -246,22 +269,31 @@ export default function AITraining() {
           errorCount++
           toast.error(`❌ Failed to train from ${urlItem.type}`)
         }
-      } catch (error: any) {
-        updateUrlStatus(
-          urlItem.id,
-          'error',
-          error.response?.data?.detail || error.message
-        )
+      } catch (error: unknown) {
+        let errMessage = 'Unknown error'
+        let errDetail: string | undefined
+        let errCode: string | number | undefined
+
+        if (isAxiosError(error)) {
+          errMessage = error.message
+          errDetail = (error.response?.data as { detail?: string } | undefined)
+            ?.detail
+          errCode = error.code
+        } else if (error instanceof Error) {
+          errMessage = error.message
+        }
+
+        updateUrlStatus(urlItem.id, 'error', errDetail || errMessage)
         errorCount++
         console.error(`Error training from ${urlItem.type}:`, error)
 
-        if (error.code === 'ECONNABORTED') {
+        if (errCode === 'ECONNABORTED') {
           toast.error(
             `⏱️ ${urlItem.type} training timed out - site may be too large`
           )
         } else {
           toast.error(
-            `❌ Failed to train from ${urlItem.type}: ${error.response?.data?.detail || error.message}`
+            `❌ Failed to train from ${urlItem.type}: ${errDetail || errMessage}`
           )
         }
       }
@@ -300,6 +332,57 @@ export default function AITraining() {
     }
 
     setIsTraining(false)
+
+    // Refresh previously trained sources after training completes
+    try {
+      await fetchHistory()
+    } catch (e) {
+      // no-op, already logged in fetchHistory
+    }
+  }
+
+  const deleteTrainedItemFromServer = async (
+    item: {
+      id?: string
+      url?: string
+      file_name?: string
+    },
+    index: number
+  ) => {
+    const confirmed = window.confirm(
+      'Delete this trained source from the server? This removes it from the knowledge base and cannot be undone.'
+    )
+    if (!confirmed) return
+
+    try {
+      // Use the new delete endpoint with item id
+      if (item.id) {
+        await axiosPublic.delete(
+          `/api/chatbot/upload_history/${encodeURIComponent(item.id)}`,
+          { headers: { 'X-API-Key': apiKey }, timeout: 20000 }
+        )
+      } else {
+        // If no id, show error - we need the id for deletion
+        throw new Error(
+          'Cannot delete item without ID. Please refresh the page and try again.'
+        )
+      }
+
+      toast.success('Deleted from server. Updating list...')
+      // Remove locally for instant feedback
+      setTrainedSources((prev) => prev.filter((_, i) => i !== index))
+      // Then refresh from server
+      await fetchHistory()
+    } catch (e: unknown) {
+      console.error('Failed to delete trained item from server', e)
+      const message = isAxiosError(e)
+        ? (e.response?.data as { detail?: string } | undefined)?.detail ||
+          e.message
+        : e instanceof Error
+          ? e.message
+          : 'Unknown error'
+      toast.error(`Failed to delete on server: ${message}`)
+    }
   }
 
   const getStatusBadge = (status: TrainingUrl['status']) => {
@@ -334,7 +417,7 @@ export default function AITraining() {
               </p>
             </div>
             <Button
-              onClick={() => navigate('/dashboard/ai-home')}
+              onClick={() => navigate('/dashboard/train-ai')}
               variant='outline'
             >
               Back to AI Home
@@ -516,6 +599,75 @@ export default function AITraining() {
                             </p>
                           </div>
                         )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Previously Trained Sources */}
+          <Card>
+            <CardHeader>
+              <div className='flex items-center justify-between'>
+                <div>
+                  <CardTitle>
+                    Previously Trained Sources ({trainedSources.length})
+                  </CardTitle>
+                  <CardDescription>
+                    These were already added to your knowledge base
+                  </CardDescription>
+                </div>
+                <Button variant='outline' size='sm' onClick={fetchHistory}>
+                  Refresh
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {trainedSources.length === 0 ? (
+                <div className='py-6 text-center text-muted-foreground'>
+                  No previous training found
+                </div>
+              ) : (
+                <div className='space-y-2'>
+                  {trainedSources.map((item, idx) => (
+                    <div
+                      key={idx}
+                      className='flex items-center justify-between rounded border p-3'
+                    >
+                      <div className='min-w-0 flex-1'>
+                        {item.url ? (
+                          <a
+                            href={item.url}
+                            target='_blank'
+                            rel='noopener noreferrer'
+                            className='block truncate text-blue-600 hover:text-blue-800 hover:underline'
+                          >
+                            {item.url}
+                          </a>
+                        ) : (
+                          <span className='block truncate'>
+                            {item.file_name || 'Document'}
+                          </span>
+                        )}
+                        <div className='mt-1 text-xs text-muted-foreground'>
+                          {item.type ? item.type : item.url ? 'url' : 'file'}
+                          {item.status ? ` • ${item.status}` : ''}
+                        </div>
+                      </div>
+                      <div className='flex items-center gap-2'>
+                        <Badge variant='secondary' className='ml-3'>
+                          {item.type || (item.url ? 'url' : 'file')}
+                        </Badge>
+                        <Button
+                          variant='ghost'
+                          size='sm'
+                          onClick={() => deleteTrainedItemFromServer(item, idx)}
+                          className='text-red-500 hover:text-red-700'
+                        >
+                          <Trash2 className='h-4 w-4' />
+                        </Button>
                       </div>
                     </div>
                   ))}
