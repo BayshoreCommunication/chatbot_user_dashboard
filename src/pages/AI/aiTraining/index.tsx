@@ -438,7 +438,12 @@ export default function AITraining() {
             <CardContent>
               <div className='flex gap-3'>
                 <div className='flex-1'>
-                  <Select value={selectedType} onValueChange={setSelectedType}>
+                  <Select
+                    value={selectedType}
+                    onValueChange={(value: string) =>
+                      setSelectedType(value as TrainingUrl['type'])
+                    }
+                  >
                     <SelectTrigger className='w-[180px]'>
                       <SelectValue placeholder='Select type' />
                     </SelectTrigger>

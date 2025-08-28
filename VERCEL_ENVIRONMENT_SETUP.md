@@ -61,7 +61,7 @@ The following files have been updated to ensure HTTPS usage:
 After deployment, test these endpoints:
 
 - ✅ `https://api.bayshorecommunication.org/healthz` - Should return `{"status":"ok"}`
-- ✅ `https://api.bayshorecommunication.org/api/instant-reply/` - Should not show mixed content error
+- ✅ `https://api.bayshorecommunication.org/api/instant-reply` - Should not show mixed content error
 - ✅ All API calls should use HTTPS
 
 ## Common Issues
