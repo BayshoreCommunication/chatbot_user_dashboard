@@ -5,6 +5,7 @@ import ThemeSwitch from '@/components/theme-switch'
 import { UserNav } from '@/components/user-nav'
 import { useApiKey } from '@/hooks/useApiKey'
 import { useChat } from '@/hooks/useChat'
+import { useEffect } from 'react'
 import { ChatPanel } from './components/ChatPanel'
 import { ChatSidebar } from './components/ChatSidebar'
 
@@ -24,7 +25,17 @@ export default function Chats() {
     socket,
   } = useChat(apiKey)
 
-  console.log('apiKey', apiKey)
+  // Debug logging for selected session
+  console.log('[DEBUG] Chats page: Selected session ID:', selectedSessionId)
+  console.log('[DEBUG] Chats page: Total conversations:', conversations.length)
+
+  // Track selected session changes
+  useEffect(() => {
+    console.log(
+      '[DEBUG] Chats page: Selected session changed to:',
+      selectedSessionId
+    )
+  }, [selectedSessionId])
 
   return (
     <div className='h-screen overflow-hidden'>

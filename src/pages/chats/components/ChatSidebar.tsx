@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 import { RefreshCw, Search } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 interface GroupedConversation {
   session_id: string
@@ -42,6 +42,21 @@ export function ChatSidebar({
 }: ChatSidebarProps) {
   const [searchTerm, setSearchTerm] = useState('')
   const [sortBy, setSortBy] = useState('newest')
+
+  // Debug logging for selected conversation
+  console.log(
+    '[DEBUG] ChatSidebar: Selected conversation ID:',
+    selectedConversationId
+  )
+  console.log('[DEBUG] ChatSidebar: Total conversations:', conversations.length)
+
+  // Track selected conversation changes
+  useEffect(() => {
+    console.log(
+      '[DEBUG] ChatSidebar: Selected conversation changed to:',
+      selectedConversationId
+    )
+  }, [selectedConversationId])
 
   // Sort conversations based on sortBy state
   const sortedConversations = [...conversations].sort((a, b) => {
@@ -173,63 +188,76 @@ export function ChatSidebar({
                     : 'No conversations yet'}
                 </div>
               ) : (
-                filteredConversations.map((conversation) => (
-                  <div
-                    key={conversation.session_id}
-                    className={cn(
-                      'mb-1 flex cursor-pointer items-center rounded-lg p-3 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800',
-                      selectedConversationId === conversation.session_id &&
-                        'border-r-2 border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                    )}
-                    onClick={() =>
-                      onSelectConversation(conversation.session_id)
-                    }
-                  >
-                    <div className='relative'>
-                      <Avatar className='h-12 w-12'>
-                        <AvatarFallback className='bg-gray-200 font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-300'>
-                          {getInitials(conversation.user_name)}
-                        </AvatarFallback>
-                      </Avatar>
-                      {/* Mock online status - you can implement real online status later */}
-                      <div className='absolute -bottom-1 -right-1 h-4 w-4 rounded-full border-2 border-white bg-green-500 dark:border-gray-900'></div>
-                    </div>
+                filteredConversations.map((conversation) => {
+                  console.log('[DEBUG] ChatSidebar: Rendering conversation:', {
+                    session_id: conversation.session_id,
+                    user_name: conversation.user_name,
+                    isSelected:
+                      selectedConversationId === conversation.session_id,
+                  })
 
-                    <div className='ml-3 min-w-0 flex-1'>
-                      <div className='mb-1 flex items-center justify-between'>
-                        <h3 className='truncate font-medium text-gray-900 dark:text-white'>
-                          {conversation.user_name}
-                        </h3>
-                        <span className='ml-2 text-xs text-gray-500 dark:text-gray-400'>
-                          {formatTime(conversation.last_message_time)}
-                        </span>
+                  return (
+                    <div
+                      key={conversation.session_id}
+                      className={cn(
+                        'mb-1 flex cursor-pointer items-center rounded-lg p-3 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800',
+                        selectedConversationId === conversation.session_id &&
+                          'border-r-2 border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                      )}
+                      onClick={() => {
+                        console.log(
+                          '[DEBUG] ChatSidebar: Conversation clicked:',
+                          conversation.session_id
+                        )
+                        onSelectConversation(conversation.session_id)
+                      }}
+                    >
+                      <div className='relative'>
+                        <Avatar className='h-12 w-12'>
+                          <AvatarFallback className='bg-gray-200 font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-300'>
+                            {getInitials(conversation.user_name)}
+                          </AvatarFallback>
+                        </Avatar>
+                        {/* Mock online status - you can implement real online status later */}
+                        <div className='absolute -bottom-1 -right-1 h-4 w-4 rounded-full border-2 border-white bg-green-500 dark:border-gray-900'></div>
                       </div>
 
-                      <div className='flex items-center justify-between'>
-                        <p className='flex-1 truncate text-sm text-gray-600 dark:text-gray-400'>
-                          {conversation.last_message_role === 'user'
-                            ? ''
-                            : '🤖 '}
-                          {conversation.last_message}
-                        </p>
+                      <div className='ml-3 min-w-0 flex-1'>
+                        <div className='mb-1 flex items-center justify-between'>
+                          <h3 className='truncate font-medium text-gray-900 dark:text-white'>
+                            {conversation.user_name}
+                          </h3>
+                          <span className='ml-2 text-xs text-gray-500 dark:text-gray-400'>
+                            {formatTime(conversation.last_message_time)}
+                          </span>
+                        </div>
 
-                        {conversation.message_count > 1 && (
-                          <div className='ml-2 flex items-center'>
-                            <span className='rounded-full bg-blue-500 px-2 py-1 text-xs text-white'>
-                              {conversation.message_count}
-                            </span>
-                          </div>
+                        <div className='flex items-center justify-between'>
+                          <p className='flex-1 truncate text-sm text-gray-600 dark:text-gray-400'>
+                            {conversation.last_message_role === 'user'
+                              ? ''
+                              : '🤖 '}
+                            {conversation.last_message}
+                          </p>
+
+                          {conversation.message_count > 1 && (
+                            <div className='ml-2 flex items-center'>
+                              <span className='rounded-full bg-blue-500 px-2 py-1 text-xs text-white'>
+                                {conversation.message_count}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+
+                        {conversation.user_email && (
+                          <p className='mt-1 truncate text-xs text-gray-500 dark:text-gray-400'>
+                            {conversation.user_email}
+                          </p>
                         )}
                       </div>
-
-                      {conversation.user_email && (
-                        <p className='mt-1 truncate text-xs text-gray-500 dark:text-gray-400'>
-                          {conversation.user_email}
-                        </p>
-                      )}
                     </div>
-                  </div>
-                ))
+                  )
+                })
               )}
             </div>
           )}

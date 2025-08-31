@@ -254,14 +254,14 @@ export function useChat(apiKey: string | null) {
     },
   })
 
-  // Auto-select first conversation when conversations are loaded
+  // Auto-select first conversation when conversations are loaded (only on initial load)
   useEffect(() => {
     console.log('[DEBUG] Auto-selection effect triggered')
     console.log('[DEBUG] Conversations length:', conversations.length)
     console.log('[DEBUG] Selected session ID:', selectedSessionId)
     console.log('[DEBUG] Has auto selected:', hasAutoSelected)
 
-    if (conversations.length > 0) {
+    if (conversations.length > 0 && !hasAutoSelected && !selectedSessionId) {
       // Sort conversations by last message time to get the most recent one
       const sortedConversations = [...conversations].sort(
         (a, b) =>
@@ -276,13 +276,11 @@ export function useChat(apiKey: string | null) {
         }))
       )
 
-      // Auto-select if no session is selected OR if the most recent conversation is not the currently selected one
+      // Only auto-select if no session is currently selected
       const mostRecentSessionId = sortedConversations[0].session_id
-      if (!selectedSessionId || selectedSessionId !== mostRecentSessionId) {
-        console.log('[DEBUG] Auto-selecting session:', mostRecentSessionId)
-        setSelectedSessionId(mostRecentSessionId)
-        setHasAutoSelected(true)
-      }
+      console.log('[DEBUG] Auto-selecting session:', mostRecentSessionId)
+      setSelectedSessionId(mostRecentSessionId)
+      setHasAutoSelected(true)
     }
   }, [conversations, selectedSessionId, hasAutoSelected])
 
@@ -295,7 +293,10 @@ export function useChat(apiKey: string | null) {
 
   // Handle conversation selection
   const handleSelectConversation = (sessionId: string) => {
+    console.log('[DEBUG] Manual conversation selection:', sessionId)
     setSelectedSessionId(sessionId)
+    // Mark that user has made a manual selection to prevent auto-selection interference
+    setHasAutoSelected(true)
   }
 
   // Manual refresh function
