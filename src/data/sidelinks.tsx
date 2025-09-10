@@ -11,6 +11,7 @@ import {
   IconMessages,
   IconRouteAltLeft,
   IconTruck,
+  IconUsers,
 } from '@tabler/icons-react'
 
 export interface NavLink {
@@ -36,6 +37,12 @@ export const sidelinks: SideLink[] = [
     label: '9',
     href: '/dashboard/chats',
     icon: <IconMessages size={18} />,
+  },
+  {
+    title: 'Leads',
+    label: '',
+    href: '/dashboard/leads',
+    icon: <IconUsers size={18} />,
   },
   {
     title: 'Apps',

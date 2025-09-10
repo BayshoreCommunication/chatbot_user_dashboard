@@ -7,4 +7,6 @@ export const API_ENDPOINTS = {
   trafficSources: `${API_BASE_URL}/api/traffic-sources`,
   notifications: `${API_BASE_URL}/api/notifications`,
   activeUsers: `${API_BASE_URL}/api/active-users`,
+  leads: `${API_BASE_URL}/lead/leads`,
+  leadsStats: `${API_BASE_URL}/lead/leads/stats`,
 } as const

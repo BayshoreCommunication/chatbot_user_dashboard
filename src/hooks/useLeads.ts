@@ -1,0 +1,209 @@
+import { useToast } from '@/components/ui/use-toast'
+import { API_ENDPOINTS } from '@/config/api'
+import { useApiKey } from '@/hooks/useApiKey'
+import { useCallback, useEffect, useState } from 'react'
+
+export interface Lead {
+  name: string
+  email: string
+  session_id: string
+  created_at: string
+  organization_id: string
+}
+
+export interface LeadsResponse {
+  leads: Lead[]
+  total_count: number
+}
+
+export interface LeadsStats {
+  total_profiles: number
+  valid_leads: number
+  leads_with_email: number
+  leads_with_name: number
+  organization_id: string
+}
+
+export const useLeads = () => {
+  const [leads, setLeads] = useState<Lead[]>([])
+  const [stats, setStats] = useState<LeadsStats | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const { toast } = useToast()
+  const { apiKey } = useApiKey()
+
+  const fetchLeads = useCallback(async () => {
+    if (!apiKey) {
+      setError('API key not found')
+      toast({
+        title: 'Error',
+        description: 'API key not found. Please check your settings.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    try {
+      setLoading(true)
+      setError(null)
+
+      // Debug logging
+      console.log('Fetching leads from:', API_ENDPOINTS.leads)
+      console.log('Using API key:', apiKey ? 'Present' : 'Missing')
+
+      const response = await fetch(API_ENDPOINTS.leads, {
+        method: 'GET',
+        headers: {
+          'X-API-Key': apiKey,
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        mode: 'cors',
+      })
+
+      console.log('Response status:', response.status)
+      console.log(
+        'Response headers:',
+        Object.fromEntries(response.headers.entries())
+      )
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.log('Error response body:', errorText)
+        throw new Error(`HTTP error! status: ${response.status} - ${errorText}`)
+      }
+
+      const data: LeadsResponse = await response.json()
+      console.log('Leads data received:', data)
+      setLeads(data.leads)
+
+      toast({
+        title: 'Success',
+        description: `Loaded ${data.leads.length} leads successfully.`,
+      })
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error'
+      setError(errorMessage)
+      console.error('Error fetching leads:', error)
+
+      // More specific error messages
+      let userMessage = 'Failed to fetch leads. Please try again.'
+      if (
+        error instanceof TypeError &&
+        error.message.includes('Failed to fetch')
+      ) {
+        userMessage =
+          'Cannot connect to the server. Please check if the backend is running and accessible.'
+      } else if (error instanceof Error && error.message.includes('CORS')) {
+        userMessage =
+          'CORS error: Backend needs to allow requests from this domain.'
+      }
+
+      toast({
+        title: 'Connection Error',
+        description: userMessage,
+        variant: 'destructive',
+      })
+    } finally {
+      setLoading(false)
+    }
+  }, [apiKey, toast])
+
+  const fetchStats = useCallback(async () => {
+    if (!apiKey) return
+
+    try {
+      const response = await fetch(API_ENDPOINTS.leadsStats, {
+        headers: {
+          'X-API-Key': apiKey,
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (response.ok) {
+        const statsData: LeadsStats = await response.json()
+        setStats(statsData)
+      }
+    } catch (error) {
+      console.error('Error fetching stats:', error)
+    }
+  }, [apiKey])
+
+  const downloadCSV = async () => {
+    if (!apiKey) {
+      toast({
+        title: 'Error',
+        description: 'API key not found. Please check your settings.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    try {
+      // Create CSV content
+      const csvHeaders = [
+        'Name',
+        'Email',
+        'Session ID',
+        'Created At',
+        'Organization ID',
+      ]
+      const csvRows = leads.map((lead) => [
+        lead.name,
+        lead.email,
+        lead.session_id,
+        new Date(lead.created_at).toLocaleString(),
+        lead.organization_id,
+      ])
+
+      const csvContent = [
+        csvHeaders.join(','),
+        ...csvRows.map((row) => row.map((field) => `"${field}"`).join(',')),
+      ].join('\n')
+
+      // Create and download file
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+      const link = document.createElement('a')
+      const url = URL.createObjectURL(blob)
+      link.setAttribute('href', url)
+      link.setAttribute(
+        'download',
+        `leads_${new Date().toISOString().split('T')[0]}.csv`
+      )
+      link.style.visibility = 'hidden'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+
+      toast({
+        title: 'Success',
+        description: 'Leads data downloaded successfully!',
+      })
+    } catch (error) {
+      console.error('Error downloading CSV:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to download CSV. Please try again.',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  useEffect(() => {
+    if (apiKey) {
+      fetchLeads()
+      fetchStats()
+    }
+  }, [apiKey, fetchLeads, fetchStats])
+
+  return {
+    leads,
+    stats,
+    loading,
+    error,
+    fetchLeads,
+    fetchStats,
+    downloadCSV,
+  }
+}
