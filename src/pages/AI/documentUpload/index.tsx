@@ -91,7 +91,12 @@ export default function DocumentUploadPage() {
                     : 'pdf', // Default to pdf for 'document' type
               size: 0, // Size not available from backend
               status: item.status === 'Used' ? 'completed' : 'failed',
-              trainingStatus: (item.training_status as 'not_trained' | 'training' | 'trained' | 'training_failed') || 'not_trained',
+              trainingStatus:
+                (item.training_status as
+                  | 'not_trained'
+                  | 'training'
+                  | 'trained'
+                  | 'training_failed') || 'not_trained',
               uploadedAt: item.created_at || '',
               trainedAt: item.training_completed_at,
               url: item.url,
@@ -360,12 +365,9 @@ export default function DocumentUploadPage() {
       )
 
       if (response.data.status === 'success') {
+        // Remove the document from the local state immediately
         setUploadedDocuments((prev) =>
-          prev.map((doc) =>
-            doc.id === documentId
-              ? { ...doc, trainingStatus: 'not_trained', trainedAt: undefined }
-              : doc
-          )
+          prev.filter((doc) => doc.id !== documentId)
         )
         toast.success('Document removed from knowledge base')
 
