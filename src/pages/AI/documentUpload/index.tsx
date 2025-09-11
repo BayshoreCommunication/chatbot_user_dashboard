@@ -5,16 +5,16 @@ import useAxiosPublic from '@/hooks/useAxiosPublic'
 import ContentSection from '@/pages/settings/components/content-section'
 import { AxiosError, AxiosInstance } from 'axios'
 import {
-  Brain,
-  Check,
-  Eye,
-  FileSpreadsheet,
-  FileText,
-  Play,
-  RotateCcw,
-  Trash2,
-  Upload,
-  X,
+    Brain,
+    Check,
+    Eye,
+    FileSpreadsheet,
+    FileText,
+    Play,
+    RotateCcw,
+    Trash2,
+    Upload,
+    X,
 } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -347,7 +347,7 @@ export default function DocumentUploadPage() {
     }
   }
 
-  // Remove document from knowledge base
+  // Remove document from knowledge base (hard delete from upload history)
   const removeFromKnowledgeBase = async (documentId: string) => {
     if (!apiKey) {
       toast.error('API key not available')
@@ -356,7 +356,7 @@ export default function DocumentUploadPage() {
 
     try {
       const response = await axiosPublic.delete(
-        `/api/chatbot/remove_document/${documentId}`,
+        `/api/chatbot/upload_history/${documentId}`,
         {
           headers: {
             'X-API-Key': apiKey,
