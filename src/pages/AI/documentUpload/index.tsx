@@ -5,16 +5,16 @@ import useAxiosPublic from '@/hooks/useAxiosPublic'
 import ContentSection from '@/pages/settings/components/content-section'
 import { AxiosError, AxiosInstance } from 'axios'
 import {
-    Brain,
-    Check,
-    Eye,
-    FileSpreadsheet,
-    FileText,
-    Play,
-    RotateCcw,
-    Trash2,
-    Upload,
-    X,
+  Brain,
+  Check,
+  Eye,
+  FileSpreadsheet,
+  FileText,
+  Play,
+  RotateCcw,
+  Trash2,
+  Upload,
+  X,
 } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -91,14 +91,11 @@ export default function DocumentUploadPage() {
                     : 'pdf', // Default to pdf for 'document' type
               size: 0, // Size not available from backend
               status: item.status === 'Used' ? 'completed' : 'failed',
+              // Infer training status from backend status; backend may not return training_status
               trainingStatus:
-                (item.training_status as
-                  | 'not_trained'
-                  | 'training'
-                  | 'trained'
-                  | 'training_failed') || 'not_trained',
+                item.status === 'Used' ? 'trained' : 'not_trained',
               uploadedAt: item.created_at || '',
-              trainedAt: item.training_completed_at,
+              trainedAt: item.status === 'Used' ? item.created_at : undefined,
               url: item.url,
             }
           }
@@ -281,70 +278,27 @@ export default function DocumentUploadPage() {
     handleFileSelect(e.target.files)
   }
 
-  // Train document
+  // Train document (no-op): backend trains on upload; we just reflect status
   const trainDocument = async (documentId: string) => {
-    if (!apiKey) {
-      toast.error('API key not available')
-      return
-    }
-
-    // Update status to training
     setUploadedDocuments((prev) =>
       prev.map((doc) =>
-        doc.id === documentId ? { ...doc, trainingStatus: 'training' } : doc
+        doc.id === documentId
+          ? {
+              ...doc,
+              trainingStatus:
+                doc.status === 'completed' ? 'trained' : 'not_trained',
+              trainedAt:
+                doc.status === 'completed'
+                  ? new Date().toISOString()
+                  : doc.trainedAt,
+            }
+          : doc
       )
     )
-
-    try {
-      const response = await axiosPublic.post(
-        '/api/chatbot/train_document',
-        { document_id: documentId },
-        {
-          headers: {
-            'X-API-Key': apiKey,
-          },
-        }
-      )
-
-      if (response.data.status === 'success') {
-        setUploadedDocuments((prev) =>
-          prev.map((doc) =>
-            doc.id === documentId
-              ? {
-                  ...doc,
-                  trainingStatus: 'trained',
-                  trainedAt: new Date().toISOString(),
-                }
-              : doc
-          )
-        )
-        toast.success('Document trained successfully!')
-
-        // Refresh the document list to ensure status is synced with backend
-        setTimeout(() => {
-          loadExistingDocuments()
-        }, 1000)
-      }
-    } catch (error: unknown) {
-      console.error('Error training document:', error)
-      setUploadedDocuments((prev) =>
-        prev.map((doc) =>
-          doc.id === documentId
-            ? { ...doc, trainingStatus: 'training_failed' }
-            : doc
-        )
-      )
-
-      if (error instanceof AxiosError) {
-        if (error.response?.status === 401) {
-          toast.error('Authentication failed. Please check your API key.')
-        } else {
-          toast.error('Failed to train document. Please try again.')
-        }
-      } else {
-        toast.error('Failed to train document. Please try again.')
-      }
-    }
+    toast.info('Training runs automatically on upload. Refreshed status.')
+    setTimeout(() => {
+      loadExistingDocuments()
+    }, 800)
   }
 
   // Remove document from knowledge base (hard delete from upload history)
