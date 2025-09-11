@@ -16,7 +16,6 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { useLeads } from '@/hooks/useLeads'
-import { quickApiTest } from '@/utils/apiTest'
 import { Calendar, Download, Mail, RefreshCw, Users } from 'lucide-react'
 import React from 'react'
 
@@ -27,12 +26,12 @@ const LeadsPage: React.FC = () => {
     return new Date(dateString).toLocaleString()
   }
 
-  const handleDebugTest = async () => {
-    console.log('🔧 Running API debug test...')
-    const results = await quickApiTest()
-    console.table(results)
-    alert('Debug test completed. Check browser console for detailed results.')
-  }
+  // const handleDebugTest = async () => {
+  //   console.log('🔧 Running API debug test...')
+  //   const results = await quickApiTest()
+  //   console.table(results)
+  //   alert('Debug test completed. Check browser console for detailed results.')
+  // }
 
   return (
     <div className='min-h-screen bg-gray-50/50 p-6'>

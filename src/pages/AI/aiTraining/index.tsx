@@ -103,14 +103,23 @@ export default function AITraining() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editUrl, setEditUrl] = useState('')
 
-  // Load previously trained sources
+  // Load previously trained sources (URLs and social media only)
   const fetchHistory = useCallback(async () => {
     try {
       const res = await axiosPublic.get('/api/chatbot/upload_history', {
         headers: { 'X-API-Key': apiKey },
         timeout: 15000,
       })
-      setTrainedSources(res.data || [])
+
+      // Filter to show only URLs and social media, exclude document files
+      const urlItems = (res.data || []).filter(
+        (item: { type?: string; file_name?: string; url?: string }) =>
+          // Only show items that are URLs or social media
+          item.url && // Must have a URL
+          !item.file_name // Must not be a document file
+      )
+
+      setTrainedSources(urlItems)
     } catch (e: unknown) {
       console.error('Failed to load trained sources', e)
     }
@@ -413,7 +422,8 @@ export default function AITraining() {
               <h2 className='text-2xl font-bold'>Train Your AI Chatbot</h2>
               <p className='mt-1 text-muted-foreground'>
                 Add websites and social media URLs to train your AI with your
-                business information
+                business information. This page shows only URL-based training,
+                not document uploads.
               </p>
             </div>
             <Button
@@ -612,16 +622,17 @@ export default function AITraining() {
             </CardContent>
           </Card>
 
-          {/* Previously Trained Sources */}
+          {/* Previously Trained URLs */}
           <Card>
             <CardHeader>
               <div className='flex items-center justify-between'>
                 <div>
                   <CardTitle>
-                    Previously Trained Sources ({trainedSources.length})
+                    Previously Trained URLs ({trainedSources.length})
                   </CardTitle>
                   <CardDescription>
-                    These were already added to your knowledge base
+                    Website URLs and social media that were already added to
+                    your knowledge base
                   </CardDescription>
                 </div>
                 <Button variant='outline' size='sm' onClick={fetchHistory}>
@@ -632,7 +643,8 @@ export default function AITraining() {
             <CardContent>
               {trainedSources.length === 0 ? (
                 <div className='py-6 text-center text-muted-foreground'>
-                  No previous training found
+                  No URL-based training found. Add some URLs above to get
+                  started.
                 </div>
               ) : (
                 <div className='space-y-2'>

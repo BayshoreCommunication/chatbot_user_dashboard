@@ -181,22 +181,43 @@ export default function TrainAiPage() {
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files
     if (files) {
-      const pdfFiles = Array.from(files).filter(
-        (file) => file.type === 'application/pdf'
+      const allowedFiles = Array.from(files).filter(
+        (file) =>
+          file.type === 'application/pdf' ||
+          file.type === 'text/csv' ||
+          file.name.toLowerCase().endsWith('.csv')
       )
-      const nonPdfFiles = Array.from(files).filter(
-        (file) => file.type !== 'application/pdf'
+      const nonAllowedFiles = Array.from(files).filter(
+        (file) =>
+          file.type !== 'application/pdf' &&
+          file.type !== 'text/csv' &&
+          !file.name.toLowerCase().endsWith('.csv')
       )
 
-      if (nonPdfFiles.length > 0) {
+      if (nonAllowedFiles.length > 0) {
         toast.error(
-          'Only PDF files are allowed. Non-PDF files will be ignored.'
+          'Only PDF and CSV files are allowed. Other files will be ignored.'
         )
       }
 
-      if (pdfFiles.length > 0) {
-        setSelectedFiles((prevFiles) => [...prevFiles, ...pdfFiles])
-        toast.success(`${pdfFiles.length} PDF file(s) selected`)
+      if (allowedFiles.length > 0) {
+        setSelectedFiles((prevFiles) => [...prevFiles, ...allowedFiles])
+        const pdfCount = allowedFiles.filter(
+          (f) => f.type === 'application/pdf'
+        ).length
+        const csvCount = allowedFiles.filter(
+          (f) => f.type === 'text/csv' || f.name.toLowerCase().endsWith('.csv')
+        ).length
+
+        let message = ''
+        if (pdfCount > 0 && csvCount > 0) {
+          message = `${pdfCount} PDF file(s) and ${csvCount} CSV file(s) selected`
+        } else if (pdfCount > 0) {
+          message = `${pdfCount} PDF file(s) selected`
+        } else {
+          message = `${csvCount} CSV file(s) selected`
+        }
+        toast.success(message)
       }
     }
   }
@@ -338,23 +359,25 @@ export default function TrainAiPage() {
       setShowPdfModal(false)
       setCurrentStep('main')
       setShowSuccessMessage(true)
-      toast.success('PDFs uploaded successfully')
+      toast.success('Documents uploaded successfully')
 
       setTimeout(() => {
         setShowSuccessMessage(false)
       }, 3000)
     } catch (error: unknown) {
-      console.error('Error uploading PDFs:', error)
+      console.error('Error uploading documents:', error)
       if (error instanceof AxiosError) {
         if (error.response?.status === 401) {
           toast.error('Authentication failed. Please check your API key.')
         } else if (error.response?.status === 400) {
-          toast.error('Invalid file format. Please upload PDF files only.')
+          toast.error(
+            'Invalid file format. Please upload PDF or CSV files only.'
+          )
         } else {
-          toast.error('Failed to upload PDFs. Please try again.')
+          toast.error('Failed to upload documents. Please try again.')
         }
       } else {
-        toast.error('Failed to upload PDFs. Please try again.')
+        toast.error('Failed to upload documents. Please try again.')
       }
     } finally {
       setIsUploading(false)
@@ -656,7 +679,7 @@ export default function TrainAiPage() {
                   className='flex items-center gap-2'
                 >
                   <Upload className='h-4 w-4' />
-                  Upload PDF
+                  Upload Documents
                 </Button>
               </div>
 
@@ -805,7 +828,23 @@ export default function TrainAiPage() {
                                   <input type='checkbox' className='rounded' />
                                 </td>
                                 <td className='px-4 py-3 text-sm'>
-                                  {doc.name}
+                                  <div className='flex items-center gap-2'>
+                                    <span>{doc.name}</span>
+                                    {doc.name
+                                      .toLowerCase()
+                                      .endsWith('.pdf') && (
+                                      <span className='rounded bg-red-100 px-2 py-1 text-xs text-red-800'>
+                                        PDF
+                                      </span>
+                                    )}
+                                    {doc.name
+                                      .toLowerCase()
+                                      .endsWith('.csv') && (
+                                      <span className='rounded bg-green-100 px-2 py-1 text-xs text-green-800'>
+                                        CSV
+                                      </span>
+                                    )}
+                                  </div>
                                 </td>
                                 <td className='px-4 py-3'>
                                   <span
@@ -919,37 +958,38 @@ export default function TrainAiPage() {
             </div>
           )}
 
-          {/* PDF Upload Modal */}
+          {/* Document Upload Modal */}
           {showPdfModal && (
             <div className='fixed inset-[-31px] z-50 flex items-center justify-center bg-black bg-opacity-30'>
               <div className='mx-auto w-full max-w-3xl rounded-lg bg-white p-6 shadow-lg'>
-                <h3 className='mb-4 text-lg font-medium'>
-                  Upload PDF Documents
-                </h3>
+                <h3 className='mb-4 text-lg font-medium'>Upload Documents</h3>
                 <p className='mb-6 text-sm text-gray-500'>
-                  Train your Bay AI with knowledge from PDF documents
+                  Train your Bay AI with knowledge from PDF documents and CSV
+                  files
                 </p>
 
                 <div className='space-y-4'>
                   <div className='rounded-lg border-2 border-dashed border-gray-300 p-6'>
                     <input
                       type='file'
-                      accept='.pdf'
+                      accept='.pdf,.csv'
                       multiple
                       onChange={handleFileSelect}
                       className='hidden'
-                      id='pdf-upload'
+                      id='document-upload'
                       disabled={isUploading}
                     />
                     <label
-                      htmlFor='pdf-upload'
+                      htmlFor='document-upload'
                       className='flex cursor-pointer flex-col items-center justify-center'
                     >
                       <Upload className='mb-2 h-8 w-8 text-gray-400' />
                       <p className='text-sm text-gray-600'>
                         Click to upload or drag and drop
                       </p>
-                      <p className='text-xs text-gray-500'>PDF files only</p>
+                      <p className='text-xs text-gray-500'>
+                        PDF and CSV files only
+                      </p>
                     </label>
                   </div>
 

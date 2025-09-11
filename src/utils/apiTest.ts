@@ -35,7 +35,16 @@ export const testApiConnection = async (baseUrl: string, apiKey: string) => {
         mode: 'cors',
       })
 
-      const result = {
+      const result: {
+        name: string
+        url: string
+        status: number
+        statusText: string
+        success: boolean
+        headers: { [k: string]: string }
+        data?: string
+        error?: string
+      } = {
         name: test.name,
         url: test.url,
         status: response.status,

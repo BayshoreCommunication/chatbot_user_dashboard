@@ -360,7 +360,29 @@ export default function AutomationSMS() {
           </p>
 
           {/* Automation Cards */}
-          <div className='mr-0 grid grid-cols-1 gap-6 md:grid-cols-4 lg:mr-60'>
+          <div className='mr-0 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-5'>
+            {/* AI Behavior Card */}
+            <div className='overflow-hidden rounded-lg border'>
+              <div className='space-y-4 p-4'>
+                <img
+                  src='https://bayshore.nyc3.cdn.digitaloceanspaces.com/ai_bot/behavior.jpeg'
+                  alt='AI Behavior'
+                  className='h-[156px] w-full rounded-md object-cover'
+                />
+                <h3 className='font-medium'>AI Behavior</h3>
+                <p className='text-sm text-muted-foreground'>
+                  Customize how your AI assistant behaves and responds to users.
+                </p>
+                <div>
+                  <Link to='/dashboard/ai-behavior'>
+                    <Button className='w-full' variant='outline'>
+                      Configure Behavior
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            </div>
+
             {/* Instant Reply Card */}
             <div className='overflow-hidden rounded-lg border'>
               <div className='space-y-4 p-4'>
@@ -430,22 +452,23 @@ export default function AutomationSMS() {
               </div>
             </div>
 
-            {/* AI Behavior Card */}
+            {/* Document Upload Card */}
             <div className='overflow-hidden rounded-lg border'>
               <div className='space-y-4 p-4'>
                 <img
-                  src='https://bayshore.nyc3.cdn.digitaloceanspaces.com/ai_bot/behavior.jpeg'
-                  alt='AI Behavior'
-                  className='h-[156px] w-full rounded-md object-cover'
+                  src='https://res.cloudinary.com/dq9yrj7c9/image/upload/v1747287480/d0tfhqfgnhtxfeu7buyr.png'
+                  alt='Document Upload'
+                  className='h-40 w-full rounded-md object-cover'
                 />
-                <h3 className='font-medium'>AI Behavior</h3>
+                <h3 className='font-medium'>Document Upload</h3>
                 <p className='text-sm text-muted-foreground'>
-                  Customize how your AI assistant behaves and responds to users.
+                  Upload PDF and CSV documents to train your AI chatbot with
+                  specific knowledge.
                 </p>
                 <div>
-                  <Link to='/dashboard/ai-behavior'>
+                  <Link to='/dashboard/document-upload'>
                     <Button className='w-full' variant='outline'>
-                      Configure Behavior
+                      Upload Documents
                     </Button>
                   </Link>
                 </div>

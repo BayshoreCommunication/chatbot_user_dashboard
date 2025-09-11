@@ -264,6 +264,13 @@ const router = createBrowserRouter([
         }),
       },
       {
+        path: 'document-upload',
+        lazy: async () => ({
+          Component: (await import('@/pages/AI/documentUpload/index.tsx'))
+            .default,
+        }),
+      },
+      {
         path: 'appointments',
         lazy: async () => ({
           Component: (await import('@/pages/appointments/index.tsx')).default,
