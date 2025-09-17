@@ -271,17 +271,24 @@ const router = createBrowserRouter([
         }),
       },
       {
+        path: 'unknown-questions',
+        lazy: async () => ({
+          Component: (await import('@/pages/AI/unknownQuestions/index.tsx'))
+            .default,
+        }),
+      },
+      {
         path: 'appointments',
         lazy: async () => ({
           Component: (await import('@/pages/appointments/index.tsx')).default,
         }),
       },
-      {
-        path: 'leads',
-        lazy: async () => ({
-          Component: (await import('@/pages/leads/index.tsx')).default,
-        }),
-      },
+      // {
+      //   path: 'leads',
+      //   lazy: async () => ({
+      //     Component: (await import('@/pages/leads/index.tsx')).default,
+      //   }),
+      // },
     ],
   },
 

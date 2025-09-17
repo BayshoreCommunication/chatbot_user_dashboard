@@ -6,7 +6,15 @@ import useAxiosPublic from '@/hooks/useAxiosPublic'
 import { useChatWidgetSettings } from '@/hooks/useChatWidgetSettings'
 import ContentSection from '@/pages/settings/components/content-section'
 import { AxiosError, AxiosInstance } from 'axios'
-import { AlertTriangle, Check, Plus, Upload, X } from 'lucide-react'
+import {
+  AlertTriangle,
+  Brain,
+  Check,
+  Plus,
+  Trash2,
+  Upload,
+  X,
+} from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
@@ -60,6 +68,14 @@ export default function TrainAiPage() {
   const [websites, setWebsites] = useState<Website[]>([])
   const [documents, setDocuments] = useState<Document[]>([])
   const [showSuccessMessage, setShowSuccessMessage] = useState(false)
+
+  // Delete loading states
+  const [deletingWebsiteIds, setDeletingWebsiteIds] = useState<Set<string>>(
+    new Set()
+  )
+  const [deletingDocumentIds, setDeletingDocumentIds] = useState<Set<string>>(
+    new Set()
+  )
 
   // Check for previous uploads when component mounts
   useEffect(() => {
@@ -255,6 +271,9 @@ export default function TrainAiPage() {
       for (const url of validUrls) {
         const formData = new FormData()
         formData.append('url', url)
+        formData.append('scrape_website', 'true')
+        formData.append('platform', 'website') // Default to website platform
+        formData.append('max_pages', '10')
 
         const response = await axiosPublic.post(
           '/api/chatbot/upload_document',
@@ -404,6 +423,84 @@ export default function TrainAiPage() {
 
   const handleActivationDone = () => {
     navigate('/dashboard/ai-training')
+  }
+
+  // Remove website from knowledge base
+  const removeWebsiteFromKnowledgeBase = async (websiteId: string) => {
+    if (!apiKey) {
+      toast.error('API key not available')
+      return
+    }
+
+    // Add to deleting IDs to show loading state
+    setDeletingWebsiteIds((prev) => new Set([...prev, websiteId]))
+
+    try {
+      const response = await axiosPublic.delete(
+        `/api/chatbot/upload_history/${websiteId}`,
+        {
+          headers: {
+            'X-API-Key': apiKey,
+          },
+        }
+      )
+
+      if (response.data.status === 'success') {
+        // Remove the website from the local state immediately
+        setWebsites((prev) =>
+          prev.filter((website) => website.id !== websiteId)
+        )
+        toast.success('Website removed from knowledge base')
+      }
+    } catch (error: unknown) {
+      console.error('Error removing website:', error)
+      toast.error('Failed to remove website from knowledge base')
+    } finally {
+      // Remove from deleting IDs
+      setDeletingWebsiteIds((prev) => {
+        const newSet = new Set(prev)
+        newSet.delete(websiteId)
+        return newSet
+      })
+    }
+  }
+
+  // Remove document from knowledge base
+  const removeDocumentFromKnowledgeBase = async (documentId: string) => {
+    if (!apiKey) {
+      toast.error('API key not available')
+      return
+    }
+
+    // Add to deleting IDs to show loading state
+    setDeletingDocumentIds((prev) => new Set([...prev, documentId]))
+
+    try {
+      const response = await axiosPublic.delete(
+        `/api/chatbot/upload_history/${documentId}`,
+        {
+          headers: {
+            'X-API-Key': apiKey,
+          },
+        }
+      )
+
+      if (response.data.status === 'success') {
+        // Remove the document from the local state immediately
+        setDocuments((prev) => prev.filter((doc) => doc.id !== documentId))
+        toast.success('Document removed from knowledge base')
+      }
+    } catch (error: unknown) {
+      console.error('Error removing document:', error)
+      toast.error('Failed to remove document from knowledge base')
+    } finally {
+      // Remove from deleting IDs
+      setDeletingDocumentIds((prev) => {
+        const newSet = new Set(prev)
+        newSet.delete(documentId)
+        return newSet
+      })
+    }
   }
 
   // Show loading spinner while settings or history are loading
@@ -718,7 +815,9 @@ export default function TrainAiPage() {
                               <th className='px-4 py-3 text-left text-sm font-medium'>
                                 Created at
                               </th>
-                              <th className='w-8 px-4 py-3'></th>
+                              <th className='px-4 py-3 text-left text-sm font-medium'>
+                                Actions
+                              </th>
                             </tr>
                           </thead>
                           <tbody>
@@ -751,22 +850,55 @@ export default function TrainAiPage() {
                                 <td className='px-4 py-3 text-sm'>
                                   {website.createdAt}
                                 </td>
-                                <td className='px-4 py-3 text-right'>
-                                  <button className='text-gray-400 hover:text-gray-500'>
-                                    <svg
-                                      className='h-5 w-5'
-                                      viewBox='0 0 24 24'
-                                      fill='none'
+                                <td className='px-4 py-3'>
+                                  <div className='flex items-center gap-2'>
+                                    {website.status === 'Used' && (
+                                      <Button
+                                        variant='outline'
+                                        size='sm'
+                                        onClick={() =>
+                                          removeWebsiteFromKnowledgeBase(
+                                            website.id
+                                          )
+                                        }
+                                        disabled={deletingWebsiteIds.has(
+                                          website.id
+                                        )}
+                                        className='text-orange-600 hover:text-orange-700'
+                                      >
+                                        {deletingWebsiteIds.has(website.id) ? (
+                                          <LoadingSpinner
+                                            size='xs'
+                                            variant='removing'
+                                          />
+                                        ) : (
+                                          <Brain className='h-4 w-4' />
+                                        )}
+                                      </Button>
+                                    )}
+                                    <Button
+                                      variant='outline'
+                                      size='sm'
+                                      onClick={() =>
+                                        removeWebsiteFromKnowledgeBase(
+                                          website.id
+                                        )
+                                      }
+                                      disabled={deletingWebsiteIds.has(
+                                        website.id
+                                      )}
+                                      className='text-red-600 hover:text-red-700'
                                     >
-                                      <path
-                                        d='M12 12V12.01M12 6V6.01M12 18V18.01M12 13C12.5523 13 13 12.5523 13 12C13 11.4477 12.5523 11 12 11C11.4477 11 11 11.4477 11 12C11 12.5523 11.4477 13 12 13Z'
-                                        stroke='currentColor'
-                                        strokeWidth='2'
-                                        strokeLinecap='round'
-                                        strokeLinejoin='round'
-                                      />
-                                    </svg>
-                                  </button>
+                                      {deletingWebsiteIds.has(website.id) ? (
+                                        <LoadingSpinner
+                                          size='xs'
+                                          variant='deleting'
+                                        />
+                                      ) : (
+                                        <Trash2 className='h-4 w-4' />
+                                      )}
+                                    </Button>
+                                  </div>
                                 </td>
                               </tr>
                             ))}
@@ -813,7 +945,9 @@ export default function TrainAiPage() {
                               <th className='px-4 py-3 text-left text-sm font-medium'>
                                 Created at
                               </th>
-                              <th className='w-8 px-4 py-3'></th>
+                              <th className='px-4 py-3 text-left text-sm font-medium'>
+                                Actions
+                              </th>
                             </tr>
                           </thead>
                           <tbody>
@@ -862,22 +996,51 @@ export default function TrainAiPage() {
                                 <td className='px-4 py-3 text-sm'>
                                   {doc.createdAt}
                                 </td>
-                                <td className='px-4 py-3 text-right'>
-                                  <button className='text-gray-400 hover:text-gray-500'>
-                                    <svg
-                                      className='h-5 w-5'
-                                      viewBox='0 0 24 24'
-                                      fill='none'
+                                <td className='px-4 py-3'>
+                                  <div className='flex items-center gap-2'>
+                                    {doc.status === 'Used' && (
+                                      <Button
+                                        variant='outline'
+                                        size='sm'
+                                        onClick={() =>
+                                          removeDocumentFromKnowledgeBase(
+                                            doc.id
+                                          )
+                                        }
+                                        disabled={deletingDocumentIds.has(
+                                          doc.id
+                                        )}
+                                        className='text-orange-600 hover:text-orange-700'
+                                      >
+                                        {deletingDocumentIds.has(doc.id) ? (
+                                          <LoadingSpinner
+                                            size='xs'
+                                            variant='removing'
+                                          />
+                                        ) : (
+                                          <Brain className='h-4 w-4' />
+                                        )}
+                                      </Button>
+                                    )}
+                                    <Button
+                                      variant='outline'
+                                      size='sm'
+                                      onClick={() =>
+                                        removeDocumentFromKnowledgeBase(doc.id)
+                                      }
+                                      disabled={deletingDocumentIds.has(doc.id)}
+                                      className='text-red-600 hover:text-red-700'
                                     >
-                                      <path
-                                        d='M12 12V12.01M12 6V6.01M12 18V18.01M12 13C12.5523 13 13 12.5523 13 12C13 11.4477 12.5523 11 12 11C11.4477 11 11 11.4477 11 12C11 12.5523 11.4477 13 12 13Z'
-                                        stroke='currentColor'
-                                        strokeWidth='2'
-                                        strokeLinecap='round'
-                                        strokeLinejoin='round'
-                                      />
-                                    </svg>
-                                  </button>
+                                      {deletingDocumentIds.has(doc.id) ? (
+                                        <LoadingSpinner
+                                          size='xs'
+                                          variant='deleting'
+                                        />
+                                      ) : (
+                                        <Trash2 className='h-4 w-4' />
+                                      )}
+                                    </Button>
+                                  </div>
                                 </td>
                               </tr>
                             ))}

@@ -43,6 +43,11 @@ export default function DocumentUploadPage() {
   const [uploadedDocuments, setUploadedDocuments] = useState<
     UploadedDocument[]
   >([])
+  const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set())
+  const [trainingIds, setTrainingIds] = useState<Set<string>>(new Set())
+  const [removingFromKnowledgeIds, setRemovingFromKnowledgeIds] = useState<
+    Set<string>
+  >(new Set())
   // const [showPreview, setShowPreview] = useState<string | null>(null)
 
   // Load existing documents function
@@ -280,25 +285,37 @@ export default function DocumentUploadPage() {
 
   // Train document (no-op): backend trains on upload; we just reflect status
   const trainDocument = async (documentId: string) => {
-    setUploadedDocuments((prev) =>
-      prev.map((doc) =>
-        doc.id === documentId
-          ? {
-              ...doc,
-              trainingStatus:
-                doc.status === 'completed' ? 'trained' : 'not_trained',
-              trainedAt:
-                doc.status === 'completed'
-                  ? new Date().toISOString()
-                  : doc.trainedAt,
-            }
-          : doc
+    // Add to training IDs to show loading state
+    setTrainingIds((prev) => new Set([...prev, documentId]))
+
+    try {
+      // Simulate training process with a short delay
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+
+      setUploadedDocuments((prev) =>
+        prev.map((doc) =>
+          doc.id === documentId
+            ? {
+                ...doc,
+                trainingStatus:
+                  doc.status === 'completed' ? 'trained' : 'not_trained',
+                trainedAt:
+                  doc.status === 'completed'
+                    ? new Date().toISOString()
+                    : doc.trainedAt,
+              }
+            : doc
+        )
       )
-    )
-    toast.info('Training runs automatically on upload. Refreshed status.')
-    setTimeout(() => {
-      loadExistingDocuments()
-    }, 800)
+      toast.info('Training runs automatically on upload. Status updated.')
+    } finally {
+      // Remove from training IDs
+      setTrainingIds((prev) => {
+        const newSet = new Set(prev)
+        newSet.delete(documentId)
+        return newSet
+      })
+    }
   }
 
   // Remove document from knowledge base (hard delete from upload history)
@@ -307,6 +324,9 @@ export default function DocumentUploadPage() {
       toast.error('API key not available')
       return
     }
+
+    // Add to removing from knowledge base IDs to show loading state
+    setRemovingFromKnowledgeIds((prev) => new Set([...prev, documentId]))
 
     try {
       const response = await axiosPublic.delete(
@@ -325,21 +345,59 @@ export default function DocumentUploadPage() {
         )
         toast.success('Document removed from knowledge base')
 
-        // Refresh the document list to ensure status is synced with backend
-        setTimeout(() => {
-          loadExistingDocuments()
-        }, 1000)
+        // No need to refresh - document is already removed from backend and UI is updated
       }
     } catch (error: unknown) {
       console.error('Error removing document:', error)
       toast.error('Failed to remove document from knowledge base')
+    } finally {
+      // Remove from removing from knowledge base IDs
+      setRemovingFromKnowledgeIds((prev) => {
+        const newSet = new Set(prev)
+        newSet.delete(documentId)
+        return newSet
+      })
     }
   }
 
-  // Remove document completely
-  const removeDocument = (id: string) => {
-    setUploadedDocuments((prev) => prev.filter((doc) => doc.id !== id))
-    toast.success('Document removed')
+  // Remove document completely - calls same backend API as removeFromKnowledgeBase
+  const removeDocument = async (id: string) => {
+    if (!apiKey) {
+      toast.error('API key not available')
+      return
+    }
+
+    // Add to deleting IDs to show loading state
+    setDeletingIds((prev) => new Set([...prev, id]))
+
+    try {
+      const response = await axiosPublic.delete(
+        `/api/chatbot/upload_history/${id}`,
+        {
+          headers: {
+            'X-API-Key': apiKey,
+          },
+        }
+      )
+
+      if (response.data.status === 'success') {
+        // Remove the document from the local state immediately
+        setUploadedDocuments((prev) => prev.filter((doc) => doc.id !== id))
+        toast.success('Document removed completely')
+
+        // No need to refresh - document is already removed from backend and UI is updated
+      }
+    } catch (error: unknown) {
+      console.error('Error removing document:', error)
+      toast.error('Failed to remove document')
+    } finally {
+      // Remove from deleting IDs
+      setDeletingIds((prev) => {
+        const newSet = new Set(prev)
+        newSet.delete(id)
+        return newSet
+      })
+    }
   }
 
   // Get status icon
@@ -584,9 +642,14 @@ export default function DocumentUploadPage() {
                             variant='outline'
                             size='sm'
                             onClick={() => trainDocument(doc.id)}
+                            disabled={trainingIds.has(doc.id)}
                             className='text-blue-600 hover:text-blue-700'
                           >
-                            <Play className='h-4 w-4' />
+                            {trainingIds.has(doc.id) ? (
+                              <LoadingSpinner size='xs' variant='training' />
+                            ) : (
+                              <Play className='h-4 w-4' />
+                            )}
                           </Button>
                         )}
 
@@ -595,9 +658,14 @@ export default function DocumentUploadPage() {
                           variant='outline'
                           size='sm'
                           onClick={() => trainDocument(doc.id)}
+                          disabled={trainingIds.has(doc.id)}
                           className='text-orange-600 hover:text-orange-700'
                         >
-                          <RotateCcw className='h-4 w-4' />
+                          {trainingIds.has(doc.id) ? (
+                            <LoadingSpinner size='xs' variant='training' />
+                          ) : (
+                            <RotateCcw className='h-4 w-4' />
+                          )}
                         </Button>
                       )}
 
@@ -606,9 +674,14 @@ export default function DocumentUploadPage() {
                           variant='outline'
                           size='sm'
                           onClick={() => removeFromKnowledgeBase(doc.id)}
+                          disabled={removingFromKnowledgeIds.has(doc.id)}
                           className='text-orange-600 hover:text-orange-700'
                         >
-                          <Brain className='h-4 w-4' />
+                          {removingFromKnowledgeIds.has(doc.id) ? (
+                            <LoadingSpinner size='xs' variant='removing' />
+                          ) : (
+                            <Brain className='h-4 w-4' />
+                          )}
                         </Button>
                       )}
 
@@ -616,9 +689,14 @@ export default function DocumentUploadPage() {
                         variant='outline'
                         size='sm'
                         onClick={() => removeDocument(doc.id)}
+                        disabled={deletingIds.has(doc.id)}
                         className='text-red-600 hover:text-red-700'
                       >
-                        <Trash2 className='h-4 w-4' />
+                        {deletingIds.has(doc.id) ? (
+                          <LoadingSpinner size='xs' variant='deleting' />
+                        ) : (
+                          <Trash2 className='h-4 w-4' />
+                        )}
                       </Button>
                     </div>
                   </div>

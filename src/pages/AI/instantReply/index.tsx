@@ -1,362 +1,421 @@
 import { Button } from '@/components/custom/button'
 import { LoadingSpinner } from '@/components/custom/loading-spinner'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { useApiKey } from '@/hooks/useApiKey'
-import { getApiUrl } from '@/lib/utils'
+import { useChatWidgetSettings } from '@/hooks/useChatWidgetSettings'
 import ContentSection from '@/pages/settings/components/content-section'
 import axios from 'axios'
-import { EditIcon } from 'lucide-react'
+import { CheckIcon, Plus, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { toast } from 'sonner'
+import { useNavigate } from 'react-router-dom'
 
-interface InstantReply {
-  id?: string
-  trigger: string
-  response: string
-  is_active: boolean
-  created_at?: string
-  updated_at?: string
+interface InstantMessage {
+  id: string
+  message: string
+  order: number
 }
 
-export default function InstantReplyAutomation() {
-  const { apiKey } = useApiKey()
-  const [isEnabled, setIsEnabled] = useState(true)
-  const [instantReplies, setInstantReplies] = useState<InstantReply[]>([])
+interface ApiResponseMessage {
+  message: string
+  order: number
+}
+
+export default function InstantReply() {
+  const [isEnabled, setIsEnabled] = useState(false)
+  const [messages, setMessages] = useState<InstantMessage[]>([
+    {
+      id: '1',
+      message:
+        "Hi, thanks for contacting us. We've received your message and appreciate your getting in touch.",
+      order: 1,
+    },
+  ])
+  const [showSuccessModal, setShowSuccessModal] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
-  const [expandedReplyId, setExpandedReplyId] = useState<string | null>(null)
-  const [showCreateModal, setShowCreateModal] = useState(false)
-  const [isCreatingReply, setIsCreatingReply] = useState(false)
-  const [newReply, setNewReply] = useState<Partial<InstantReply>>({
-    trigger: '',
-    response: '',
-    is_active: true,
-  })
+  const navigate = useNavigate()
+  const { data: settings, isLoading: isSettingsLoading } =
+    useChatWidgetSettings()
+  const { apiKey } = useApiKey()
 
-  // Fetch instant replies on component mount
+  const handleMessageChange = (id: string, newMessage: string) => {
+    setMessages((prev) =>
+      prev.map((msg) => (msg.id === id ? { ...msg, message: newMessage } : msg))
+    )
+  }
+
+  const addMessage = () => {
+    const newMessage: InstantMessage = {
+      id: Date.now().toString(),
+      message: '',
+      order: messages.length + 1,
+    }
+    setMessages((prev) => [...prev, newMessage])
+  }
+
+  const removeMessage = (id: string) => {
+    if (messages.length === 1) return // Prevent removing the last message
+    setMessages((prev) =>
+      prev
+        .filter((msg) => msg.id !== id)
+        .map((msg, index) => ({
+          ...msg,
+          order: index + 1,
+        }))
+    )
+  }
+
   useEffect(() => {
-    fetchInstantReplies()
-  }, [apiKey])
+    const loadInstantReply = async () => {
+      try {
+        const response = await axios.get(
+          `${import.meta.env.VITE_API_URL}/api/instant-reply`,
+          {
+            headers: {
+              'X-API-Key': apiKey,
+            },
+          }
+        )
 
-  const fetchInstantReplies = async () => {
-    try {
-      const response = await axios.get(`${getApiUrl()}/api/instant-reply/list`, {
-        headers: {
-          'X-API-Key': apiKey || '',
-        },
-      })
-      if (response.data) {
-        setInstantReplies(response.data)
+        if (response.data.status === 'success' && response.data.data) {
+          const responseMessages = response.data.data.messages || []
+          if (responseMessages.length > 0) {
+            const formattedMessages = responseMessages.map(
+              (msg: ApiResponseMessage, index: number) => ({
+                id: `${index + 1}`,
+                message: msg.message,
+                order: msg.order || index + 1,
+              })
+            )
+            setMessages(formattedMessages)
+          }
+          setIsEnabled(response.data.data.isActive)
+        }
+      } catch (error) {
+        console.error('Error loading instant reply:', error)
+      } finally {
         setIsLoading(false)
       }
-    } catch (error) {
-      console.error('Error fetching instant replies:', error)
-      toast.error('Failed to load instant replies')
-      setIsLoading(false)
     }
-  }
 
-  const handleTriggerChange = (id: string, value: string) => {
-    setInstantReplies(
-      instantReplies.map((reply) => 
-        reply.id === id ? { ...reply, trigger: value } : reply
-      )
-    )
-  }
+    if (apiKey) {
+      loadInstantReply()
+    }
+  }, [apiKey])
 
-  const handleResponseChange = (id: string, value: string) => {
-    setInstantReplies(
-      instantReplies.map((reply) => 
-        reply.id === id ? { ...reply, response: value } : reply
-      )
-    )
-  }
-
-  const toggleActive = async (id: string) => {
-    const reply = instantReplies.find((r) => r.id === id)
-    if (!reply) return
-
+  const handleSave = async () => {
     try {
-      const response = await axios.put(
-        `${getApiUrl()}/api/instant-reply/${id}`,
+      setIsSaving(true)
+
+      const filteredMessages = messages.filter(
+        (msg) => msg.message.trim() !== ''
+      )
+
+      await axios.post(
+        `${import.meta.env.VITE_API_URL}/api/instant-reply`,
         {
-          ...reply,
-          is_active: !reply.is_active,
+          messages: filteredMessages.map((msg) => ({
+            message: msg.message,
+            order: msg.order,
+          })),
+          isActive: isEnabled,
         },
         {
           headers: {
-            'X-API-Key': apiKey || '',
+            'X-API-Key': apiKey,
           },
         }
       )
 
-      if (response.data) {
-        setInstantReplies(
-          instantReplies.map((r) =>
-            r.id === id ? { ...r, is_active: !r.is_active } : r
-          )
-        )
-        toast.success('Instant reply updated successfully')
-      }
-    } catch (error) {
-      console.error('Error updating instant reply:', error)
-      toast.error('Failed to update instant reply')
-    }
-  }
-
-  const saveReply = async (id: string) => {
-    const reply = instantReplies.find((r) => r.id === id)
-    if (!reply) return
-
-    try {
-      const response = await axios.put(
-        `${getApiUrl()}/api/instant-reply/${id}`,
-        reply,
-        {
-          headers: {
-            'X-API-Key': apiKey || '',
-          },
-        }
-      )
-
-      if (response.data) {
-        setExpandedReplyId(null)
-        toast.success('Instant reply saved successfully')
-      }
+      setShowSuccessModal(true)
+      // Automatically navigate to train AI after 1.5s
+      setTimeout(() => {
+        navigate('/dashboard/train-ai')
+      }, 1500)
     } catch (error) {
       console.error('Error saving instant reply:', error)
-      toast.error('Failed to save instant reply')
-    }
-  }
-
-  const deleteReply = async (id: string) => {
-    try {
-      await axios.delete(`${getApiUrl()}/api/instant-reply/${id}`, {
-        headers: {
-          'X-API-Key': apiKey || '',
-        },
-      })
-
-      setInstantReplies(instantReplies.filter((r) => r.id !== id))
-      toast.success('Instant reply deleted successfully')
-    } catch (error) {
-      console.error('Error deleting instant reply:', error)
-      toast.error('Failed to delete instant reply')
-    }
-  }
-
-  const createNewReply = async () => {
-    if (!newReply.trigger || !newReply.response) {
-      toast.error('Please fill in all fields')
-      return
-    }
-
-    setIsCreatingReply(true)
-    try {
-      const response = await axios.post(
-        `${getApiUrl()}/api/instant-reply`,
-        newReply,
-        {
-          headers: {
-            'X-API-Key': apiKey || '',
-          },
-        }
-      )
-
-      if (response.data) {
-        setInstantReplies([...instantReplies, response.data])
-        setNewReply({ trigger: '', response: '', is_active: true })
-        setShowCreateModal(false)
-        toast.success('Instant reply created successfully')
-      }
-    } catch (error) {
-      console.error('Error creating instant reply:', error)
-      toast.error('Failed to create instant reply')
+      // You might want to show an error message to the user here
     } finally {
-      setIsCreatingReply(false)
+      setIsSaving(false)
     }
   }
 
-  if (isLoading) {
+  // Show loading spinner while settings or instant reply are loading
+  if (isSettingsLoading || isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <LoadingSpinner />
+      <div className='flex h-[calc(100vh-120px)] w-full items-center justify-center'>
+        <LoadingSpinner size='lg' text='Loading preview...' />
       </div>
     )
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Instant Reply Automation</h1>
-          <p className="text-muted-foreground">
-            Configure automatic responses for common customer inquiries
-          </p>
-        </div>
-        <Button onClick={() => setShowCreateModal(true)}>
-          <EditIcon className="mr-2 h-4 w-4" />
-          Add New Reply
-        </Button>
-      </div>
-
-      <ContentSection title="Instant Reply Settings">
-        <div className="space-y-4">
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="instant-reply-enabled"
-              checked={isEnabled}
-              onCheckedChange={setIsEnabled}
-            />
-            <Label htmlFor="instant-reply-enabled">
-              Enable Instant Reply Automation
-            </Label>
-          </div>
-        </div>
-      </ContentSection>
-
-      <ContentSection title="Instant Replies">
-        <div className="space-y-4">
-          {instantReplies.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-muted-foreground">No instant replies configured yet.</p>
-              <Button
-                variant="outline"
-                onClick={() => setShowCreateModal(true)}
-                className="mt-2"
-              >
-                Create Your First Reply
-              </Button>
+    <div className='mx-6 mt-4'>
+      <ContentSection title='Instant Reply'>
+        <div className='space-y-6'>
+          <div className='mb-6 flex justify-end'>
+            <div className='flex items-center gap-3'>
+              <span className='text-sm text-muted-foreground'>
+                {isEnabled ? 'On' : 'Off'}
+              </span>
+              <Switch checked={isEnabled} onCheckedChange={setIsEnabled} />
             </div>
-          ) : (
-            instantReplies.map((reply) => (
-              <div
-                key={reply.id}
-                className="border rounded-lg p-4 space-y-4"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      checked={reply.is_active}
-                      onCheckedChange={() => toggleActive(reply.id!)}
-                    />
-                    <span className="font-medium">
-                      Trigger: {reply.trigger}
-                    </span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() =>
-                        setExpandedReplyId(
-                          expandedReplyId === reply.id ? null : reply.id!
-                        )
-                      }
-                    >
-                      <EditIcon className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => deleteReply(reply.id!)}
-                    >
-                      Delete
-                    </Button>
-                  </div>
+          </div>
+
+          <p className='text-muted-foreground'>
+            These instant messages will automatically trigger when a user visits
+            the bot page. The bot will proactively engage users by sending these
+            messages to encourage them to start a conversation. This only
+            happens before the conversation begins - once a user responds,
+            normal chat flow takes over.
+          </p>
+
+          <div className='flex flex-col gap-6 md:flex-row'>
+            <div className='flex-1 space-y-6 rounded-lg border p-6'>
+              <div className='space-y-2'>
+                <h3 className='font-medium'>When this happens</h3>
+                <p className='text-sm text-muted-foreground'>
+                  A user visits your website and opens the chat widget.
+                </p>
+              </div>
+
+              <div className='space-y-2'>
+                <h3 className='font-medium'>Take this action</h3>
+                <p className='text-sm text-muted-foreground'>
+                  Automatically send these messages to initiate conversation
+                </p>
+              </div>
+
+              <div className='space-y-4'>
+                <div className='flex items-center justify-between'>
+                  <Label className='font-medium'>
+                    Messages ({messages.length})
+                  </Label>
+                  <Button
+                    type='button'
+                    variant='outline'
+                    size='sm'
+                    onClick={addMessage}
+                    className='flex items-center gap-2'
+                    disabled={!isEnabled || messages.length >= 5}
+                  >
+                    <Plus className='h-4 w-4' />
+                    Add Message
+                  </Button>
                 </div>
 
-                {expandedReplyId === reply.id && (
-                  <div className="space-y-4 pt-4 border-t">
-                    <div>
-                      <Label htmlFor={`trigger-${reply.id}`}>Trigger</Label>
-                      <Input
-                        id={`trigger-${reply.id}`}
-                        value={reply.trigger}
-                        onChange={(e) => handleTriggerChange(reply.id!, e.target.value)}
-                        placeholder="Enter trigger keywords or phrases"
-                      />
+                {messages.map((msg, index) => (
+                  <div key={msg.id} className='space-y-2'>
+                    <div className='flex items-center justify-between'>
+                      <span className='text-sm font-medium text-muted-foreground'>
+                        Message {index + 1}
+                      </span>
+                      {messages.length > 1 && (
+                        <Button
+                          type='button'
+                          variant='ghost'
+                          size='sm'
+                          onClick={() => removeMessage(msg.id)}
+                          className='h-6 w-6 p-0 text-red-500 hover:text-red-700'
+                        >
+                          <X className='h-4 w-4' />
+                        </Button>
+                      )}
                     </div>
-                    <div>
-                      <Label htmlFor={`response-${reply.id}`}>Response</Label>
+                    <div className='relative'>
                       <Textarea
-                        id={`response-${reply.id}`}
-                        value={reply.response}
-                        onChange={(e) => handleResponseChange(reply.id!, e.target.value)}
-                        placeholder="Enter the automatic response"
-                        rows={4}
+                        placeholder={`Type your message ${index + 1} here`}
+                        value={msg.message}
+                        onChange={(e) =>
+                          handleMessageChange(msg.id, e.target.value)
+                        }
+                        className='min-h-24 resize-none pr-16'
+                        disabled={!isEnabled}
+                        maxLength={500}
                       />
-                    </div>
-                    <div className="flex justify-end space-x-2">
-                      <Button
-                        variant="outline"
-                        onClick={() => setExpandedReplyId(null)}
-                      >
-                        Cancel
-                      </Button>
-                      <Button onClick={() => saveReply(reply.id!)}>
-                        Save Changes
-                      </Button>
+                      <div className='absolute bottom-3 right-3 text-sm text-muted-foreground'>
+                        {msg.message.length}/500
+                      </div>
                     </div>
                   </div>
+                ))}
+
+                {messages.length >= 5 && (
+                  <p className='text-sm text-amber-600'>
+                    Maximum 5 messages allowed
+                  </p>
                 )}
               </div>
-            ))
-          )}
-        </div>
-      </ContentSection>
+            </div>
 
-      {/* Create Modal */}
-      {showCreateModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-background p-6 rounded-lg w-full max-w-md space-y-4">
-            <h2 className="text-lg font-semibold">Create New Instant Reply</h2>
-            <div>
-              <Label htmlFor="new-trigger">Trigger</Label>
-              <Input
-                id="new-trigger"
-                value={newReply.trigger}
-                onChange={(e) => setNewReply({ ...newReply, trigger: e.target.value })}
-                placeholder="Enter trigger keywords or phrases"
-              />
+            {/* Right side - Preview */}
+            <div className='w-[320px]'>
+              <div className='sticky top-6'>
+                <div className='relative'>
+                  <div className='h-[500px] w-[300px] overflow-hidden rounded-xl border bg-white shadow-lg'>
+                    {/* Chat header */}
+                    <div
+                      className={`p-4 ${settings?.selectedColor === 'black' ? 'bg-black' : `bg-${settings?.selectedColor}-500`} text-white`}
+                    >
+                      <div className='flex items-center'>
+                        <div className='flex h-8 w-8 items-center justify-center rounded-full bg-white'>
+                          {settings?.avatarUrl ? (
+                            <img
+                              src={settings.avatarUrl}
+                              alt='Avatar'
+                              className='h-8 w-8 rounded-full object-cover'
+                            />
+                          ) : (
+                            <span className='text-xs font-bold text-black'>
+                              BA
+                            </span>
+                          )}
+                        </div>
+                        <div className='ml-2'>
+                          <p className='text-sm'>
+                            <span className='font-bold'>
+                              {settings?.name || 'Bay AI'}
+                            </span>
+                          </p>
+                          <p className='text-xs opacity-70'>
+                            online conversation
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Chat content */}
+                    <div className='flex h-[350px] flex-col'>
+                      <div
+                        className='flex-1 space-y-2 overflow-y-auto p-4'
+                        style={{ scrollbarWidth: 'thin' }}
+                      >
+                        <div className='flex min-h-full flex-col justify-end'>
+                          <div className='space-y-2'>
+                            {/* Bot messages (instant messages) - left side */}
+                            <div className='flex flex-col items-start gap-2'>
+                              {messages
+                                .filter((msg) => msg.message.trim() !== '')
+                                .map((msg, index) => (
+                                  <div
+                                    key={msg.id}
+                                    className='max-w-[75%] break-words rounded-lg bg-gray-800 p-3 text-white'
+                                  >
+                                    <p className='text-sm'>
+                                      {msg.message || `Message ${index + 1}`}
+                                    </p>
+                                  </div>
+                                ))}
+                            </div>
+
+                            {/* User response - right side */}
+                            <div className='flex justify-end'>
+                              <div className='max-w-[75%] break-words rounded-lg bg-gray-100 p-3'>
+                                <p className='text-sm text-black'>
+                                  Hi yes, David have found it, ask our concierge{' '}
+                                  <span className='text-lg font-bold'>👋</span>
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Chat input */}
+                    <div className='flex items-center border-t p-4'>
+                      <div className='relative flex flex-1 items-center'>
+                        <svg
+                          className='absolute left-2 h-5 w-5 text-gray-400'
+                          viewBox='0 0 24 24'
+                          fill='none'
+                        >
+                          <path
+                            d='M19 13C19 16.866 15.866 20 12 20C8.13401 20 5 16.866 5 13C5 9.13401 8.13401 6 12 6C15.866 6 19 9.13401 19 13Z'
+                            stroke='currentColor'
+                            strokeWidth='2'
+                          />
+                        </svg>
+                        <input
+                          type='text'
+                          placeholder='Type your message here...'
+                          className='flex-1 rounded-full border border-gray-200 py-2 pl-8 pr-2 text-sm outline-none'
+                        />
+                      </div>
+                      <button
+                        className={`ml-2 h-8 w-8 rounded-full ${settings?.selectedColor === 'black' ? 'bg-black' : `bg-${settings?.selectedColor}-500`} flex items-center justify-center text-white`}
+                      >
+                        <svg
+                          width='16'
+                          height='16'
+                          viewBox='0 0 24 24'
+                          fill='none'
+                          xmlns='http://www.w3.org/2000/svg'
+                        >
+                          <path
+                            d='M22 2L11 13'
+                            stroke='currentColor'
+                            strokeWidth='2'
+                            strokeLinecap='round'
+                            strokeLinejoin='round'
+                          />
+                          <path
+                            d='M22 2L15 22L11 13L2 9L22 2Z'
+                            stroke='white'
+                            strokeWidth='2'
+                            strokeLinecap='round'
+                            strokeLinejoin='round'
+                          />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div>
-              <Label htmlFor="new-response">Response</Label>
-              <Textarea
-                id="new-response"
-                value={newReply.response}
-                onChange={(e) => setNewReply({ ...newReply, response: e.target.value })}
-                placeholder="Enter the automatic response"
-                rows={4}
-              />
-            </div>
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="new-active"
-                checked={newReply.is_active}
-                onCheckedChange={(checked) => setNewReply({ ...newReply, is_active: checked })}
-              />
-              <Label htmlFor="new-active">Active</Label>
-            </div>
-            <div className="flex justify-end space-x-2">
+          </div>
+
+          <div className='flex items-center justify-between pt-16'>
+            <a href='#' className='text-sm text-blue-500'>
+              Learn more about automation
+            </a>
+            <div className='flex gap-4'>
               <Button
-                variant="outline"
-                onClick={() => setShowCreateModal(false)}
+                onClick={() => navigate('/dashboard/train-ai')}
+                variant='outline'
+                className='px-6'
               >
                 Cancel
               </Button>
-              <Button
-                onClick={createNewReply}
-                disabled={isCreatingReply}
-              >
-                {isCreatingReply ? <LoadingSpinner /> : 'Create Reply'}
+              <Button className='px-6' onClick={handleSave} disabled={isSaving}>
+                {isSaving ? <LoadingSpinner size='sm' /> : 'Save'}
               </Button>
             </div>
           </div>
+
+          {/* Success Modal */}
+          {showSuccessModal && (
+            <div className='fixed inset-[-28px] z-50 mt-0 flex items-center justify-center bg-black bg-opacity-50 pt-0'>
+              <div className='mx-auto max-w-md rounded-lg bg-white p-6'>
+                <div className='flex flex-col items-center text-center'>
+                  <div className='mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-green-100'>
+                    <CheckIcon className='h-6 w-6 text-green-600' />
+                  </div>
+                  <h3 className='mb-2 text-lg font-medium'>
+                    Successfully Saved
+                  </h3>
+                  <p className='text-sm text-gray-500'>
+                    Your instant reply settings have been saved successfully.
+                    You will be redirected shortly.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
-      )}
+      </ContentSection>
     </div>
   )
 }

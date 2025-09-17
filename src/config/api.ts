@@ -9,4 +9,9 @@ export const API_ENDPOINTS = {
   activeUsers: `${API_BASE_URL}/api/active-users`,
   leads: `${API_BASE_URL}/lead/leads`,
   leadsStats: `${API_BASE_URL}/lead/leads/stats`,
+  unknownQuestions: `${API_BASE_URL}/api/unknown-questions`,
+  unknownQuestionsStats: `${API_BASE_URL}/api/unknown-questions/stats`,
+  unknownQuestionsCategories: `${API_BASE_URL}/api/unknown-questions/categories`,
+  unknownQuestionsExport: `${API_BASE_URL}/api/unknown-questions/export`,
+  unknownQuestionsBulk: `${API_BASE_URL}/api/unknown-questions/bulk-action`,
 } as const

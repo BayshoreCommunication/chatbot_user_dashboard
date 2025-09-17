@@ -17,14 +17,17 @@ export function ChatWidgetSetup() {
   const [botBehavior, setBotBehavior] = useState('2')
   const [leadCapture, setLeadCapture] = useState(true)
   const [name, setName] = useState('Byewind')
-  const [isUploading, setIsUploading] = useState(false)
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false)
+  const [isUploadingVideo, setIsUploadingVideo] = useState(false)
   const [avatarUrl, setAvatarUrl] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   const [autoOpen, setAutoOpen] = useState(false)
   const [videoFile, setVideoFile] = useState<File | null>(null)
+  const [videoEnabled, setVideoEnabled] = useState(false)
   const [videoUrl, setVideoUrl] = useState('')
   const [videoAutoplay, setVideoAutoplay] = useState(true)
   const [videoDuration, setVideoDuration] = useState(10)
+  const [videoShowOnFirstVisit, setVideoShowOnFirstVisit] = useState(true)
   // const [currentVideo, setCurrentVideo] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
   const videoFileInputRef = useRef<HTMLInputElement>(null)
@@ -44,6 +47,38 @@ export function ChatWidgetSetup() {
 
   // Add state to track if any changes were made
   const [hasChanges, setHasChanges] = useState(false)
+
+  // Load video settings separately
+  const loadVideoSettings = async () => {
+    if (!apiKey) return
+    try {
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/chatbot/video-settings`,
+        {
+          headers: {
+            'X-API-Key': apiKey,
+          },
+        }
+      )
+
+      if (response.data.status === 'success') {
+        const videoSettings = response.data.settings
+        setVideoEnabled(videoSettings.enabled || false)
+        setVideoUrl(videoSettings.video_url || '')
+        setVideoAutoplay(
+          videoSettings.autoplay !== undefined ? videoSettings.autoplay : true
+        )
+        setVideoDuration(videoSettings.duration || 10)
+        setVideoShowOnFirstVisit(
+          videoSettings.show_on_first_visit !== undefined
+            ? videoSettings.show_on_first_visit
+            : true
+        )
+      }
+    } catch (error) {
+      console.error('Load video settings error:', error)
+    }
+  }
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -73,18 +108,6 @@ export function ChatWidgetSetup() {
           if (settings.auto_open !== undefined) {
             setAutoOpen(settings.auto_open)
           }
-          if (settings.video_url) {
-            setVideoUrl(settings.video_url)
-          }
-          if (settings.video_autoplay !== undefined) {
-            setVideoAutoplay(settings.video_autoplay)
-          }
-          if (settings.video_duration) {
-            setVideoDuration(settings.video_duration)
-          }
-          if (settings.video_filename) {
-            // setCurrentVideo(settings.video_filename)
-          }
 
           // Store initial values
           setInitialValues({
@@ -97,6 +120,9 @@ export function ChatWidgetSetup() {
             auto_open: settings.auto_open || false,
           })
         }
+
+        // Load video settings separately
+        await loadVideoSettings()
       } catch (error) {
         console.error('Load settings error:', error)
         toast({
@@ -170,7 +196,7 @@ export function ChatWidgetSetup() {
       size: file.size,
     })
 
-    setIsUploading(true)
+    setIsUploadingAvatar(true)
     const formData = new FormData()
     formData.append('file', file)
 
@@ -249,7 +275,7 @@ export function ChatWidgetSetup() {
         variant: 'destructive',
       })
     } finally {
-      setIsUploading(false)
+      setIsUploadingAvatar(false)
     }
   }
 
@@ -278,7 +304,7 @@ export function ChatWidgetSetup() {
       return
     }
 
-    setIsUploading(true)
+    setIsUploadingVideo(true)
     const formData = new FormData()
     formData.append('file', videoFile)
 
@@ -297,11 +323,13 @@ export function ChatWidgetSetup() {
 
       if (data.status === 'success') {
         setVideoUrl(data.video_url)
-        // setCurrentVideo(data.filename)
+        setVideoEnabled(true) // Auto-enable video when uploaded
         setVideoFile(null)
+        // Reload video settings to get updated info
+        await loadVideoSettings()
         toast({
           title: 'Video uploaded successfully',
-          description: 'Your video is now ready for the chat widget',
+          description: 'Your intro video is now ready for the chat widget',
         })
       } else {
         throw new Error(data.message || 'Upload failed')
@@ -314,7 +342,7 @@ export function ChatWidgetSetup() {
         variant: 'destructive',
       })
     } finally {
-      setIsUploading(false)
+      setIsUploadingVideo(false)
     }
   }
 
@@ -335,10 +363,12 @@ export function ChatWidgetSetup() {
 
       if (data.status === 'success') {
         setVideoUrl('')
-        // setCurrentVideo('')
+        setVideoEnabled(false)
+        // Reload video settings to get updated info
+        await loadVideoSettings()
         toast({
           title: 'Video deleted',
-          description: 'Video has been removed from the chat widget',
+          description: 'Intro video has been removed from the chat widget',
         })
       }
     } catch (error) {
@@ -357,8 +387,10 @@ export function ChatWidgetSetup() {
       const response = await axios.put(
         `${import.meta.env.VITE_API_URL}/api/chatbot/video-settings`,
         {
+          enabled: videoEnabled,
           autoplay: videoAutoplay,
           duration: videoDuration,
+          show_on_first_visit: videoShowOnFirstVisit,
         },
         {
           headers: {
@@ -373,7 +405,7 @@ export function ChatWidgetSetup() {
       if (data.status === 'success') {
         toast({
           title: 'Video settings saved',
-          description: 'Video settings have been updated',
+          description: 'Intro video settings have been updated successfully',
         })
       }
     } catch (error) {
@@ -405,9 +437,6 @@ export function ChatWidgetSetup() {
           avatarUrl,
           auto_open: autoOpen,
           ai_behavior: aiBehavior,
-          video_url: videoUrl,
-          video_autoplay: videoAutoplay,
-          video_duration: videoDuration,
           is_bot_connected: false,
         },
         {
@@ -544,9 +573,9 @@ export function ChatWidgetSetup() {
                           variant='outline'
                           className='text-sm'
                           onClick={() => fileInputRef.current?.click()}
-                          disabled={isUploading}
+                          disabled={isUploadingAvatar}
                         >
-                          {isUploading ? 'Uploading...' : 'Upload'}
+                          {isUploadingAvatar ? 'Uploading...' : 'Upload'}
                         </Button>
                       </div>
                       <input
@@ -604,30 +633,51 @@ export function ChatWidgetSetup() {
 
                   {/* Video Upload */}
                   <div className='space-y-2'>
-                    <label className='block text-sm font-medium'>
-                      Welcome Video
-                    </label>
-                    <p className='text-xs text-gray-500'>
-                      Upload a video that will play when users first open the
-                      chat widget
-                    </p>
-                    <div className='mt-2 space-y-3'>
+                    {/* Video Enable Toggle */}
+                    <div className='flex items-center justify-between pt-2'>
+                      <div>
+                        <p className='text-sm font-medium'>
+                          Intro Welcome Video
+                        </p>
+                        <p className='text-xs text-gray-500'>
+                          Upload an intro video that will play when users first
+                          open the chat widget
+                        </p>
+                      </div>
+                      <div
+                        onClick={() => setVideoEnabled(!videoEnabled)}
+                        className={`relative h-6 w-12 cursor-pointer rounded-full transition-colors ${videoEnabled ? 'bg-blue-500' : 'bg-gray-300'}`}
+                      >
+                        <div
+                          className={`absolute top-[2px] h-5 w-5 rounded-full bg-white transition-transform ${videoEnabled ? 'translate-x-6' : 'translate-x-1'}`}
+                        ></div>
+                      </div>
+                    </div>
+                    <div
+                      className={`mt-2 space-y-3 ${!videoEnabled ? 'opacity-50' : ''}`}
+                    >
+                      {!videoEnabled && (
+                        <p className='rounded bg-amber-50 p-2 text-xs text-amber-600'>
+                          Enable intro video above to upload and configure video
+                          settings
+                        </p>
+                      )}
                       <div className='flex gap-2'>
                         <Button
                           variant='outline'
                           className='text-sm'
                           onClick={() => videoFileInputRef.current?.click()}
-                          disabled={isUploading}
+                          disabled={isUploadingVideo || !videoEnabled}
                         >
-                          {isUploading ? 'Uploading...' : 'Select Video'}
+                          Select Video
                         </Button>
                         {videoFile && (
                           <Button
                             onClick={handleVideoUpload}
-                            disabled={isUploading}
+                            disabled={isUploadingVideo || !videoEnabled}
                             className='text-sm'
                           >
-                            {isUploading ? 'Uploading...' : 'Upload Video'}
+                            {isUploadingVideo ? 'Uploading...' : 'Upload Video'}
                           </Button>
                         )}
                         {videoUrl && (
@@ -647,9 +697,14 @@ export function ChatWidgetSetup() {
                         accept='video/*'
                         onChange={handleVideoFileChange}
                       />
-                      {videoFile && (
+                      {videoFile && !isUploadingVideo && (
                         <p className='text-xs text-blue-600'>
                           Selected: {videoFile.name}
+                        </p>
+                      )}
+                      {isUploadingVideo && (
+                        <p className='text-xs text-orange-600'>
+                          Uploading video... Please wait.
                         </p>
                       )}
                       {videoUrl && (
@@ -670,7 +725,7 @@ export function ChatWidgetSetup() {
                   </div>
 
                   {/* Video Settings */}
-                  {videoUrl && (
+                  {videoUrl && videoEnabled && (
                     <div className='space-y-2'>
                       <label className='block text-sm font-medium'>
                         Video Settings
@@ -714,6 +769,24 @@ export function ChatWidgetSetup() {
                           <p className='text-xs text-gray-500'>
                             How long the video will play before stopping
                           </p>
+                        </div>
+                        <div className='flex items-center justify-between'>
+                          <div>
+                            <p className='text-sm'>Show on First Visit Only</p>
+                            <p className='text-xs text-gray-500'>
+                              Only show video to first-time visitors
+                            </p>
+                          </div>
+                          <div
+                            onClick={() =>
+                              setVideoShowOnFirstVisit(!videoShowOnFirstVisit)
+                            }
+                            className={`relative h-6 w-12 cursor-pointer rounded-full transition-colors ${videoShowOnFirstVisit ? 'bg-blue-500' : 'bg-gray-300'}`}
+                          >
+                            <div
+                              className={`absolute top-[2px] h-5 w-5 rounded-full bg-white transition-transform ${videoShowOnFirstVisit ? 'translate-x-6' : 'translate-x-1'}`}
+                            ></div>
+                          </div>
                         </div>
                         <Button
                           onClick={handleVideoSettingsSave}

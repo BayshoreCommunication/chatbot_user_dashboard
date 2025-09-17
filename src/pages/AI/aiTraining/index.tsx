@@ -1,4 +1,5 @@
 import { Button } from '@/components/custom/button'
+import { LoadingSpinner } from '@/components/custom/loading-spinner'
 import { Badge } from '@/components/ui/badge'
 import {
   Card,
@@ -102,6 +103,7 @@ export default function AITraining() {
   const [quickMode, setQuickMode] = useState(true) // Quick mode by default
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editUrl, setEditUrl] = useState('')
+  const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set())
 
   // Load previously trained sources (URLs and social media only)
   const fetchHistory = useCallback(async () => {
@@ -245,20 +247,27 @@ export default function AITraining() {
         updateUrlStatus(urlItem.id, 'training')
         toast.info(`Training from ${urlItem.type}: ${urlItem.url}`)
 
-        const response = await axiosPublic.post(
-          '/api/chatbot/upload_document',
-          {
-            url: urlItem.url,
-            scrape_website: true,
-            max_pages: quickMode
+        // Create FormData instead of JSON (backend expects Form parameters)
+        const formData = new FormData()
+        formData.append('url', urlItem.url)
+        formData.append('scrape_website', 'true')
+        formData.append('platform', urlItem.type) // Add platform info
+        formData.append(
+          'max_pages',
+          String(
+            quickMode
               ? urlItem.type === 'website'
                 ? 3
                 : 1 // Quick mode: very fast
               : urlItem.type === 'website'
                 ? 5
-                : 2, // Normal mode
-            platform: urlItem.type,
-          },
+                : 2 // Normal mode
+          )
+        )
+
+        const response = await axiosPublic.post(
+          '/api/chatbot/upload_document',
+          formData,
           {
             headers: { 'X-API-Key': apiKey },
             timeout: 30000, // 30 second timeout
@@ -314,6 +323,9 @@ export default function AITraining() {
         `🎉 Training completed! Successfully trained from ${successCount} source(s)`
       )
 
+      // Clear the training sources list since they're now trained
+      setTrainingUrls([])
+
       // Test the training
       try {
         const testResponse = await axiosPublic.post(
@@ -363,19 +375,21 @@ export default function AITraining() {
     )
     if (!confirmed) return
 
+    if (!item.id) {
+      toast.error(
+        'Cannot delete item without ID. Please refresh the page and try again.'
+      )
+      return
+    }
+
+    // Add to deleting set
+    setDeletingIds((prev) => new Set(prev).add(item.id!))
+
     try {
-      // Use the new delete endpoint with item id
-      if (item.id) {
-        await axiosPublic.delete(
-          `/api/chatbot/upload_history/${encodeURIComponent(item.id)}`,
-          { headers: { 'X-API-Key': apiKey }, timeout: 20000 }
-        )
-      } else {
-        // If no id, show error - we need the id for deletion
-        throw new Error(
-          'Cannot delete item without ID. Please refresh the page and try again.'
-        )
-      }
+      await axiosPublic.delete(
+        `/api/chatbot/upload_history/${encodeURIComponent(item.id)}`,
+        { headers: { 'X-API-Key': apiKey }, timeout: 20000 }
+      )
 
       toast.success('Deleted from server. Updating list...')
       // Remove locally for instant feedback
@@ -391,6 +405,13 @@ export default function AITraining() {
           ? e.message
           : 'Unknown error'
       toast.error(`Failed to delete on server: ${message}`)
+    } finally {
+      // Remove from deleting set
+      setDeletingIds((prev) => {
+        const newSet = new Set(prev)
+        newSet.delete(item.id!)
+        return newSet
+      })
     }
   }
 
@@ -681,9 +702,14 @@ export default function AITraining() {
                           variant='ghost'
                           size='sm'
                           onClick={() => deleteTrainedItemFromServer(item, idx)}
+                          disabled={deletingIds.has(item.id!)}
                           className='text-red-500 hover:text-red-700'
                         >
-                          <Trash2 className='h-4 w-4' />
+                          {deletingIds.has(item.id!) ? (
+                            <LoadingSpinner size='xs' variant='deleting' />
+                          ) : (
+                            <Trash2 className='h-4 w-4' />
+                          )}
                         </Button>
                       </div>
                     </div>
