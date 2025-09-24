@@ -180,10 +180,15 @@ export default function DocumentUploadPage() {
             },
           }
         )
+        // Treat any 2xx as success even if backend doesn't return status === 'success'
+        const isHttpOk = response.status >= 200 && response.status < 300
+        const isDataSuccess =
+          typeof response.data?.status === 'string' &&
+          response.data.status.toLowerCase() === 'success'
 
-        if (response.data.status === 'success') {
+        if (isHttpOk || isDataSuccess) {
           const backendDocumentId =
-            response.data.document_id || response.data.id
+            response.data?.document_id || response.data?.id
           setUploadedDocuments((prev) =>
             prev.map((doc) =>
               doc.id === tempDocumentId
@@ -191,12 +196,20 @@ export default function DocumentUploadPage() {
                     ...doc,
                     id: backendDocumentId || tempDocumentId,
                     status: 'completed',
-                    url: response.data.url,
+                    url: response.data?.url,
                   }
                 : doc
             )
           )
           toast.success(`${file.name} uploaded successfully`)
+        } else {
+          // Unexpected response shape; mark as failed to avoid infinite uploading state
+          setUploadedDocuments((prev) =>
+            prev.map((doc) =>
+              doc.id === tempDocumentId ? { ...doc, status: 'failed' } : doc
+            )
+          )
+          toast.error('Upload did not complete successfully. Please try again.')
         }
       } catch (error: unknown) {
         console.error('Error uploading file:', error)
