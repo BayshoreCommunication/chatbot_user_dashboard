@@ -1,60 +1,9 @@
+import { useQuery } from '@tanstack/react-query'
 import { useCallback, useState } from 'react'
+import { useApiKey } from './useApiKey'
 import useAxiosPublic from './useAxiosPublic'
 
-interface UnknownQuestion {
-  _id: string
-  question: string
-  ai_response: string
-  question_category: string
-  response_quality: string
-  is_answered_well: boolean
-  needs_human_review: boolean
-  status: string
-  frequency_count: number
-  max_similarity: number
-  created_at: string
-  updated_at: string
-  user_context: {
-    name?: string
-    email?: string
-    mode?: string
-    language?: string
-  }
-}
-
-interface UnknownQuestionStats {
-  total_unknown_questions: number
-  new_questions: number
-  reviewed_questions: number
-  added_to_training: number
-  ignored_questions: number
-  good_ai_responses: number
-  poor_ai_responses: number
-  needs_improvement: number
-  legal_questions: number
-  appointment_questions: number
-  general_questions: number
-  other_questions: number
-}
-
-interface QuestionCategory {
-  value: string
-  label: string
-  description: string
-}
-
-interface FetchQuestionsParams {
-  page?: number
-  limit?: number
-  status?: string
-  category?: string
-  needs_review?: boolean
-  answered_well?: boolean
-  date_from?: string
-  date_to?: string
-  min_frequency?: number
-  search?: string
-}
+// Types are now handled by React Query
 
 interface ExportParams {
   format?: string
@@ -66,13 +15,9 @@ interface ExportParams {
 
 export const useUnknownQuestions = () => {
   const axiosPublic = useAxiosPublic()
+  const { apiKey } = useApiKey()
 
-  // State
-  const [questions, setQuestions] = useState<UnknownQuestion[]>([])
-  const [stats, setStats] = useState<UnknownQuestionStats | null>(null)
-  const [categories, setCategories] = useState<QuestionCategory[]>([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  // State for manual operations
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 20,
@@ -80,98 +25,124 @@ export const useUnknownQuestions = () => {
     total_pages: 0,
   })
 
-  // Fetch questions with filters
-  const fetchQuestions = useCallback(
-    async (params: FetchQuestionsParams = {}) => {
-      setLoading(true)
-      setError(null)
-
-      try {
-        const queryParams = new URLSearchParams()
-
-        if (params.page) queryParams.append('page', params.page.toString())
-        if (params.limit) queryParams.append('limit', params.limit.toString())
-        if (params.status) queryParams.append('status', params.status)
-        if (params.category) queryParams.append('category', params.category)
-        if (params.needs_review !== undefined)
-          queryParams.append('needs_review', params.needs_review.toString())
-        if (params.answered_well !== undefined)
-          queryParams.append('answered_well', params.answered_well.toString())
-        if (params.date_from) queryParams.append('date_from', params.date_from)
-        if (params.date_to) queryParams.append('date_to', params.date_to)
-        if (params.min_frequency)
-          queryParams.append('min_frequency', params.min_frequency.toString())
-        if (params.search) queryParams.append('search', params.search)
-
-        const response = await axiosPublic.get(
-          `/api/unknown-questions/?${queryParams.toString()}`
-        )
-
-        if (response.data.success) {
-          setQuestions(response.data.data.questions)
-          setPagination({
-            page: response.data.data.page,
-            limit: response.data.data.limit,
-            total_count: response.data.data.total_count,
-            total_pages: response.data.data.total_pages,
-          })
-        } else {
-          throw new Error(response.data.message || 'Failed to fetch questions')
-        }
-      } catch (err: any) {
-        setError(err.message || 'Failed to fetch unknown questions')
-        console.error('Error fetching unknown questions:', err)
-      } finally {
-        setLoading(false)
+  // React Query for fetching questions
+  const {
+    data: questionsData,
+    isLoading: questionsLoading,
+    error: questionsError,
+    refetch: refetchQuestions,
+  } = useQuery({
+    queryKey: ['unknownQuestions'],
+    queryFn: async () => {
+      if (!apiKey) {
+        throw new Error('API key not found')
       }
-    },
-    [axiosPublic]
-  )
 
-  // Fetch statistics
-  const fetchStats = useCallback(
-    async (days: number = 30) => {
-      try {
-        const response = await axiosPublic.get(
-          `/api/unknown-questions/stats?days=${days}`
-        )
-
-        if (response.data.success) {
-          setStats(response.data.data)
-        } else {
-          throw new Error(response.data.message || 'Failed to fetch stats')
-        }
-      } catch (err: any) {
-        console.error('Error fetching stats:', err)
-      }
-    },
-    [axiosPublic]
-  )
-
-  // Fetch categories
-  const fetchCategories = useCallback(async () => {
-    try {
       const response = await axiosPublic.get(
-        '/api/unknown-questions/categories'
+        `/api/unknown-questions/?page=1&limit=20`,
+        {
+          headers: {
+            'X-API-Key': apiKey,
+          },
+        }
       )
 
       if (response.data.success) {
-        setCategories(response.data.data)
-      } else {
-        throw new Error(response.data.message || 'Failed to fetch categories')
+        setPagination({
+          page: response.data.data.page || 1,
+          limit: response.data.data.limit || 20,
+          total_count: response.data.data.total_count || 0,
+          total_pages: response.data.data.total_pages || 0,
+        })
+        return response.data.data.questions || []
       }
-    } catch (err: any) {
-      console.error('Error fetching categories:', err)
-    }
-  }, [axiosPublic])
+      throw new Error(response.data.message || 'Failed to fetch questions')
+    },
+    enabled: !!apiKey,
+    staleTime: 1000 * 60 * 2, // 2 minutes
+    gcTime: 1000 * 60 * 10, // 10 minutes
+  })
+
+  // React Query for fetching stats
+  const {
+    data: stats,
+    isLoading: statsLoading,
+    error: statsError,
+    refetch: refetchStats,
+  } = useQuery({
+    queryKey: ['unknownQuestionsStats'],
+    queryFn: async () => {
+      if (!apiKey) {
+        throw new Error('API key not found')
+      }
+
+      const response = await axiosPublic.get(
+        `/api/unknown-questions/stats?days=30`,
+        {
+          headers: {
+            'X-API-Key': apiKey,
+          },
+        }
+      )
+
+      if (response.data.success) {
+        return response.data.data
+      }
+      throw new Error(response.data.message || 'Failed to fetch stats')
+    },
+    enabled: !!apiKey,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    gcTime: 1000 * 60 * 15, // 15 minutes
+  })
+
+  // React Query for fetching categories
+  const {
+    data: categories,
+    isLoading: categoriesLoading,
+    error: categoriesError,
+    refetch: refetchCategories,
+  } = useQuery({
+    queryKey: ['unknownQuestionsCategories'],
+    queryFn: async () => {
+      if (!apiKey) {
+        throw new Error('API key not found')
+      }
+
+      const response = await axiosPublic.get(
+        '/api/unknown-questions/categories',
+        {
+          headers: {
+            'X-API-Key': apiKey,
+          },
+        }
+      )
+
+      if (response.data.success) {
+        return response.data.data || []
+      }
+      throw new Error(response.data.message || 'Failed to fetch categories')
+    },
+    enabled: !!apiKey,
+    staleTime: 1000 * 60 * 10, // 10 minutes
+    gcTime: 1000 * 60 * 30, // 30 minutes
+  })
 
   // Update question
   const updateQuestion = useCallback(
     async (questionId: string, updateData: any) => {
+      if (!apiKey) {
+        throw new Error('API key not found')
+      }
+
       try {
         const response = await axiosPublic.put(
           `/api/unknown-questions/${questionId}`,
-          updateData
+          updateData,
+          {
+            headers: {
+              'X-API-Key': apiKey,
+            },
+          }
         )
 
         if (!response.data.success) {
@@ -187,15 +158,24 @@ export const useUnknownQuestions = () => {
         )
       }
     },
-    [axiosPublic]
+    [axiosPublic, apiKey]
   )
 
   // Delete question
   const deleteQuestion = useCallback(
     async (questionId: string) => {
+      if (!apiKey) {
+        throw new Error('API key not found')
+      }
+
       try {
         const response = await axiosPublic.delete(
-          `/api/unknown-questions/${questionId}`
+          `/api/unknown-questions/${questionId}`,
+          {
+            headers: {
+              'X-API-Key': apiKey,
+            },
+          }
         )
 
         if (!response.data.success) {
@@ -211,19 +191,28 @@ export const useUnknownQuestions = () => {
         )
       }
     },
-    [axiosPublic]
+    [axiosPublic, apiKey]
   )
 
   // Add question to training
   const addToTraining = useCallback(
     async (questionId: string, improvedAnswer?: string) => {
+      if (!apiKey) {
+        throw new Error('API key not found')
+      }
+
       try {
         const payload = improvedAnswer
           ? { improved_answer: improvedAnswer }
           : {}
         const response = await axiosPublic.post(
           `/api/unknown-questions/${questionId}/add-to-training`,
-          payload
+          payload,
+          {
+            headers: {
+              'X-API-Key': apiKey,
+            },
+          }
         )
 
         if (!response.data.success) {
@@ -239,18 +228,27 @@ export const useUnknownQuestions = () => {
         )
       }
     },
-    [axiosPublic]
+    [axiosPublic, apiKey]
   )
 
   // Bulk actions
   const bulkAction = useCallback(
     async (questionIds: string[], action: string) => {
+      if (!apiKey) {
+        throw new Error('API key not found')
+      }
+
       try {
         const response = await axiosPublic.post(
           '/api/unknown-questions/bulk-action',
           {
             question_ids: questionIds,
             action: action,
+          },
+          {
+            headers: {
+              'X-API-Key': apiKey,
+            },
           }
         )
 
@@ -269,12 +267,16 @@ export const useUnknownQuestions = () => {
         )
       }
     },
-    [axiosPublic]
+    [axiosPublic, apiKey]
   )
 
   // Export questions
   const exportQuestions = useCallback(
     async (params: ExportParams = {}) => {
+      if (!apiKey) {
+        throw new Error('API key not found')
+      }
+
       try {
         const queryParams = new URLSearchParams()
 
@@ -285,12 +287,17 @@ export const useUnknownQuestions = () => {
         if (params.date_to) queryParams.append('date_to', params.date_to)
 
         const response = await axiosPublic.get(
-          `/api/unknown-questions/export?${queryParams.toString()}`
+          `/api/unknown-questions/export?${queryParams.toString()}`,
+          {
+            headers: {
+              'X-API-Key': apiKey,
+            },
+          }
         )
 
         if (response.data.success) {
           // Create and download file
-          const dataStr = JSON.stringify(response.data.data, null, 2)
+          const dataStr = JSON.stringify(response.data.data || [], null, 2)
           const dataBlob = new Blob([dataStr], { type: 'application/json' })
           const url = URL.createObjectURL(dataBlob)
           const link = document.createElement('a')
@@ -311,22 +318,26 @@ export const useUnknownQuestions = () => {
         )
       }
     },
-    [axiosPublic]
+    [axiosPublic, apiKey]
   )
 
   return {
     // Data
-    questions,
+    questions: questionsData || [],
     stats,
-    categories,
+    categories: categories || [],
     pagination,
-    loading,
-    error,
+    loading: questionsLoading || statsLoading || categoriesLoading,
+    error:
+      questionsError?.message ||
+      statsError?.message ||
+      categoriesError?.message ||
+      null,
 
     // Actions
-    fetchQuestions,
-    fetchStats,
-    fetchCategories,
+    fetchQuestions: refetchQuestions,
+    fetchStats: refetchStats,
+    fetchCategories: refetchCategories,
     updateQuestion,
     deleteQuestion,
     addToTraining,
@@ -334,13 +345,8 @@ export const useUnknownQuestions = () => {
     exportQuestions,
 
     // Utilities
-    setCurrentPage: (page: number) => {
-      fetchQuestions({
-        page,
-        search: '',
-        status: '',
-        category: '',
-      })
+    setCurrentPage: () => {
+      refetchQuestions()
     },
   }
 }

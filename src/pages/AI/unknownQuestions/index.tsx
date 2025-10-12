@@ -1,6 +1,8 @@
 import { Button } from '@/components/custom/button'
+import { LoadingSpinner } from '@/components/custom/loading-spinner'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { useUnknownQuestions } from '@/hooks/useUnknownQuestions'
 import {
   AlertCircle,
   BarChart3,
@@ -9,9 +11,50 @@ import {
   MessageSquare,
   Plus,
 } from 'lucide-react'
-import React from 'react'
+import React, { useState } from 'react'
+import QuestionStatsCard from './components/QuestionStatsCard'
+
+interface UnknownQuestion {
+  _id: string
+  organization_id: string
+  session_id: string
+  visitor_id?: string
+  question: string
+  question_normalized: string
+  ai_response: string
+  response_quality?: string
+  user_context?: Record<string, any>
+  conversation_context?: any[]
+  knowledge_base_results?: any[]
+  similarity_scores?: number[]
+  max_similarity?: number
+  question_category?: string
+  is_answered_well?: boolean
+  needs_human_review: boolean
+  status: string
+  reviewed_by?: string
+  reviewed_at?: string
+  improved_answer?: string
+  added_to_training: boolean
+  created_at: string
+  updated_at: string
+  frequency_count: number
+  last_asked_at: string
+}
 
 const UnknownQuestionsPage: React.FC = () => {
+  const { questions, stats, loading, error, exportQuestions } =
+    useUnknownQuestions()
+
+  const [selectedQuestions] = useState<string[]>([])
+
+  if (loading) {
+    return (
+      <div className='flex h-[calc(100vh-120px)] w-full items-center justify-center'>
+        <LoadingSpinner size='lg' text='Loading unknown questions...' />
+      </div>
+    )
+  }
   return (
     <div className='mx-6 mb-6 mt-4 space-y-6'>
       {/* Header */}
@@ -26,163 +69,105 @@ const UnknownQuestionsPage: React.FC = () => {
           </p>
         </div>
         <div className='flex gap-2'>
-          <Button variant='outline'>
+          <Button
+            variant='outline'
+            onClick={() => exportQuestions({ format: 'json' })}
+            disabled={loading}
+          >
             <Download className='mr-2 h-4 w-4' />
             Export
           </Button>
-          <Button>
+          <Button disabled={selectedQuestions.length === 0}>
             <Plus className='mr-2 h-4 w-4' />
-            Train AI
+            Train AI ({selectedQuestions.length})
           </Button>
         </div>
       </div>
 
       {/* Statistics Cards */}
-      <div className='mb-6 grid gap-4 md:grid-cols-2 lg:grid-cols-4'>
-        {/* Total Questions */}
-        <Card>
-          <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-            <CardTitle className='text-sm font-medium'>
-              Total Questions
-            </CardTitle>
-            <MessageSquare className='h-4 w-4 text-muted-foreground' />
-          </CardHeader>
-          <CardContent>
-            <div className='text-2xl font-bold'>12</div>
-            <p className='text-xs text-muted-foreground'>3 new this period</p>
-          </CardContent>
-        </Card>
+      {stats && <QuestionStatsCard stats={stats} />}
 
-        {/* Needs Review */}
-        <Card>
-          <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-            <CardTitle className='text-sm font-medium'>Needs Review</CardTitle>
-            <AlertCircle className='h-4 w-4 text-orange-500' />
-          </CardHeader>
-          <CardContent>
-            <div className='text-2xl font-bold text-orange-600'>8</div>
-            <p className='text-xs text-muted-foreground'>
-              Require human attention
-            </p>
-          </CardContent>
-        </Card>
+      {error && (
+        <div className='rounded-lg border border-red-200 bg-red-50 p-4'>
+          <div className='flex items-center gap-2'>
+            <AlertCircle className='h-4 w-4 text-red-500' />
+            <span className='text-red-700'>Error: {error}</span>
+          </div>
+        </div>
+      )}
 
-        {/* Added to Training */}
-        <Card>
-          <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-            <CardTitle className='text-sm font-medium'>
-              Added to Training
-            </CardTitle>
-            <Brain className='h-4 w-4 text-purple-500' />
-          </CardHeader>
-          <CardContent>
-            <div className='text-2xl font-bold text-purple-600'>4</div>
-            <p className='text-xs text-muted-foreground'>
-              Improved knowledge base
-            </p>
-          </CardContent>
-        </Card>
-
-        {/* Response Quality */}
-        <Card>
-          <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-            <CardTitle className='text-sm font-medium'>
-              Response Quality
-            </CardTitle>
-            <BarChart3 className='h-4 w-4 text-muted-foreground' />
-          </CardHeader>
-          <CardContent>
-            <div className='text-2xl font-bold'>75%</div>
-            <p className='text-xs text-muted-foreground'>Good AI responses</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Sample Questions List */}
+      {/* Questions List */}
       <Card>
         <CardHeader>
-          <CardTitle>Recent Unknown Questions</CardTitle>
+          <CardTitle>Unknown Questions ({questions.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className='space-y-4'>
-            {/* Sample Question 1 */}
-            <div className='space-y-3 rounded-lg border p-4'>
-              <div className='flex items-start justify-between'>
-                <div className='flex-1'>
-                  <div className='mb-2 flex items-center gap-2'>
-                    <h3 className='font-medium'>
-                      Do you handle dog bite cases in Florida?
-                    </h3>
-                    <AlertCircle className='h-4 w-4 text-orange-500' />
-                  </div>
-                  <div className='mb-2 flex items-center gap-2'>
-                    <Badge className='bg-blue-100 text-blue-800'>New</Badge>
-                    <Badge
-                      variant='outline'
-                      className='bg-red-100 text-red-800'
-                    >
-                      Legal
-                    </Badge>
-                    <Badge variant='secondary'>Similarity: 30%</Badge>
-                    <Badge variant='outline'>Asked 3 times</Badge>
-                  </div>
-                  <p className='mb-2 text-sm text-muted-foreground'>
-                    <strong>AI Response:</strong> Yes, we handle various injury
-                    cases including dog bites. Dog bite laws vary by state and
-                    we can help you understand your rights...
-                  </p>
-                  <div className='text-xs text-muted-foreground'>
-                    <span>Created: {new Date().toLocaleDateString()}</span>
-                    <span className='ml-4'>User: John Smith</span>
+          {questions.length === 0 ? (
+            <div className='py-8 text-center'>
+              <MessageSquare className='mx-auto mb-4 h-12 w-12 text-muted-foreground' />
+              <p className='text-muted-foreground'>
+                No unknown questions found. Your chatbot is handling all
+                questions well!
+              </p>
+            </div>
+          ) : (
+            <div className='space-y-4'>
+              {questions.map((question: UnknownQuestion) => (
+                <div
+                  key={question._id}
+                  className='space-y-3 rounded-lg border p-4'
+                >
+                  <div className='flex items-start justify-between'>
+                    <div className='flex-1'>
+                      <div className='mb-2 flex items-center gap-2'>
+                        <h3 className='font-medium'>{question.question}</h3>
+                        {question.needs_human_review && (
+                          <AlertCircle className='h-4 w-4 text-orange-500' />
+                        )}
+                      </div>
+                      <div className='mb-2 flex items-center gap-2'>
+                        <Badge
+                          className={
+                            question.status === 'new'
+                              ? 'bg-blue-100 text-blue-800'
+                              : question.status === 'reviewed'
+                                ? 'bg-green-100 text-green-800'
+                                : 'bg-gray-100 text-gray-800'
+                          }
+                        >
+                          {question.status.replace('_', ' ')}
+                        </Badge>
+                        <Badge variant='outline'>
+                          {question.question_category || 'General'}
+                        </Badge>
+                        <Badge variant='secondary'>
+                          Similarity:{' '}
+                          {Math.round((question.max_similarity || 0) * 100)}%
+                        </Badge>
+                        <Badge variant='outline'>
+                          Asked {question.frequency_count} times
+                        </Badge>
+                      </div>
+                      <p className='mb-2 text-sm text-muted-foreground'>
+                        <strong>AI Response:</strong> {question.ai_response}
+                      </p>
+                      <div className='text-xs text-muted-foreground'>
+                        <span>
+                          Created:{' '}
+                          {new Date(question.created_at).toLocaleDateString()}
+                        </span>
+                        {question.user_context?.name && (
+                          <span className='ml-4'>
+                            User: {question.user_context.name}
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
+              ))}
             </div>
-
-            {/* Sample Question 2 */}
-            <div className='space-y-3 rounded-lg border p-4'>
-              <div className='flex items-start justify-between'>
-                <div className='flex-1'>
-                  <div className='mb-2 flex items-center gap-2'>
-                    <h3 className='font-medium'>
-                      What are your office hours on weekends?
-                    </h3>
-                    <AlertCircle className='h-4 w-4 text-yellow-500' />
-                  </div>
-                  <div className='mb-2 flex items-center gap-2'>
-                    <Badge className='bg-blue-100 text-blue-800'>New</Badge>
-                    <Badge
-                      variant='outline'
-                      className='bg-green-100 text-green-800'
-                    >
-                      Contact
-                    </Badge>
-                    <Badge variant='secondary'>Similarity: 45%</Badge>
-                  </div>
-                  <p className='mb-2 text-sm text-muted-foreground'>
-                    <strong>AI Response:</strong> Our office hours are Monday
-                    through Friday, 9 AM to 5 PM. For urgent matters, you can
-                    contact us anytime...
-                  </p>
-                  <div className='text-xs text-muted-foreground'>
-                    <span>Created: {new Date().toLocaleDateString()}</span>
-                    <span className='ml-4'>User: Anonymous</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className='mt-6 text-center'>
-            <p className='text-muted-foreground'>
-              🚀 <strong>System is working!</strong> Your chatbot will
-              automatically detect and store questions it can't answer well.
-            </p>
-            <p className='mt-2 text-sm text-muted-foreground'>
-              Questions with similarity scores below 70% will appear here for
-              review.
-            </p>
-          </div>
+          )}
         </CardContent>
       </Card>
 

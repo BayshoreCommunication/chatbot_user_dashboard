@@ -5,6 +5,7 @@ import React from 'react'
 
 interface QuestionStatsCardProps {
   stats: {
+    organization_id: string
     total_unknown_questions: number
     new_questions: number
     reviewed_questions: number
@@ -17,6 +18,8 @@ interface QuestionStatsCardProps {
     appointment_questions: number
     general_questions: number
     other_questions: number
+    period_start: string
+    period_end: string
   }
 }
 
@@ -107,7 +110,11 @@ const QuestionStatsCard: React.FC<QuestionStatsCardProps> = ({ stats }) => {
               <span className='text-sm'>Legal</span>
               <div className='flex items-center gap-2'>
                 <Progress
-                  value={(stats.legal_questions / totalQuestions) * 100}
+                  value={
+                    totalQuestions > 0
+                      ? (stats.legal_questions / totalQuestions) * 100
+                      : 0
+                  }
                   className='w-20'
                 />
                 <span className='text-sm font-medium'>
@@ -119,7 +126,11 @@ const QuestionStatsCard: React.FC<QuestionStatsCardProps> = ({ stats }) => {
               <span className='text-sm'>Appointments</span>
               <div className='flex items-center gap-2'>
                 <Progress
-                  value={(stats.appointment_questions / totalQuestions) * 100}
+                  value={
+                    totalQuestions > 0
+                      ? (stats.appointment_questions / totalQuestions) * 100
+                      : 0
+                  }
                   className='w-20'
                 />
                 <span className='text-sm font-medium'>
@@ -131,7 +142,11 @@ const QuestionStatsCard: React.FC<QuestionStatsCardProps> = ({ stats }) => {
               <span className='text-sm'>General</span>
               <div className='flex items-center gap-2'>
                 <Progress
-                  value={(stats.general_questions / totalQuestions) * 100}
+                  value={
+                    totalQuestions > 0
+                      ? (stats.general_questions / totalQuestions) * 100
+                      : 0
+                  }
                   className='w-20'
                 />
                 <span className='text-sm font-medium'>
@@ -143,7 +158,11 @@ const QuestionStatsCard: React.FC<QuestionStatsCardProps> = ({ stats }) => {
               <span className='text-sm'>Other</span>
               <div className='flex items-center gap-2'>
                 <Progress
-                  value={(stats.other_questions / totalQuestions) * 100}
+                  value={
+                    totalQuestions > 0
+                      ? (stats.other_questions / totalQuestions) * 100
+                      : 0
+                  }
                   className='w-20'
                 />
                 <span className='text-sm font-medium'>

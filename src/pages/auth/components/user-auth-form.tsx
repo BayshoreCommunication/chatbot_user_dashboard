@@ -24,7 +24,7 @@ interface UserAuthFormProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 const API_URL =
-  import.meta.env.VITE_API_URL || 'https://api.bayshorecommunication.org'
+  import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 const formSchema = z
   .object({
