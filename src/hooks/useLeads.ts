@@ -1,19 +1,22 @@
 import { useToast } from '@/components/ui/use-toast'
-import { API_ENDPOINTS } from '@/config/api'
 import { useApiKey } from '@/hooks/useApiKey'
 import { useCallback, useEffect, useState } from 'react'
 
 export interface Lead {
   name: string
-  email: string
+  email: string | null
+  phone?: string | null
+  inquiry?: string | null
   session_id: string
   created_at: string
   organization_id: string
+  status?: string
 }
 
-export interface LeadsResponse {
+// Backend /api/leads-list-byorg returns: { organization_id, leads }
+export interface LeadsResponseOrg {
+  organization_id: string
   leads: Lead[]
-  total_count: number
 }
 
 export interface LeadsStats {
@@ -48,10 +51,12 @@ export const useLeads = () => {
       setError(null)
 
       // Debug logging
-      console.log('Fetching leads from:', API_ENDPOINTS.leads)
+      // Use backend leads-by-organization endpoint
+      const leadsUrl = '/api/leads-list-byorg'
+      console.log('Fetching leads from:', leadsUrl)
       console.log('Using API key:', apiKey ? 'Present' : 'Missing')
 
-      const response = await fetch(API_ENDPOINTS.leads, {
+      const response = await fetch(leadsUrl, {
         method: 'GET',
         headers: {
           'X-API-Key': apiKey,
@@ -73,13 +78,29 @@ export const useLeads = () => {
         throw new Error(`HTTP error! status: ${response.status} - ${errorText}`)
       }
 
-      const data: LeadsResponse = await response.json()
+      const data: LeadsResponseOrg = await response.json()
       console.log('Leads data received:', data)
-      setLeads(data.leads)
+      const list = Array.isArray((data as any).leads)
+        ? ((data as any).leads as Lead[])
+        : []
+      setLeads(list)
+
+      // Compute stats locally
+      const computed: LeadsStats = {
+        total_profiles: list.length,
+        valid_leads: list.filter(
+          (l) =>
+            (l.email && l.email.trim()) || (l.phone && String(l.phone).trim())
+        ).length,
+        leads_with_email: list.filter((l) => l.email && l.email.trim()).length,
+        leads_with_name: list.filter((l) => l.name && l.name.trim()).length,
+        organization_id: data.organization_id || '',
+      }
+      setStats(computed)
 
       toast({
         title: 'Success',
-        description: `Loaded ${data.leads.length} leads successfully.`,
+        description: `Loaded ${list.length} leads successfully.`,
       })
     } catch (error) {
       const errorMessage =
@@ -110,25 +131,8 @@ export const useLeads = () => {
     }
   }, [apiKey, toast])
 
-  const fetchStats = useCallback(async () => {
-    if (!apiKey) return
-
-    try {
-      const response = await fetch(API_ENDPOINTS.leadsStats, {
-        headers: {
-          'X-API-Key': apiKey,
-          'Content-Type': 'application/json',
-        },
-      })
-
-      if (response.ok) {
-        const statsData: LeadsStats = await response.json()
-        setStats(statsData)
-      }
-    } catch (error) {
-      console.error('Error fetching stats:', error)
-    }
-  }, [apiKey])
+  // Stats are computed locally after fetching leads now
+  const fetchStats = useCallback(async () => {}, [])
 
   const downloadCSV = async () => {
     if (!apiKey) {

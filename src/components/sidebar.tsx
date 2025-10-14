@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react'
+import { Button } from '@/components/custom/button'
+import { sidelinks } from '@/data/sidelinks'
+import { cn } from '@/lib/utils'
 import { IconChevronsLeft, IconMenu2, IconX } from '@tabler/icons-react'
+import { useEffect, useState } from 'react'
 import { Layout } from './custom/layout'
 import Nav from './nav'
-import { cn } from '@/lib/utils'
-import { sidelinks } from '@/data/sidelinks'
-import { Button } from '@/components/custom/button'
 
 interface SidebarProps extends React.HTMLAttributes<HTMLElement> {
   isCollapsed: boolean
@@ -77,7 +77,6 @@ export default function Sidebar({
               ></line>
               <span className='sr-only'>Website Name</span>
             </svg>
-            
           </div>
 
           {/* Toggle Button in mobile */}

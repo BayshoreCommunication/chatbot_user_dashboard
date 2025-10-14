@@ -2,11 +2,6 @@ import {
   IconApps,
   IconBoxSeam,
   IconCalendar,
-  // IconHexagonNumber1,
-  // IconHexagonNumber2,
-  // IconHexagonNumber3,
-  // IconHexagonNumber4,
-  // IconHexagonNumber5,
   IconLayoutDashboard,
   IconMessages,
   IconQuestionMark,
@@ -26,18 +21,28 @@ export interface SideLink extends NavLink {
 }
 
 export const sidelinks: SideLink[] = [
+  // Dashboard
   {
     title: 'Dashboard',
     label: '',
     href: '/dashboard',
     icon: <IconLayoutDashboard size={18} />,
   },
+  // Chats
   {
     title: 'Chats',
     label: '9',
     href: '/dashboard/chats',
     icon: <IconMessages size={18} />,
   },
+  // Leads just below chat
+  {
+    title: 'Leads',
+    label: '',
+    href: '/dashboard/leads',
+    icon: <IconBoxSeam size={18} />,
+  },
+  // Apps after leads
   {
     title: 'Apps',
     label: '',

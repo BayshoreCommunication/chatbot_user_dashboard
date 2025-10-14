@@ -1,12 +1,5 @@
 import { Button } from '@/components/custom/button'
-import { Badge } from '@/components/ui/badge'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Table,
   TableBody,
@@ -21,10 +14,6 @@ import React from 'react'
 
 const LeadsPage: React.FC = () => {
   const { leads, stats, loading, fetchLeads, downloadCSV } = useLeads()
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString()
-  }
 
   // const handleDebugTest = async () => {
   //   console.log('🔧 Running API debug test...')
@@ -149,21 +138,6 @@ const LeadsPage: React.FC = () => {
 
         {/* Leads Table */}
         <Card className='border-0 bg-white shadow-sm'>
-          <CardHeader className='border-b border-gray-200 bg-gray-50/50 px-6 py-4'>
-            <div className='flex items-center justify-between'>
-              <div>
-                <CardTitle className='text-xl font-semibold text-gray-900'>
-                  Visitor Leads
-                </CardTitle>
-                <CardDescription className='mt-1 text-gray-600'>
-                  All visitor contact information collected by your chatbot
-                </CardDescription>
-              </div>
-              <div className='text-sm text-gray-500'>
-                {leads.length} {leads.length === 1 ? 'lead' : 'leads'} found
-              </div>
-            </div>
-          </CardHeader>
           <CardContent className='p-0'>
             {loading ? (
               <div className='flex items-center justify-center py-12'>
@@ -197,13 +171,13 @@ const LeadsPage: React.FC = () => {
                         Email
                       </TableHead>
                       <TableHead className='font-semibold text-gray-700'>
+                        Phone
+                      </TableHead>
+                      <TableHead className='font-semibold text-gray-700'>
+                        Inquiry
+                      </TableHead>
+                      <TableHead className='font-semibold text-gray-700'>
                         Session ID
-                      </TableHead>
-                      <TableHead className='font-semibold text-gray-700'>
-                        Created At
-                      </TableHead>
-                      <TableHead className='font-semibold text-gray-700'>
-                        Status
                       </TableHead>
                     </TableRow>
                   </TableHeader>
@@ -219,19 +193,20 @@ const LeadsPage: React.FC = () => {
                         <TableCell className='text-gray-600'>
                           {lead.email}
                         </TableCell>
-                        <TableCell className='font-mono text-sm text-gray-500'>
-                          {lead.session_id.substring(0, 8)}...
-                        </TableCell>
                         <TableCell className='text-gray-600'>
-                          {formatDate(lead.created_at)}
+                          {lead.phone && String(lead.phone).trim() ? (
+                            lead.phone
+                          ) : (
+                            <span className='rounded bg-yellow-50 px-2 py-0.5 text-yellow-700'>
+                              None
+                            </span>
+                          )}
                         </TableCell>
-                        <TableCell>
-                          <Badge
-                            variant='secondary'
-                            className='bg-green-100 text-green-800 hover:bg-green-100'
-                          >
-                            Active
-                          </Badge>
+                        <TableCell className='max-w-[240px] truncate text-gray-600'>
+                          {lead.inquiry || ''}
+                        </TableCell>
+                        <TableCell className='font-mono text-sm text-gray-500'>
+                          {lead.session_id?.substring(0, 8)}...
                         </TableCell>
                       </TableRow>
                     ))}
