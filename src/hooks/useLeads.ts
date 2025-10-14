@@ -50,9 +50,17 @@ export const useLeads = () => {
       setLoading(true)
       setError(null)
 
-      // Debug logging
-      // Use backend leads-by-organization endpoint
-      const leadsUrl = '/api/leads-list-byorg'
+      // Resolve backend base URL for live deployments
+      // Resolve backend base URL for live and local
+      const rawBase = (import.meta as any)?.env?.VITE_API_URL || ''
+      const resolvedBase =
+        rawBase && rawBase.trim().length > 0
+          ? rawBase
+          : typeof window !== 'undefined'
+            ? window.location.origin
+            : ''
+      const base = resolvedBase.replace(/\/+$/, '') // remove trailing slash(es)
+      const leadsUrl = `${base}/api/leads-list-byorg`
       console.log('Fetching leads from:', leadsUrl)
       console.log('Using API key:', apiKey ? 'Present' : 'Missing')
 
@@ -72,10 +80,19 @@ export const useLeads = () => {
         Object.fromEntries(response.headers.entries())
       )
 
+      // Ensure we got JSON, not an HTML fallback (e.g., index.html)
+      const contentType = response.headers.get('content-type') || ''
       if (!response.ok) {
         const errorText = await response.text()
         console.log('Error response body:', errorText)
         throw new Error(`HTTP error! status: ${response.status} - ${errorText}`)
+      }
+      if (!contentType.toLowerCase().includes('application/json')) {
+        const bodyPreview = await response.text()
+        console.error('Expected JSON but received:', bodyPreview.slice(0, 200))
+        throw new Error(
+          'Unexpected response type (not JSON). Check API base URL and CORS.'
+        )
       }
 
       const data: LeadsResponseOrg = await response.json()
