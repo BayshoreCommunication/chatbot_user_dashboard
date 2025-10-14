@@ -62,7 +62,7 @@ export const useLeads = () => {
       const base = resolvedBase.replace(/\/+$/, '') // remove trailing slash(es)
       const leadsUrl = `${base}/api/leads-list-byorg`
       console.log('Fetching leads from:', leadsUrl)
-      console.log('Using API key:', apiKey ? 'Present' : 'Missing')
+      console.log('Using API key:', apiKey)
 
       const response = await fetch(leadsUrl, {
         method: 'GET',
