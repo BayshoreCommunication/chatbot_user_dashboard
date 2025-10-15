@@ -52,7 +52,9 @@ export const useLeads = () => {
 
       // Resolve backend base URL for live deployments
       // Resolve backend base URL for live and local
-      const rawBase = (import.meta as any)?.env?.VITE_API_URL || ''
+      const rawBase =
+        (import.meta as { env?: { VITE_API_URL?: string } })?.env
+          ?.VITE_API_URL || ''
       const resolvedBase =
         rawBase && rawBase.trim().length > 0
           ? rawBase
@@ -97,9 +99,7 @@ export const useLeads = () => {
 
       const data: LeadsResponseOrg = await response.json()
       console.log('Leads data received:', data)
-      const list = Array.isArray((data as any).leads)
-        ? ((data as any).leads as Lead[])
-        : []
+      const list = Array.isArray(data.leads) ? data.leads : []
       setLeads(list)
 
       // Compute stats locally
