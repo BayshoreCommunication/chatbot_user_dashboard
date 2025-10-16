@@ -97,12 +97,15 @@ export const useLeads = () => {
       // More specific error messages
       let userMessage = 'Failed to fetch leads. Please try again.'
       if (
-        error instanceof TypeError &&
-        error.message.includes('Failed to fetch')
+        maybeAxios instanceof TypeError &&
+        maybeAxios.message.includes('Failed to fetch')
       ) {
         userMessage =
           'Cannot connect to the server. Please check if the backend is running and accessible.'
-      } else if (error instanceof Error && error.message.includes('CORS')) {
+      } else if (
+        maybeAxios instanceof Error &&
+        maybeAxios.message.includes('CORS')
+      ) {
         userMessage =
           'CORS error: Backend needs to allow requests from this domain.'
       }
