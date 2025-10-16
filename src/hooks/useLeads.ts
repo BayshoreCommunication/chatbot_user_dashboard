@@ -1,6 +1,7 @@
 import { useToast } from '@/components/ui/use-toast'
 import { useApiKey } from '@/hooks/useApiKey'
 import { useCallback, useEffect, useState } from 'react'
+import useAxiosPublic from './useAxiosPublic'
 
 export interface Lead {
   name: string
@@ -34,6 +35,7 @@ export const useLeads = () => {
   const [error, setError] = useState<string | null>(null)
   const { toast } = useToast()
   const { apiKey } = useApiKey()
+  const axiosPublic = useAxiosPublic()
 
   const fetchLeads = useCallback(async () => {
     if (!apiKey) {
@@ -50,55 +52,16 @@ export const useLeads = () => {
       setLoading(true)
       setError(null)
 
-      // Resolve backend base URL for live deployments
-      // Resolve backend base URL for live and local
-      const rawBase =
-        (import.meta as { env?: { VITE_API_URL?: string } })?.env
-          ?.VITE_API_URL || ''
-      const resolvedBase =
-        rawBase && rawBase.trim().length > 0
-          ? rawBase
-          : typeof window !== 'undefined'
-            ? window.location.origin
-            : ''
-      const base = resolvedBase.replace(/\/+$/, '') // remove trailing slash(es)
-      const leadsUrl = `${base}/api/leads-list-byorg`
-      console.log('Fetching leads from:', leadsUrl)
-      console.log('Using API key:', apiKey)
-
-      const response = await fetch(leadsUrl, {
-        method: 'GET',
-        headers: {
-          'X-API-Key': apiKey,
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-        },
-        mode: 'cors',
-      })
-
-      console.log('Response status:', response.status)
-      console.log(
-        'Response headers:',
-        Object.fromEntries(response.headers.entries())
+      const res = await axiosPublic.get<LeadsResponseOrg>(
+        '/api/leads-list-byorg',
+        {
+          headers: {
+            'X-API-Key': apiKey,
+          },
+        }
       )
 
-      // Ensure we got JSON, not an HTML fallback (e.g., index.html)
-      const contentType = response.headers.get('content-type') || ''
-      if (!response.ok) {
-        const errorText = await response.text()
-        console.log('Error response body:', errorText)
-        throw new Error(`HTTP error! status: ${response.status} - ${errorText}`)
-      }
-      if (!contentType.toLowerCase().includes('application/json')) {
-        const bodyPreview = await response.text()
-        console.error('Expected JSON but received:', bodyPreview.slice(0, 200))
-        throw new Error(
-          'Unexpected response type (not JSON). Check API base URL and CORS.'
-        )
-      }
-
-      const data: LeadsResponseOrg = await response.json()
-      console.log('Leads data received:', data)
+      const data = res.data
       const list = Array.isArray(data.leads) ? data.leads : []
       setLeads(list)
 
@@ -119,11 +82,17 @@ export const useLeads = () => {
         title: 'Success',
         description: `Loaded ${list.length} leads successfully.`,
       })
-    } catch (error) {
+    } catch (err) {
+      const maybeAxios = err as
+        | { response?: { data?: { detail?: string } } }
+        | Error
       const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error'
+        (typeof maybeAxios === 'object' &&
+          'response' in maybeAxios &&
+          maybeAxios.response?.data?.detail) ||
+        (maybeAxios instanceof Error ? maybeAxios.message : 'Unknown error')
       setError(errorMessage)
-      console.error('Error fetching leads:', error)
+      console.error('Error fetching leads:', err)
 
       // More specific error messages
       let userMessage = 'Failed to fetch leads. Please try again.'
@@ -146,7 +115,7 @@ export const useLeads = () => {
     } finally {
       setLoading(false)
     }
-  }, [apiKey, toast])
+  }, [apiKey, toast, axiosPublic])
 
   // Stats are computed locally after fetching leads now
   const fetchStats = useCallback(async () => {}, [])
