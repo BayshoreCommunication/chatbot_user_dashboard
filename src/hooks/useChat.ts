@@ -76,12 +76,12 @@ export function useChat(apiKey: string | null) {
 
     const socketUrl = getApiUrl()
     const socketInstance = io(socketUrl, {
-      transports: ['polling', 'websocket'], // Try polling first, then websocket
-      timeout: 15000,
+      transports: ['websocket', 'polling'], // Try websocket first, then polling
+      timeout: 20000,
       reconnection: true,
-      reconnectionAttempts: 3,
-      reconnectionDelay: 2000,
-      reconnectionDelayMax: 5000,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 10000,
       auth: {
         apiKey: apiKey,
       },
@@ -90,7 +90,8 @@ export function useChat(apiKey: string | null) {
       },
       forceNew: true,
       upgrade: true,
-      rememberUpgrade: true,
+      rememberUpgrade: false, // Don't remember failed upgrades
+      autoConnect: true,
     })
 
     socketRef.current = socketInstance
@@ -104,13 +105,30 @@ export function useChat(apiKey: string | null) {
 
     socketInstance.on('connect_error', (error) => {
       console.error('Socket connection error:', error)
-      console.log(
-        'Socket.IO connection failed, falling back to polling mode or manual refresh'
-      )
+      console.log('Socket.IO connection failed, will retry automatically')
     })
 
     socketInstance.on('disconnect', (reason) => {
       console.log('Socket disconnected:', reason)
+      if (reason === 'io server disconnect') {
+        // Server disconnected, try to reconnect manually
+        console.log('Server disconnected, attempting manual reconnection...')
+        socketInstance.connect()
+      }
+    })
+
+    socketInstance.on('reconnect', (attemptNumber) => {
+      console.log('Socket.IO reconnected after', attemptNumber, 'attempts')
+      // Re-join room after reconnection
+      socketInstance.emit('join_room', { room: apiKey })
+    })
+
+    socketInstance.on('reconnect_error', (error) => {
+      console.error('Socket.IO reconnection error:', error)
+    })
+
+    socketInstance.on('reconnect_failed', () => {
+      console.error('Socket.IO reconnection failed after all attempts')
     })
 
     // Listen for connection confirmation
