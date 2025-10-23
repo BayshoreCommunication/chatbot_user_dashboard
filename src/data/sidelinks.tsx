@@ -1,12 +1,17 @@
 import {
-  IconApps,
+  IconAdjustments,
   IconBoxSeam,
+  IconBulb,
   IconCalendar,
+  IconCode,
   IconLayoutDashboard,
   IconMessages,
+  IconPalette,
+  IconPlugConnected,
   IconQuestionMark,
-  IconRouteAltLeft,
-  IconTruck,
+  IconRobot,
+  IconUser,
+  IconUserCog,
 } from '@tabler/icons-react'
 
 export interface NavLink {
@@ -43,34 +48,35 @@ export const sidelinks: SideLink[] = [
     icon: <IconBoxSeam size={18} />,
   },
   // Apps after leads
-  {
-    title: 'Apps',
-    label: '',
-    href: '/dashboard/apps',
-    icon: <IconApps size={18} />,
-  },
+
   {
     title: 'Settings',
     label: '3',
     href: '/dashboard/requests',
-    icon: <IconRouteAltLeft size={18} />,
+    icon: <IconAdjustments size={18} />,
     sub: [
       {
         title: 'User Profile',
         href: '/dashboard/user-profile',
-        icon: <IconTruck size={18} />,
+        icon: <IconUser size={18} />,
       },
       {
         title: 'Account Settings',
         label: '',
         href: '/dashboard/user-settings',
-        icon: <IconBoxSeam size={18} />,
+        icon: <IconUserCog size={18} />,
       },
       {
-        title: 'Chat Widget Setup',
+        title: 'Widget Appearance',
         label: '',
-        href: '/dashboard/chat-widget-setup',
-        icon: <IconMessages size={18} />,
+        href: '/dashboard/chat-widget-update',
+        icon: <IconPalette size={18} />,
+      },
+      {
+        title: 'Widget Installation',
+        label: '',
+        href: '/dashboard/create-chat-widget',
+        icon: <IconCode size={18} />,
       },
     ],
   },
@@ -78,19 +84,20 @@ export const sidelinks: SideLink[] = [
     title: 'Ai',
     label: '3',
     href: '/requests',
-    icon: <IconRouteAltLeft size={18} />,
+    icon: <IconRobot size={18} />,
     sub: [
       {
         title: 'Train AI',
         href: '/dashboard/train-ai',
-        icon: <IconTruck size={18} />,
+        icon: <IconBulb size={18} />,
       },
       {
-        title: 'System Settings',
+        title: 'Apps',
         label: '',
-        href: '/dashboard/system-settings',
-        icon: <IconBoxSeam size={18} />,
+        href: '/dashboard/apps',
+        icon: <IconPlugConnected size={18} />,
       },
+
       {
         title: 'Appointments',
         label: '',

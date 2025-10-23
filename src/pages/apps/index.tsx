@@ -1,10 +1,7 @@
-import { useState } from 'react'
-import {
-  IconAdjustmentsHorizontal,
-  IconSortAscendingLetters,
-  IconSortDescendingLetters,
-} from '@tabler/icons-react'
+import { Button } from '@/components/custom/button'
 import { Layout } from '@/components/custom/layout'
+import { Search } from '@/components/search'
+import ThemeSwitch from '@/components/theme-switch'
 import { Input } from '@/components/ui/input'
 import {
   Select,
@@ -14,10 +11,14 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
-import { Search } from '@/components/search'
-import ThemeSwitch from '@/components/theme-switch'
 import { UserNav } from '@/components/user-nav'
-import { Button } from '@/components/custom/button'
+import {
+  IconAdjustmentsHorizontal,
+  IconSortAscendingLetters,
+  IconSortDescendingLetters,
+  IconSparkles,
+} from '@tabler/icons-react'
+import { useState } from 'react'
 import { apps } from './data'
 
 const appText = new Map<string, string>([
@@ -112,7 +113,7 @@ export default function Apps() {
           </Select>
         </div>
         <Separator className='shadow' />
-        <ul className='faded-bottom no-scrollbar grid gap-4 overflow-auto pb-16 pt-4 md:grid-cols-2 lg:grid-cols-3'>
+        <ul className='faded-bottom no-scrollbar grid grid-cols-1 gap-4 overflow-auto pb-16 pt-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'>
           {filteredApps.map((app) => (
             <li
               key={app.name}
@@ -139,6 +140,26 @@ export default function Apps() {
             </li>
           ))}
         </ul>
+        <div className='rounded-xl border border-gray-200 bg-white p-8 text-center shadow-sm dark:border-white/10 dark:bg-white/5'>
+          <div className='mb-3 flex justify-center'>
+            <div className='relative'>
+              <div className='absolute -inset-2 animate-pulse rounded-full bg-gradient-to-r from-blue-500/20 via-fuchsia-500/20 to-pink-500/20 blur-md'></div>
+              <IconSparkles
+                className='relative text-blue-600 dark:text-blue-400'
+                size={26}
+              />
+            </div>
+          </div>
+          <div className='bg-gradient-to-r from-blue-600 via-fuchsia-600 to-pink-600 bg-clip-text text-base font-semibold text-transparent dark:from-blue-400 dark:via-fuchsia-400 dark:to-pink-400'>
+            New Integrations Coming Soon!
+          </div>
+          <div className='mt-1 text-sm text-muted-foreground'>
+            Stay tuned for the reveal.
+          </div>
+          <div className='mx-auto mt-4 h-1 w-32 overflow-hidden rounded-full bg-gray-200 dark:bg-white/10'>
+            <div className='h-full w-1/3 animate-[shimmer_1.8s_ease_infinite] rounded-full bg-gradient-to-r from-white/80 via-white/40 to-white/20'></div>
+          </div>
+        </div>
       </Layout.Body>
     </Layout>
   )
