@@ -58,12 +58,19 @@ export function ChatWidgetUpdate() {
 
       if (response.data.status === 'success') {
         const videoSettings = response.data.settings
-        setVideoEnabled(videoSettings.enabled || false)
+        setVideoEnabled(
+          videoSettings.enabled !== undefined ? videoSettings.enabled : false
+        )
         setVideoUrl(videoSettings.video_url || '')
         setVideoAutoplay(
           videoSettings.autoplay !== undefined ? videoSettings.autoplay : true
         )
         setVideoDuration(videoSettings.duration || 10)
+
+        // If video_url exists, ensure video is enabled
+        if (videoSettings.video_url) {
+          setVideoEnabled(true)
+        }
       }
     } catch (error) {
       console.error('Load video settings error:', error)
@@ -88,10 +95,12 @@ export function ChatWidgetUpdate() {
 
           console.log(settings, 'settings')
 
-          setName(settings.name)
-          setSelectedColor(settings.selectedColor)
-          setLeadCapture(settings.leadCapture)
-          setBotBehavior(settings.botBehavior)
+          setName(settings.name || 'Bay AI')
+          setSelectedColor(settings.selectedColor || 'black')
+          setLeadCapture(
+            settings.leadCapture !== undefined ? settings.leadCapture : true
+          )
+          setBotBehavior(settings.botBehavior || '2')
           if (settings.ai_behavior) {
             setAiBehavior(settings.ai_behavior)
           }
@@ -100,6 +109,27 @@ export function ChatWidgetUpdate() {
           }
           if (settings.auto_open !== undefined) {
             setAutoOpen(settings.auto_open)
+          }
+
+          // Load video settings from the main settings if they exist
+          if (settings.intro_video) {
+            setVideoEnabled(
+              settings.intro_video.enabled !== undefined
+                ? settings.intro_video.enabled
+                : false
+            )
+            setVideoUrl(settings.intro_video.video_url || '')
+            setVideoAutoplay(
+              settings.intro_video.autoplay !== undefined
+                ? settings.intro_video.autoplay
+                : true
+            )
+            setVideoDuration(settings.intro_video.duration || 10)
+
+            // If video_url exists, ensure video is enabled
+            if (settings.intro_video.video_url) {
+              setVideoEnabled(true)
+            }
           }
 
           // Handle custom color
