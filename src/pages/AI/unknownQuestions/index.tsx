@@ -2,7 +2,21 @@ import { Button } from '@/components/custom/button'
 import { LoadingSpinner } from '@/components/custom/loading-spinner'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { useToast } from '@/components/ui/use-toast'
+import { useApiKey } from '@/hooks/useApiKey'
 import { useUnknownQuestions } from '@/hooks/useUnknownQuestions'
+import { getApiUrl } from '@/lib/utils'
+import axios from 'axios'
 import {
   AlertCircle,
   BarChart3,
@@ -10,6 +24,7 @@ import {
   Download,
   MessageSquare,
   Plus,
+  Trash2,
 } from 'lucide-react'
 import React, { useState } from 'react'
 import QuestionStatsCard from './components/QuestionStatsCard'
@@ -43,10 +58,118 @@ interface UnknownQuestion {
 }
 
 const UnknownQuestionsPage: React.FC = () => {
-  const { questions, stats, loading, error, exportQuestions } =
-    useUnknownQuestions()
+  const {
+    questions,
+    stats,
+    loading,
+    error,
+    exportQuestions,
+    deleteQuestion,
+    fetchQuestions,
+  } = useUnknownQuestions()
+  const { toast } = useToast()
+  const { apiKey } = useApiKey()
 
   const [selectedQuestions] = useState<string[]>([])
+  const [deletingQuestion, setDeletingQuestion] = useState<string | null>(null)
+  const [faqDialogOpen, setFaqDialogOpen] = useState(false)
+  const [selectedQuestionForFaq, setSelectedQuestionForFaq] =
+    useState<UnknownQuestion | null>(null)
+  const [faqData, setFaqData] = useState({ question: '', answer: '' })
+  const [savingFaq, setSavingFaq] = useState(false)
+
+  const handleAddToFaq = (question: UnknownQuestion) => {
+    setSelectedQuestionForFaq(question)
+    setFaqData({
+      question: question.question,
+      answer: question.ai_response,
+    })
+    setFaqDialogOpen(true)
+  }
+
+  const handleSaveFaq = async () => {
+    if (!selectedQuestionForFaq || !faqData.question || !faqData.answer) {
+      toast({
+        title: 'Error',
+        description: 'Please fill in both question and answer',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    if (!apiKey) {
+      toast({
+        title: 'Error',
+        description: 'API key not found',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    setSavingFaq(true)
+    try {
+      // Create FAQ
+      const faqResponse = await axios.post(
+        `${getApiUrl()}/api/faq/create`,
+        {
+          question: faqData.question,
+          response: faqData.answer,
+          is_active: true,
+          persistent_menu: false,
+        },
+        {
+          headers: {
+            'X-API-Key': apiKey,
+          },
+        }
+      )
+
+      if (!faqResponse.data) {
+        throw new Error('Failed to create FAQ')
+      }
+
+      // Delete the unknown question after successful FAQ creation
+      await deleteQuestion(selectedQuestionForFaq._id)
+
+      toast({
+        title: 'Success',
+        description: 'FAQ added successfully and unknown question removed',
+      })
+      setFaqDialogOpen(false)
+      setFaqData({ question: '', answer: '' })
+      await fetchQuestions()
+    } catch (err: any) {
+      console.error('Error adding FAQ:', err)
+      toast({
+        title: 'Error',
+        description:
+          err.response?.data?.detail || err.message || 'Failed to add FAQ',
+        variant: 'destructive',
+      })
+    } finally {
+      setSavingFaq(false)
+    }
+  }
+
+  const handleDelete = async (questionId: string) => {
+    try {
+      setDeletingQuestion(questionId)
+      await deleteQuestion(questionId)
+      toast({
+        title: 'Success',
+        description: 'Question deleted successfully',
+      })
+      await fetchQuestions()
+    } catch (err: any) {
+      toast({
+        title: 'Error',
+        description: err.message || 'Failed to delete question',
+        variant: 'destructive',
+      })
+    } finally {
+      setDeletingQuestion(null)
+    }
+  }
 
   if (loading) {
     return (
@@ -163,6 +286,30 @@ const UnknownQuestionsPage: React.FC = () => {
                         )}
                       </div>
                     </div>
+                    <div className='ml-4 flex gap-2'>
+                      <Button
+                        variant='ghost'
+                        size='sm'
+                        onClick={() => handleAddToFaq(question)}
+                        className='hover:bg-primary/10 hover:text-primary'
+                      >
+                        <Brain className='mr-2 h-4 w-4' />
+                        Add to FAQ
+                      </Button>
+                      <Button
+                        variant='ghost'
+                        size='sm'
+                        onClick={() => handleDelete(question._id)}
+                        disabled={deletingQuestion === question._id}
+                        className='text-destructive hover:bg-destructive/10 hover:text-destructive'
+                      >
+                        {deletingQuestion === question._id ? (
+                          <LoadingSpinner size='sm' />
+                        ) : (
+                          <Trash2 className='h-4 w-4' />
+                        )}
+                      </Button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -210,6 +357,69 @@ const UnknownQuestionsPage: React.FC = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Add to FAQ Dialog */}
+      <Dialog open={faqDialogOpen} onOpenChange={setFaqDialogOpen}>
+        <DialogContent className='sm:max-w-[600px]'>
+          <DialogHeader>
+            <DialogTitle>Add Question to FAQ</DialogTitle>
+            <DialogDescription>
+              Review and edit the question and answer before adding to your FAQ
+              training data
+            </DialogDescription>
+          </DialogHeader>
+          <div className='space-y-4 py-4'>
+            <div>
+              <label
+                htmlFor='faq-question'
+                className='mb-2 block text-sm font-medium'
+              >
+                Question
+              </label>
+              <Input
+                id='faq-question'
+                value={faqData.question}
+                onChange={(e) =>
+                  setFaqData({ ...faqData, question: e.target.value })
+                }
+                placeholder='Enter the question'
+              />
+            </div>
+            <div>
+              <label
+                htmlFor='faq-answer'
+                className='mb-2 block text-sm font-medium'
+              >
+                Answer
+              </label>
+              <Textarea
+                id='faq-answer'
+                value={faqData.answer}
+                onChange={(e) =>
+                  setFaqData({ ...faqData, answer: e.target.value })
+                }
+                placeholder='Enter the answer'
+                rows={6}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant='outline' onClick={() => setFaqDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveFaq} disabled={savingFaq}>
+              {savingFaq ? (
+                <>
+                  <LoadingSpinner size='sm' />
+                  Saving...
+                </>
+              ) : (
+                'Save as FAQ'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
