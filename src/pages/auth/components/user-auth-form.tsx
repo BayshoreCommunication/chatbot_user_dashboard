@@ -23,8 +23,7 @@ interface UserAuthFormProps extends HTMLAttributes<HTMLDivElement> {
   isSignUp?: boolean
 }
 
-const API_URL =
-  import.meta.env.VITE_API_URL || 'http://localhost:8000'
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 const formSchema = z
   .object({
@@ -40,6 +39,9 @@ const formSchema = z
       .min(7, {
         message: 'Password must be at least 7 characters long',
       }),
+    organization_name: z.string().optional(),
+    website: z.string().optional(),
+    company_organization_type: z.string().optional(),
     confirmPassword: z.string().optional(),
   })
   .refine(
@@ -86,8 +88,9 @@ export function UserAuthForm({
         credentials: 'include',
         body: JSON.stringify({
           email: decoded.email,
-          name: decoded.name,
+          organization_name: decoded.name || decoded.email.split('@')[0],
           google_id: decoded.sub,
+          has_paid_subscription: false,
         }),
       })
 
@@ -125,6 +128,9 @@ export function UserAuthForm({
     defaultValues: {
       email: '',
       password: '',
+      organization_name: '',
+      website: '',
+      company_organization_type: '',
       ...(isSignUp && { confirmPassword: '' }),
     },
   })
@@ -134,20 +140,37 @@ export function UserAuthForm({
 
     try {
       const endpoint = isSignUp ? 'register' : 'login'
+
+      // Prepare the request body
+      const requestBody = isSignUp
+        ? {
+            email: data.email,
+            password: data.password,
+            organization_name:
+              data.organization_name || data.email.split('@')[0],
+            website: data.website,
+            company_organization_type: data.company_organization_type,
+            has_paid_subscription: false,
+          }
+        : {
+            email: data.email,
+            password: data.password,
+          }
+
       const response = await fetch(`${API_URL}/auth/${endpoint}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          email: data.email,
-          password: data.password,
-          ...(isSignUp && { name: data.email.split('@')[0] }),
-        }),
+        body: JSON.stringify(requestBody),
       })
 
       if (!response.ok) {
-        throw new Error(isSignUp ? 'Failed to register' : 'Failed to login')
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(
+          errorData.detail ||
+            (isSignUp ? 'Failed to register' : 'Failed to login')
+        )
       }
 
       const { user, access_token } = await response.json()
