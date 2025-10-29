@@ -11,17 +11,17 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 const colorOptions = [
-  { value: 'black', bgClass: 'bg-black', hex: '#000000' },
-  { value: 'red', bgClass: 'bg-red-500', hex: '#ef4444' },
-  { value: 'orange', bgClass: 'bg-orange-500', hex: '#f97316' },
-  { value: 'blue', bgClass: 'bg-blue-500', hex: '#3b82f6' },
-  { value: 'pink', bgClass: 'bg-pink-500', hex: '#ec4899' },
+  { bgClass: 'bg-black', value: '#000000' },
+  { bgClass: 'bg-red-500', value: '#ef4444' },
+  { bgClass: 'bg-orange-500', value: '#f97316' },
+  { bgClass: 'bg-blue-500', value: '#3b82f6' },
+  { bgClass: 'bg-pink-500', value: '#ec4899' },
 ]
 
 export function ChatWidgetCreate() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const [selectedColor, setSelectedColor] = useState('black')
+  const [selectedColor, setSelectedColor] = useState('#000000')
   const [customColor, setCustomColor] = useState('#000000')
   const [isCustomColor, setIsCustomColor] = useState(false)
   const [displayColorPicker, setDisplayColorPicker] = useState(false)
@@ -39,25 +39,19 @@ export function ChatWidgetCreate() {
   const [videoUrl, setVideoUrl] = useState('')
   const [videoAutoplay, setVideoAutoplay] = useState(true)
   const [videoDuration, setVideoDuration] = useState(10)
+  const [fontName, setFontName] = useState('Arial')
+  const [soundEnabled, setSoundEnabled] = useState(false)
+  const [aiPersonaTags, setAiPersonaTags] = useState<string[]>([])
+  const [isSaving, setIsSaving] = useState(false)
   // const [currentVideo, setCurrentVideo] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
   const videoFileInputRef = useRef<HTMLInputElement>(null)
   const { apiKey } = useApiKey()
   const { toast } = useToast()
 
-  // Add state to track initial values
-  const [initialValues, setInitialValues] = useState({
-    name: '',
-    selectedColor: '',
-    leadCapture: true,
-    botBehavior: '',
-    avatarUrl: '',
-    is_bot_connected: false,
-    auto_open: false,
-  })
+  // Removed initialValues; not needed with save-on-Next
 
-  // Add state to track if any changes were made
-  const [hasChanges, setHasChanges] = useState(false)
+  // Removed hasChanges; Next will always save then navigate
 
   // Load video settings separately
   const loadVideoSettings = useCallback(async () => {
@@ -109,7 +103,7 @@ export function ChatWidgetCreate() {
         if (response.data.status === 'success') {
           const settings = response.data.settings
           setName(settings.name || 'Bay AI')
-          setSelectedColor(settings.selectedColor || 'black')
+          setSelectedColor(settings.selectedColor || '#000000')
           setLeadCapture(
             settings.leadCapture !== undefined ? settings.leadCapture : true
           )
@@ -122,6 +116,24 @@ export function ChatWidgetCreate() {
           }
           if (settings.auto_open !== undefined) {
             setAutoOpen(settings.auto_open)
+          }
+
+          // Font name
+          if (settings.font_name) {
+            setFontName(settings.font_name)
+          }
+
+          // Sound notifications
+          if (
+            settings.sound_notifications &&
+            typeof settings.sound_notifications.enabled === 'boolean'
+          ) {
+            setSoundEnabled(settings.sound_notifications.enabled)
+          }
+
+          // Persona tags
+          if (Array.isArray(settings.ai_persona_tags)) {
+            setAiPersonaTags(settings.ai_persona_tags)
           }
 
           // Load video settings from the main settings if they exist
@@ -145,33 +157,26 @@ export function ChatWidgetCreate() {
             }
           }
 
-          // Handle custom color
-          if (
-            settings.selectedColor &&
-            settings.selectedColor.startsWith('#')
-          ) {
-            setIsCustomColor(true)
-            setCustomColor(settings.selectedColor)
-            setSelectedColor('custom')
-          } else {
-            const colorOption = colorOptions.find(
+          // Handle preset vs custom color using hex values
+          if (settings.selectedColor) {
+            setSelectedColor(settings.selectedColor)
+            const preset = colorOptions.find(
               (c) => c.value === settings.selectedColor
             )
-            if (colorOption) {
-              setCustomColor(colorOption.hex)
+            if (preset) {
+              setIsCustomColor(false)
+              setCustomColor(preset.value)
+            } else {
+              setIsCustomColor(true)
+              setCustomColor(settings.selectedColor)
             }
+          } else {
+            setSelectedColor('#000000')
+            setIsCustomColor(false)
+            setCustomColor('#000000')
           }
 
-          // Store initial values
-          setInitialValues({
-            name: settings.name,
-            selectedColor: settings.selectedColor,
-            leadCapture: settings.leadCapture,
-            botBehavior: settings.botBehavior,
-            avatarUrl: settings.avatarUrl || '',
-            is_bot_connected: settings.is_bot_connected,
-            auto_open: settings.auto_open || false,
-          })
+          // No initial values tracking; saving occurs on Next
         }
 
         // Load video settings separately
@@ -191,61 +196,69 @@ export function ChatWidgetCreate() {
     loadSettings()
   }, [apiKey, toast, loadVideoSettings])
 
-  // Add effect to check for changes
-  useEffect(() => {
-    const currentValues = {
-      name,
-      selectedColor,
-      leadCapture,
-      botBehavior,
-      avatarUrl,
-      is_bot_connected: false,
-      auto_open: autoOpen,
-    }
-
-    const hasAnyChanges = Object.keys(initialValues).some((key) => {
-      return (
-        initialValues[key as keyof typeof initialValues] !==
-        currentValues[key as keyof typeof currentValues]
-      )
-    })
-
-    setHasChanges(hasAnyChanges)
-  }, [
-    name,
-    selectedColor,
-    leadCapture,
-    botBehavior,
-    avatarUrl,
-    autoOpen,
-    initialValues,
-  ])
+  // Removed change-tracking effect; we always save on Next
 
   const handleColorSelect = (colorValue: string, hexValue: string) => {
     setSelectedColor(colorValue)
     setIsCustomColor(false)
     setCustomColor(hexValue)
-
-    // Automatically save to server when default color is selected
-    handleSaveSettings()
   }
 
-  const handleSaveSettings = async () => {
+  const handleSaveSettings = async (overrides?: {
+    name?: string
+    selectedColor?: string
+    customColor?: string
+    isCustomColor?: boolean
+    leadCapture?: boolean
+    botBehavior?: string
+    avatarUrl?: string
+    autoOpen?: boolean
+    aiBehavior?: string
+    fontName?: string
+    soundEnabled?: boolean
+    aiPersonaTags?: string[]
+  }) => {
     if (!apiKey) return
+
+    setIsSaving(true)
+    const settingsToSave: Record<string, unknown> = {
+      name: overrides?.name ?? name,
+      selectedColor:
+        (overrides?.isCustomColor ?? isCustomColor)
+          ? (overrides?.customColor ?? customColor)
+          : (overrides?.selectedColor ?? selectedColor),
+      leadCapture: overrides?.leadCapture ?? leadCapture,
+      botBehavior: overrides?.botBehavior ?? botBehavior,
+      avatarUrl: overrides?.avatarUrl ?? avatarUrl,
+      auto_open_widget: overrides?.autoOpen ?? autoOpen,
+      auto_open: overrides?.autoOpen ?? autoOpen,
+      ai_behavior: overrides?.aiBehavior ?? aiBehavior,
+      is_bot_connected: false,
+    }
+
+    settingsToSave.font_name = overrides?.fontName ?? fontName
+
+    if (typeof (overrides?.soundEnabled ?? soundEnabled) === 'boolean') {
+      settingsToSave.sound_notifications = {
+        enabled: overrides?.soundEnabled ?? soundEnabled,
+        welcome_sound: { enabled: true, play_on_first_load: true },
+        message_sound: { enabled: true, play_on_send: true },
+      }
+    }
+
+    const personaTagsToSave = overrides?.aiPersonaTags ?? aiPersonaTags
+    if (Array.isArray(personaTagsToSave)) {
+      settingsToSave.ai_persona_tags = personaTagsToSave
+      if (personaTagsToSave.length > 0) {
+        const descriptor = personaTagsToSave.join(', ')
+        settingsToSave.ai_behavior = `You are a ${descriptor} AI assistant. Focus on being ${descriptor.toLowerCase()} while providing accurate, clear answers.`
+      }
+    }
 
     try {
       const response = await axios.post(
         `${import.meta.env.VITE_API_URL}/api/chatbot/save-settings`,
-        {
-          name,
-          selectedColor: isCustomColor ? customColor : selectedColor,
-          leadCapture,
-          botBehavior,
-          avatarUrl,
-          auto_open: autoOpen,
-          ai_behavior: aiBehavior,
-          is_bot_connected: false,
-        },
+        settingsToSave,
         {
           headers: {
             'X-API-Key': apiKey,
@@ -254,18 +267,9 @@ export function ChatWidgetCreate() {
       )
 
       if (response.data.status === 'success') {
-        // Invalidate and refetch chatWidgetSettings query
         await queryClient.invalidateQueries({
           queryKey: ['chatWidgetSettings'],
         })
-
-        // Update initial values
-        setInitialValues((prev) => ({
-          ...prev,
-          selectedColor: isCustomColor ? customColor : selectedColor,
-          is_bot_connected: false,
-          auto_open: autoOpen,
-        }))
 
         toast({
           title: 'Success',
@@ -279,6 +283,8 @@ export function ChatWidgetCreate() {
         description: 'Failed to save settings',
         variant: 'destructive',
       })
+    } finally {
+      setIsSaving(false)
     }
   }
 
@@ -286,9 +292,6 @@ export function ChatWidgetCreate() {
     setCustomColor(color)
     setSelectedColor('custom')
     setIsCustomColor(true)
-
-    // Call API to save the color
-    handleSaveSettings()
   }
 
   const getCurrentColor = () => {
@@ -296,7 +299,7 @@ export function ChatWidgetCreate() {
       return customColor
     }
     const colorOption = colorOptions.find((c) => c.value === selectedColor)
-    return colorOption?.hex || '#000000'
+    return colorOption?.value || '#000000'
   }
 
   const botBehaviorOptions = [
@@ -434,14 +437,6 @@ export function ChatWidgetCreate() {
           await queryClient.invalidateQueries({
             queryKey: ['chatWidgetSettings'],
           })
-
-          // Update initial values
-          setInitialValues((prev) => ({
-            ...prev,
-            avatarUrl: avatarImageUrl,
-            is_bot_connected: false,
-            auto_open: autoOpen,
-          }))
         }
 
         toast({
@@ -698,62 +693,9 @@ export function ChatWidgetCreate() {
   }
 
   const handleNext = async () => {
-    // If no changes, navigate directly without making API call
-    if (!hasChanges) {
-      navigate('/dashboard/chat-widget-install')
-      return
-    }
     if (!apiKey) return
-
-    try {
-      // Save settings to MongoDB only if there are changes
-      const response = await axios.post(
-        `${import.meta.env.VITE_API_URL}/api/chatbot/save-settings`,
-        {
-          name,
-          selectedColor: isCustomColor ? customColor : selectedColor,
-          leadCapture,
-          botBehavior,
-          avatarUrl,
-          auto_open: autoOpen,
-          ai_behavior: aiBehavior,
-          is_bot_connected: false,
-        },
-        {
-          headers: {
-            'X-API-Key': apiKey,
-          },
-        }
-      )
-
-      if (response.data.status === 'success') {
-        // Invalidate and refetch chatWidgetSettings query
-        await queryClient.invalidateQueries({
-          queryKey: ['chatWidgetSettings'],
-        })
-
-        // Update the initial values to match current values
-        setInitialValues({
-          name,
-          selectedColor: isCustomColor ? customColor : selectedColor,
-          leadCapture,
-          botBehavior,
-          avatarUrl,
-          is_bot_connected: false,
-          auto_open: autoOpen,
-        })
-
-        // Navigate to the installation page
-        navigate('/dashboard/chat-widget-install')
-      }
-    } catch (error) {
-      console.error('Save settings error:', error)
-      toast({
-        title: 'Error',
-        description: 'Failed to save settings',
-        variant: 'destructive',
-      })
-    }
+    await handleSaveSettings()
+    navigate('/dashboard/chat-widget-install')
   }
 
   // Update loading state to use LoadingSpinner
@@ -800,24 +742,19 @@ export function ChatWidgetCreate() {
                     </h3>
                   </div>
 
-                  {/* Name Input */}
+                  {/* Chatbot Header Title */}
                   <div className='space-y-2'>
                     <label htmlFor='name' className='block text-sm font-medium'>
-                      Your Name
+                      Chatbot Title
                     </label>
                     <div className='flex gap-2'>
                       <Input
                         id='name'
                         value={name}
                         onChange={(e) => setName(e.target.value)}
-                        className='flex-1'
+                        className='w-[500px]'
                       />
-                      <Button
-                        onClick={() => handleSaveSettings()}
-                        className='bg-blue-600 text-white hover:bg-blue-700'
-                      >
-                        Update
-                      </Button>
+                      {/* Update button removed; saving will occur on Next */}
                     </div>
                   </div>
 
@@ -837,7 +774,7 @@ export function ChatWidgetCreate() {
                             <button
                               key={color.value}
                               onClick={() =>
-                                handleColorSelect(color.value, color.hex)
+                                handleColorSelect(color.value, color.value)
                               }
                               className={`h-10 w-10 rounded-full ${color.bgClass} flex items-center justify-center transition-all hover:scale-110 ${
                                 selectedColor === color.value && !isCustomColor
@@ -1022,10 +959,6 @@ export function ChatWidgetCreate() {
                       <div
                         onClick={() => {
                           setLeadCapture(!leadCapture)
-                          // Automatically save to server when lead capture setting changes
-                          setTimeout(() => {
-                            handleSaveSettings()
-                          }, 100)
                         }}
                         className={`relative h-6 w-12 cursor-pointer rounded-full transition-colors ${leadCapture ? 'bg-blue-500' : 'bg-gray-300'}`}
                       >
@@ -1046,10 +979,6 @@ export function ChatWidgetCreate() {
                       <div
                         onClick={() => {
                           setAutoOpen(!autoOpen)
-                          // Automatically save to server when auto-open setting changes
-                          setTimeout(() => {
-                            handleSaveSettings()
-                          }, 100)
                         }}
                         className={`relative h-6 w-12 cursor-pointer rounded-full transition-colors ${autoOpen ? 'bg-blue-500' : 'bg-gray-300'}`}
                       >
@@ -1065,6 +994,199 @@ export function ChatWidgetCreate() {
                       {autoOpen
                         ? 'Widget will automatically open when users visit your website'
                         : 'Users need to click the chat button to open the widget'}
+                    </p>
+                  </div>
+
+                  {/* Sound Notifications Toggle */}
+                  <div className='space-y-2'>
+                    <label className='block text-sm font-medium'>
+                      Sound Notifications
+                    </label>
+                    <div className='mt-2 flex items-center'>
+                      <div
+                        onClick={() => {
+                          const newValue = !soundEnabled
+                          setSoundEnabled(newValue)
+                        }}
+                        className={`relative h-6 w-12 cursor-pointer rounded-full transition-colors ${soundEnabled ? 'bg-blue-500' : 'bg-gray-300'}`}
+                      >
+                        <div
+                          className={`absolute top-[2px] h-5 w-5 rounded-full bg-white transition-transform ${soundEnabled ? 'translate-x-6' : 'translate-x-1'}`}
+                        ></div>
+                      </div>
+                      <span className='ml-2 text-sm'>
+                        {soundEnabled ? 'On' : 'Off'}
+                      </span>
+                    </div>
+                    <p className='text-xs text-gray-500'>
+                      Play a simple tone on first load and on message send.
+                    </p>
+                  </div>
+
+                  {/* Assistant Persona (multi-select) */}
+                  <div className='space-y-2'>
+                    <label className='block text-sm font-medium'>
+                      Assistant Persona
+                    </label>
+                    <div className='flex flex-wrap gap-2 '>
+                      {[
+                        'Helpful',
+                        'Professional',
+                        'Warm',
+                        'Conversational',
+                        'Concise',
+                        'Direct',
+                        'Expert',
+                        'Formal',
+                        'Clinical',
+                        'Reassuring',
+                      ].map((tag) => {
+                        const checked = aiPersonaTags.includes(tag)
+                        return (
+                          <label
+                            key={tag}
+                            className='flex cursor-pointer items-center gap-2 rounded border px-2 py-1 text-sm'
+                          >
+                            <input
+                              type='checkbox'
+                              checked={checked}
+                              onChange={(e) => {
+                                const isChecked = e.target.checked
+                                setAiPersonaTags((prev) => {
+                                  if (isChecked)
+                                    return Array.from(new Set([...prev, tag]))
+                                  return prev.filter((t) => t !== tag)
+                                })
+                              }}
+                            />
+                            <span>{tag}</span>
+                          </label>
+                        )
+                      })}
+                    </div>
+                    <p className='text-xs text-gray-500'>
+                      Select multiple to shape tone and style. Applied on
+                      Update.
+                    </p>
+                  </div>
+
+                  {/* Font Selection */}
+                  <div className='space-y-2'>
+                    <label className='block text-sm font-medium'>
+                      Font Family
+                    </label>
+                    <div className='mt-2 flex items-center gap-2'>
+                      <select
+                        value={fontName}
+                        onChange={(e) => {
+                          const newFont = e.target.value
+                          setFontName(newFont)
+                        }}
+                        className='w-[500px] rounded-md border border-gray-300 p-2 text-sm'
+                      >
+                        {[
+                          {
+                            label: 'Arial',
+                            value: 'Arial, Helvetica, sans-serif',
+                          },
+                          {
+                            label: 'Inter',
+                            value:
+                              "'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
+                          },
+                          {
+                            label: 'Roboto',
+                            value:
+                              "'Roboto', 'Helvetica Neue', Arial, sans-serif",
+                          },
+                          {
+                            label: 'Poppins',
+                            value:
+                              "'Poppins', 'Helvetica Neue', Arial, sans-serif",
+                          },
+                          {
+                            label: 'Open Sans',
+                            value:
+                              "'Open Sans', 'Helvetica Neue', Arial, sans-serif",
+                          },
+                          {
+                            label: 'Montserrat',
+                            value:
+                              "'Montserrat', 'Helvetica Neue', Arial, sans-serif",
+                          },
+                          {
+                            label: 'Lato',
+                            value:
+                              "'Lato', 'Helvetica Neue', Arial, sans-serif",
+                          },
+                          {
+                            label: 'Nunito',
+                            value:
+                              "'Nunito', 'Helvetica Neue', Arial, sans-serif",
+                          },
+                          {
+                            label: 'Work Sans',
+                            value:
+                              "'Work Sans', 'Helvetica Neue', Arial, sans-serif",
+                          },
+                          {
+                            label: 'Source Sans Pro',
+                            value:
+                              "'Source Sans Pro', 'Helvetica Neue', Arial, sans-serif",
+                          },
+                          {
+                            label: 'IBM Plex Sans',
+                            value:
+                              "'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif",
+                          },
+                          {
+                            label: 'Playfair Display',
+                            value:
+                              "'Playfair Display', 'Times New Roman', serif",
+                          },
+                          {
+                            label: 'Merriweather',
+                            value:
+                              "'Merriweather', Georgia, 'Times New Roman', serif",
+                          },
+                          {
+                            label: 'Lora',
+                            value: "'Lora', Georgia, 'Times New Roman', serif",
+                          },
+                          {
+                            label: 'Georgia',
+                            value: 'Georgia, "Times New Roman", serif',
+                          },
+                          {
+                            label: 'Times New Roman',
+                            value: '"Times New Roman", Times, serif',
+                          },
+                          {
+                            label: 'Trebuchet MS',
+                            value: '"Trebuchet MS", Tahoma, sans-serif',
+                          },
+                          {
+                            label: 'System UI',
+                            value:
+                              'system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif',
+                          },
+                          {
+                            label: 'Verdana',
+                            value: 'Verdana, Geneva, sans-serif',
+                          },
+                        ].map((opt) => (
+                          <option
+                            key={opt.label}
+                            value={opt.value}
+                            style={{ fontFamily: opt.value }}
+                          >
+                            {opt.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <p className='text-xs text-gray-500'>
+                      Select a font for your chat widget UI.
                     </p>
                   </div>
 
@@ -1084,10 +1206,6 @@ export function ChatWidgetCreate() {
                       <div
                         onClick={() => {
                           setVideoEnabled(!videoEnabled)
-                          // Automatically save to server when video enabled setting changes
-                          setTimeout(() => {
-                            handleSaveSettings()
-                          }, 100)
                         }}
                         className={`relative h-6 w-12 cursor-pointer rounded-full transition-colors ${videoEnabled ? 'bg-blue-500' : 'bg-gray-300'}`}
                       >
@@ -1184,10 +1302,6 @@ export function ChatWidgetCreate() {
                           <div
                             onClick={() => {
                               setVideoAutoplay(!videoAutoplay)
-                              // Automatically save to server when video autoplay setting changes
-                              setTimeout(() => {
-                                handleSaveSettings()
-                              }, 100)
                             }}
                             className={`relative h-6 w-12 cursor-pointer rounded-full transition-colors ${videoAutoplay ? 'bg-blue-500' : 'bg-gray-300'}`}
                           >
@@ -1241,10 +1355,6 @@ export function ChatWidgetCreate() {
                           key={option.value}
                           onClick={() => {
                             setBotBehavior(option.value)
-                            // Automatically save to server when bot behavior changes
-                            setTimeout(() => {
-                              handleSaveSettings()
-                            }, 100)
                           }}
                           className={`rounded-md px-3 py-1 text-sm ${
                             botBehavior === option.value
@@ -1265,7 +1375,10 @@ export function ChatWidgetCreate() {
             <div className='w-[320px]'>
               <div className='sticky top-6'>
                 <div className='relative'>
-                  <div className='h-[500px] w-[300px] overflow-hidden rounded-xl border bg-white shadow-lg'>
+                  <div
+                    className='h-[500px] w-[300px] overflow-hidden rounded-xl border bg-white shadow-lg'
+                    style={{ fontFamily: fontName }}
+                  >
                     {/* Chat header */}
                     <div
                       className='p-4 text-white'
@@ -1378,8 +1491,35 @@ export function ChatWidgetCreate() {
           variant='default'
           className='bg-black text-white dark:bg-slate-950'
           onClick={handleNext}
+          disabled={isSaving}
+          aria-busy={isSaving}
         >
-          Next
+          {isSaving ? (
+            <span className='inline-flex items-center gap-2'>
+              <svg
+                className='h-4 w-4 animate-spin'
+                viewBox='0 0 24 24'
+                fill='none'
+              >
+                <circle
+                  className='opacity-25'
+                  cx='12'
+                  cy='12'
+                  r='10'
+                  stroke='currentColor'
+                  strokeWidth='4'
+                />
+                <path
+                  className='opacity-75'
+                  fill='currentColor'
+                  d='M4 12a8 8 0 018-8V0a12 12 0 100 24v-4a8 8 0 01-8-8z'
+                />
+              </svg>
+              Saving...
+            </span>
+          ) : (
+            'Next'
+          )}
         </Button>
       </div>
     </div>

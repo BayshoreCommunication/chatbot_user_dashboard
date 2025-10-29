@@ -10,11 +10,11 @@ import axios from 'axios'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 const colorOptions = [
-  { value: 'black', bgClass: 'bg-black', hex: '#000000' },
-  { value: 'red', bgClass: 'bg-red-500', hex: '#ef4444' },
-  { value: 'orange', bgClass: 'bg-orange-500', hex: '#f97316' },
-  { value: 'blue', bgClass: 'bg-blue-500', hex: '#3b82f6' },
-  { value: 'pink', bgClass: 'bg-pink-500', hex: '#ec4899' },
+  { bgClass: 'bg-black', value: '#000000' },
+  { bgClass: 'bg-red-500', value: '#ef4444' },
+  { bgClass: 'bg-orange-500', value: '#f97316' },
+  { bgClass: 'bg-blue-500', value: '#3b82f6' },
+  { bgClass: 'bg-pink-500', value: '#ec4899' },
 ]
 
 export function ChatWidgetUpdate() {
@@ -37,6 +37,11 @@ export function ChatWidgetUpdate() {
   const [videoUrl, setVideoUrl] = useState('')
   const [videoAutoplay, setVideoAutoplay] = useState(true)
   const [videoDuration, setVideoDuration] = useState(10)
+  const [fontName, setFontName] = useState('Arial')
+  const [soundEnabled, setSoundEnabled] = useState(false)
+  const [aiPersonaTags, setAiPersonaTags] = useState<string[]>([])
+  const [isSaving, setIsSaving] = useState(false)
+  // flat list now used directly in the select below (see options)
   // const [currentVideo, setCurrentVideo] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
   const videoFileInputRef = useRef<HTMLInputElement>(null)
@@ -107,8 +112,29 @@ export function ChatWidgetUpdate() {
           if (settings.avatarUrl) {
             setAvatarUrl(settings.avatarUrl)
           }
-          if (settings.auto_open !== undefined) {
+          // Support new key auto_open_widget; fall back to legacy auto_open
+          if (settings.auto_open_widget !== undefined) {
+            setAutoOpen(settings.auto_open_widget)
+          } else if (settings.auto_open !== undefined) {
             setAutoOpen(settings.auto_open)
+          }
+
+          // Font name
+          if (settings.font_name) {
+            setFontName(settings.font_name)
+          }
+
+          // Sound notifications (top-level enabled toggle)
+          if (
+            settings.sound_notifications &&
+            typeof settings.sound_notifications.enabled === 'boolean'
+          ) {
+            setSoundEnabled(settings.sound_notifications.enabled)
+          }
+
+          // Persona tags
+          if (Array.isArray(settings.ai_persona_tags)) {
+            setAiPersonaTags(settings.ai_persona_tags)
           }
 
           // Load video settings from the main settings if they exist
@@ -132,21 +158,23 @@ export function ChatWidgetUpdate() {
             }
           }
 
-          // Handle custom color
-          if (
-            settings.selectedColor &&
-            settings.selectedColor.startsWith('#')
-          ) {
-            setIsCustomColor(true)
-            setCustomColor(settings.selectedColor)
-            setSelectedColor('custom')
-          } else {
-            const colorOption = colorOptions.find(
+          // Handle preset vs custom color using hex values
+          if (settings.selectedColor) {
+            setSelectedColor(settings.selectedColor)
+            const preset = colorOptions.find(
               (c) => c.value === settings.selectedColor
             )
-            if (colorOption) {
-              setCustomColor(colorOption.hex)
+            if (preset) {
+              setIsCustomColor(false)
+              setCustomColor(preset.value)
+            } else {
+              setIsCustomColor(true)
+              setCustomColor(settings.selectedColor)
             }
+          } else {
+            setSelectedColor('#000000')
+            setIsCustomColor(false)
+            setCustomColor('#000000')
           }
         }
 
@@ -177,11 +205,15 @@ export function ChatWidgetUpdate() {
     avatarUrl?: string
     autoOpen?: boolean
     aiBehavior?: string
+    fontName?: string
+    soundEnabled?: boolean
+    aiPersonaTags?: string[]
   }) => {
     if (!apiKey) return
 
     // Use overrides if provided, otherwise use current state
-    const settingsToSave = {
+    setIsSaving(true)
+    const settingsToSave: Record<string, unknown> = {
       name: overrides?.name ?? name,
       selectedColor:
         (overrides?.isCustomColor ?? isCustomColor)
@@ -190,9 +222,34 @@ export function ChatWidgetUpdate() {
       leadCapture: overrides?.leadCapture ?? leadCapture,
       botBehavior: overrides?.botBehavior ?? botBehavior,
       avatarUrl: overrides?.avatarUrl ?? avatarUrl,
+      // New canonical key
+      auto_open_widget: overrides?.autoOpen ?? autoOpen,
+      // Keep legacy for backward compatibility
       auto_open: overrides?.autoOpen ?? autoOpen,
       ai_behavior: overrides?.aiBehavior ?? aiBehavior,
       is_bot_connected: false,
+    }
+
+    // Add font name
+    settingsToSave.font_name = overrides?.fontName ?? fontName
+
+    // Add sound notifications toggle; include nested defaults to avoid wiping structure
+    if (typeof (overrides?.soundEnabled ?? soundEnabled) === 'boolean') {
+      settingsToSave.sound_notifications = {
+        enabled: overrides?.soundEnabled ?? soundEnabled,
+        welcome_sound: { enabled: true, play_on_first_load: true },
+        message_sound: { enabled: true, play_on_send: true },
+      }
+    }
+
+    // Add persona tags and derive ai_behavior from them (simple join)
+    const personaTagsToSave = overrides?.aiPersonaTags ?? aiPersonaTags
+    if (Array.isArray(personaTagsToSave)) {
+      settingsToSave.ai_persona_tags = personaTagsToSave
+      if (personaTagsToSave.length > 0) {
+        const descriptor = personaTagsToSave.join(', ')
+        settingsToSave.ai_behavior = `You are a ${descriptor} AI assistant. Focus on being ${descriptor.toLowerCase()} while providing accurate, clear answers.`
+      }
     }
 
     try {
@@ -224,6 +281,8 @@ export function ChatWidgetUpdate() {
         description: 'Failed to save settings',
         variant: 'destructive',
       })
+    } finally {
+      setIsSaving(false)
     }
   }
 
@@ -231,26 +290,12 @@ export function ChatWidgetUpdate() {
     setSelectedColor(colorValue)
     setIsCustomColor(false)
     setCustomColor(hexValue)
-
-    // Automatically save to server when default color is selected with new values
-    handleSaveSettings({
-      selectedColor: colorValue,
-      customColor: hexValue,
-      isCustomColor: false,
-    })
   }
 
   const handleCustomColorPick = (color: string) => {
     setCustomColor(color)
     setSelectedColor('custom')
     setIsCustomColor(true)
-
-    // Call API to save the color with new values
-    handleSaveSettings({
-      customColor: color,
-      selectedColor: 'custom',
-      isCustomColor: true,
-    })
   }
 
   const getCurrentColor = () => {
@@ -258,7 +303,7 @@ export function ChatWidgetUpdate() {
       return customColor
     }
     const colorOption = colorOptions.find((c) => c.value === selectedColor)
-    return colorOption?.hex || '#000000'
+    return colorOption?.value || '#000000'
   }
 
   const botBehaviorOptions = [
@@ -713,24 +758,18 @@ export function ChatWidgetUpdate() {
                     </h3>
                   </div>
 
-                  {/* Name Input */}
+                  {/* Chatbot Header Title */}
                   <div className='space-y-2'>
                     <label htmlFor='name' className='block text-sm font-medium'>
-                      Your Name
+                      Chatbot Title
                     </label>
                     <div className='flex gap-2'>
                       <Input
                         id='name'
                         value={name}
                         onChange={(e) => setName(e.target.value)}
-                        className='flex-1'
+                        className='w-[500px]'
                       />
-                      <Button
-                        onClick={() => handleSaveSettings()}
-                        className='bg-blue-600 text-white hover:bg-blue-700'
-                      >
-                        Update
-                      </Button>
                     </div>
                   </div>
 
@@ -750,7 +789,7 @@ export function ChatWidgetUpdate() {
                             <button
                               key={color.value}
                               onClick={() =>
-                                handleColorSelect(color.value, color.hex)
+                                handleColorSelect(color.value, color.value)
                               }
                               className={`h-10 w-10 rounded-full ${color.bgClass} flex items-center justify-center transition-all hover:scale-110 ${
                                 selectedColor === color.value && !isCustomColor
@@ -936,8 +975,6 @@ export function ChatWidgetUpdate() {
                         onClick={() => {
                           const newValue = !leadCapture
                           setLeadCapture(newValue)
-                          // Automatically save to server when lead capture setting changes
-                          handleSaveSettings({ leadCapture: newValue })
                         }}
                         className={`relative h-6 w-12 cursor-pointer rounded-full transition-colors ${leadCapture ? 'bg-blue-500' : 'bg-gray-300'}`}
                       >
@@ -959,8 +996,6 @@ export function ChatWidgetUpdate() {
                         onClick={() => {
                           const newValue = !autoOpen
                           setAutoOpen(newValue)
-                          // Automatically save to server when auto-open setting changes
-                          handleSaveSettings({ autoOpen: newValue })
                         }}
                         className={`relative h-6 w-12 cursor-pointer rounded-full transition-colors ${autoOpen ? 'bg-blue-500' : 'bg-gray-300'}`}
                       >
@@ -979,10 +1014,203 @@ export function ChatWidgetUpdate() {
                     </p>
                   </div>
 
+                  {/* Sound Notifications Toggle */}
+                  <div className='space-y-2'>
+                    <label className='block text-sm font-medium'>
+                      Sound Notifications
+                    </label>
+                    <div className='mt-2 flex items-center'>
+                      <div
+                        onClick={() => {
+                          const newValue = !soundEnabled
+                          setSoundEnabled(newValue)
+                        }}
+                        className={`relative h-6 w-12 cursor-pointer rounded-full transition-colors ${soundEnabled ? 'bg-blue-500' : 'bg-gray-300'}`}
+                      >
+                        <div
+                          className={`absolute top-[2px] h-5 w-5 rounded-full bg-white transition-transform ${soundEnabled ? 'translate-x-6' : 'translate-x-1'}`}
+                        ></div>
+                      </div>
+                      <span className='ml-2 text-sm'>
+                        {soundEnabled ? 'On' : 'Off'}
+                      </span>
+                    </div>
+                    <p className='text-xs text-gray-500'>
+                      Play a simple tone on first load and on message send.
+                    </p>
+                  </div>
+
+                  {/* AI Persona (multi-select) */}
+                  <div className='space-y-2'>
+                    <label className='block text-sm font-medium'>
+                      Assistant Persona
+                    </label>
+                    <div className='flex flex-wrap gap-2 '>
+                      {[
+                        'Helpful',
+                        'Professional',
+                        'Warm',
+                        'Conversational',
+                        'Concise',
+                        'Direct',
+                        'Expert',
+                        'Formal',
+                        'Clinical',
+                        'Reassuring',
+                      ].map((tag) => {
+                        const checked = aiPersonaTags.includes(tag)
+                        return (
+                          <label
+                            key={tag}
+                            className='flex cursor-pointer items-center gap-2 rounded border px-2 py-1 text-sm'
+                          >
+                            <input
+                              type='checkbox'
+                              checked={checked}
+                              onChange={(e) => {
+                                const isChecked = e.target.checked
+                                setAiPersonaTags((prev) => {
+                                  if (isChecked)
+                                    return Array.from(new Set([...prev, tag]))
+                                  return prev.filter((t) => t !== tag)
+                                })
+                              }}
+                            />
+                            <span>{tag}</span>
+                          </label>
+                        )
+                      })}
+                    </div>
+                    <p className='text-xs text-gray-500'>
+                      Select multiple to shape tone and style. Applied on
+                      Update.
+                    </p>
+                  </div>
+
+                  {/* Font Selection */}
+                  <div className='space-y-2'>
+                    <label className='block text-sm font-medium'>
+                      Font Family
+                    </label>
+                    <div className='mt-2 flex items-center gap-2'>
+                      <select
+                        value={fontName}
+                        onChange={(e) => {
+                          const newFont = e.target.value
+                          setFontName(newFont)
+                        }}
+                        className='w-[500px] rounded-md border border-gray-300 p-2 text-sm'
+                      >
+                        {[
+                          {
+                            label: 'Arial',
+                            value: 'Arial, Helvetica, sans-serif',
+                          },
+                          {
+                            label: 'Inter',
+                            value:
+                              "'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
+                          },
+                          {
+                            label: 'Roboto',
+                            value:
+                              "'Roboto', 'Helvetica Neue', Arial, sans-serif",
+                          },
+                          {
+                            label: 'Poppins',
+                            value:
+                              "'Poppins', 'Helvetica Neue', Arial, sans-serif",
+                          },
+                          {
+                            label: 'Open Sans',
+                            value:
+                              "'Open Sans', 'Helvetica Neue', Arial, sans-serif",
+                          },
+                          {
+                            label: 'Montserrat',
+                            value:
+                              "'Montserrat', 'Helvetica Neue', Arial, sans-serif",
+                          },
+                          {
+                            label: 'Lato',
+                            value:
+                              "'Lato', 'Helvetica Neue', Arial, sans-serif",
+                          },
+                          {
+                            label: 'Nunito',
+                            value:
+                              "'Nunito', 'Helvetica Neue', Arial, sans-serif",
+                          },
+                          {
+                            label: 'Work Sans',
+                            value:
+                              "'Work Sans', 'Helvetica Neue', Arial, sans-serif",
+                          },
+                          {
+                            label: 'Source Sans Pro',
+                            value:
+                              "'Source Sans Pro', 'Helvetica Neue', Arial, sans-serif",
+                          },
+                          {
+                            label: 'IBM Plex Sans',
+                            value:
+                              "'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif",
+                          },
+                          {
+                            label: 'Playfair Display',
+                            value:
+                              "'Playfair Display', 'Times New Roman', serif",
+                          },
+                          {
+                            label: 'Merriweather',
+                            value:
+                              "'Merriweather', Georgia, 'Times New Roman', serif",
+                          },
+                          {
+                            label: 'Lora',
+                            value: "'Lora', Georgia, 'Times New Roman', serif",
+                          },
+                          {
+                            label: 'Georgia',
+                            value: 'Georgia, "Times New Roman", serif',
+                          },
+                          {
+                            label: 'Times New Roman',
+                            value: '"Times New Roman", Times, serif',
+                          },
+                          {
+                            label: 'Trebuchet MS',
+                            value: '"Trebuchet MS", Tahoma, sans-serif',
+                          },
+                          {
+                            label: 'System UI',
+                            value:
+                              'system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif',
+                          },
+                          {
+                            label: 'Verdana',
+                            value: 'Verdana, Geneva, sans-serif',
+                          },
+                        ].map((opt) => (
+                          <option
+                            key={opt.label}
+                            value={opt.value}
+                            style={{ fontFamily: opt.value }}
+                          >
+                            {opt.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <p className='text-xs text-gray-500'>
+                      Select a font for your chat widget UI.
+                    </p>
+                  </div>
+
                   {/* Video Upload */}
                   <div className='space-y-2'>
                     {/* Video Enable Toggle */}
-                    <div className='flex items-center justify-between pt-2'>
+                    <div className='mb-2 flex items-center justify-between pt-2'>
                       <div>
                         <p className='text-sm font-medium'>
                           Intro Welcome Video
@@ -1150,8 +1378,6 @@ export function ChatWidgetUpdate() {
                           key={option.value}
                           onClick={() => {
                             setBotBehavior(option.value)
-                            // Automatically save to server when bot behavior changes
-                            handleSaveSettings({ botBehavior: option.value })
                           }}
                           className={`rounded-md px-3 py-1 text-sm ${
                             botBehavior === option.value
@@ -1164,6 +1390,42 @@ export function ChatWidgetUpdate() {
                       ))}
                     </div>
                   </div>
+                  {/* Bottom Update Button */}
+                  <div className='pt-4'>
+                    <Button
+                      onClick={() => handleSaveSettings()}
+                      className='bg-blue-600 text-white hover:bg-blue-700'
+                      disabled={isSaving}
+                      aria-busy={isSaving}
+                    >
+                      {isSaving ? (
+                        <span className='inline-flex items-center gap-2'>
+                          <svg
+                            className='h-4 w-4 animate-spin'
+                            viewBox='0 0 24 24'
+                            fill='none'
+                          >
+                            <circle
+                              className='opacity-25'
+                              cx='12'
+                              cy='12'
+                              r='10'
+                              stroke='currentColor'
+                              strokeWidth='4'
+                            />
+                            <path
+                              className='opacity-75'
+                              fill='currentColor'
+                              d='M4 12a8 8 0 018-8V0a12 12 0 100 24v-4a8 8 0 01-8-8z'
+                            />
+                          </svg>
+                          Saving...
+                        </span>
+                      ) : (
+                        'Update'
+                      )}
+                    </Button>
+                  </div>
                 </div>
               </Card>
             </div>
@@ -1172,7 +1434,10 @@ export function ChatWidgetUpdate() {
             <div className='w-[320px]'>
               <div className='sticky top-6'>
                 <div className='relative'>
-                  <div className='h-[500px] w-[300px] overflow-hidden rounded-xl border bg-white shadow-lg'>
+                  <div
+                    className='h-[500px] w-[300px] overflow-hidden rounded-xl border bg-white shadow-lg'
+                    style={{ fontFamily: fontName }}
+                  >
                     {/* Chat header */}
                     <div
                       className='p-4 text-white'
