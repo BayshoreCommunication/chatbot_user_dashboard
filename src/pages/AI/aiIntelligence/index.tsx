@@ -2,6 +2,7 @@ import { Button } from '@/components/custom/button'
 import { LoadingSpinner } from '@/components/custom/loading-spinner'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useFaqIntelligence } from '@/hooks/useFaqIntelligence'
+import { useQueryClient } from '@tanstack/react-query'
 import { Brain, History, RefreshCw, TrendingUp } from 'lucide-react'
 import { useState } from 'react'
 import AnalysisHistory from './components/AnalysisHistory'
@@ -12,6 +13,7 @@ import QuickStats from './components/QuickStats'
 
 export default function AiIntelligence() {
   const [activeTab, setActiveTab] = useState('overview')
+  const queryClient = useQueryClient()
 
   const {
     latestAnalysis,
@@ -25,6 +27,11 @@ export default function AiIntelligence() {
   } = useFaqIntelligence()
 
   const isLoading = isLoadingAnalysis || isAnalyzing
+
+  const handleSuggestionAdded = () => {
+    // Refresh FAQ intelligence data after adding a new FAQ
+    queryClient.invalidateQueries({ queryKey: ['faqIntelligence'] })
+  }
 
   return (
     <div className='flex flex-col gap-6 p-6'>
@@ -89,6 +96,7 @@ export default function AiIntelligence() {
           <FAQSuggestions
             suggestions={latestAnalysis?.suggestions || []}
             isLoading={isLoading}
+            onSuggestionAdded={handleSuggestionAdded}
           />
         </TabsContent>
 

@@ -2,22 +2,44 @@ import { Button } from '@/components/custom/button'
 import { LoadingSpinner } from '@/components/custom/loading-spinner'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/components/ui/use-toast'
+import { useApiKey } from '@/hooks/useApiKey'
 import type { FAQSuggestion } from '@/hooks/useFaqIntelligence'
+import { getApiUrl } from '@/lib/utils'
+import axios from 'axios'
 import { CheckCircle, Copy, Lightbulb, Plus } from 'lucide-react'
 import { useState } from 'react'
 
 interface FAQSuggestionsProps {
   suggestions: FAQSuggestion[]
   isLoading: boolean
+  onSuggestionAdded?: () => void // Callback to refresh data after adding FAQ
 }
 
 export default function FAQSuggestions({
   suggestions,
   isLoading,
+  onSuggestionAdded,
 }: FAQSuggestionsProps) {
   const { toast } = useToast()
+  const { apiKey } = useApiKey()
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null)
+  const [faqDialogOpen, setFaqDialogOpen] = useState(false)
+  const [faqData, setFaqData] = useState({ question: '', answer: '' })
+  const [savingFaq, setSavingFaq] = useState(false)
+  const [currentSuggestionIndex, setCurrentSuggestionIndex] = useState<
+    number | null
+  >(null)
 
   const handleCopy = (suggestion: FAQSuggestion, index: number) => {
     const question = suggestion.question || ''
@@ -30,6 +52,104 @@ export default function FAQSuggestions({
       description: 'FAQ question and answer copied successfully',
     })
     setTimeout(() => setCopiedIndex(null), 2000)
+  }
+
+  const handleAddToFaq = (suggestion: FAQSuggestion, faqIndex: number) => {
+    setFaqData({
+      question: suggestion.question || '',
+      answer: suggestion.answer || suggestion.suggested_answer || '',
+    })
+    // Get the original index from the mapping
+    const originalIndex = faqToOriginalIndexMap.get(faqIndex)
+    setCurrentSuggestionIndex(originalIndex ?? null)
+    setFaqDialogOpen(true)
+  }
+
+  const handleSaveFaq = async () => {
+    if (!faqData.question || !faqData.answer) {
+      toast({
+        title: 'Error',
+        description: 'Please fill in both question and answer',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    if (!apiKey) {
+      toast({
+        title: 'Error',
+        description: 'API key not found',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    setSavingFaq(true)
+    try {
+      // Create FAQ
+      const faqResponse = await axios.post(
+        `${getApiUrl()}/api/faq/create`,
+        {
+          question: faqData.question,
+          response: faqData.answer,
+          is_active: true,
+          persistent_menu: false,
+        },
+        {
+          headers: {
+            'X-API-Key': apiKey,
+          },
+        }
+      )
+
+      if (!faqResponse.data) {
+        throw new Error('Failed to create FAQ')
+      }
+
+      // Remove the suggestion from the analysis report
+      if (currentSuggestionIndex !== null) {
+        try {
+          await axios.delete(
+            `${getApiUrl()}/api/faq-intelligence/suggestion/${currentSuggestionIndex}`,
+            {
+              headers: {
+                'X-API-Key': apiKey,
+              },
+            }
+          )
+          console.log(
+            `✅ Removed suggestion at index ${currentSuggestionIndex}`
+          )
+        } catch (removeErr) {
+          console.error('Error removing suggestion:', removeErr)
+          // Don't fail the whole operation if removal fails
+        }
+      }
+
+      toast({
+        title: 'Success',
+        description: 'FAQ added successfully',
+      })
+      setFaqDialogOpen(false)
+      setFaqData({ question: '', answer: '' })
+      setCurrentSuggestionIndex(null)
+
+      // Call the callback to refresh data if provided
+      if (onSuggestionAdded) {
+        onSuggestionAdded()
+      }
+    } catch (err) {
+      console.error('Error adding FAQ:', err)
+      const errorMessage =
+        err instanceof Error ? err.message : 'Failed to add FAQ'
+      toast({
+        title: 'Error',
+        description: errorMessage,
+        variant: 'destructive',
+      })
+    } finally {
+      setSavingFaq(false)
+    }
   }
 
   const getPriorityColor = (
@@ -80,6 +200,19 @@ export default function FAQSuggestions({
   const faqSuggestions = suggestions.filter(
     (s) => s.type === 'missing_faq' || (!s.type && s.question)
   )
+
+  // Create a map of faqSuggestion index to original suggestion index
+  const faqToOriginalIndexMap = new Map<number, number>()
+  let faqIndex = 0
+  suggestions.forEach((suggestion, originalIndex) => {
+    if (
+      suggestion.type === 'missing_faq' ||
+      (!suggestion.type && suggestion.question)
+    ) {
+      faqToOriginalIndexMap.set(faqIndex, originalIndex)
+      faqIndex++
+    }
+  })
 
   if (faqSuggestions.length === 0) {
     return (
@@ -155,6 +288,7 @@ export default function FAQSuggestions({
               suggestion={suggestion}
               index={index}
               onCopy={handleCopy}
+              onAddToFaq={handleAddToFaq}
               isCopied={copiedIndex === index}
               getPriorityColor={getPriorityColor}
             />
@@ -175,6 +309,7 @@ export default function FAQSuggestions({
               suggestion={suggestion}
               index={index + highPriority.length}
               onCopy={handleCopy}
+              onAddToFaq={handleAddToFaq}
               isCopied={copiedIndex === index + highPriority.length}
               getPriorityColor={getPriorityColor}
             />
@@ -195,6 +330,7 @@ export default function FAQSuggestions({
               suggestion={suggestion}
               index={index + highPriority.length + mediumPriority.length}
               onCopy={handleCopy}
+              onAddToFaq={handleAddToFaq}
               isCopied={
                 copiedIndex ===
                 index + highPriority.length + mediumPriority.length
@@ -204,6 +340,62 @@ export default function FAQSuggestions({
           ))}
         </div>
       )}
+
+      {/* FAQ Creation Dialog */}
+      <Dialog open={faqDialogOpen} onOpenChange={setFaqDialogOpen}>
+        <DialogContent className='max-w-2xl'>
+          <DialogHeader>
+            <DialogTitle>Add Suggested FAQ</DialogTitle>
+            <DialogDescription>
+              Review and edit the AI-suggested question and answer before adding
+              to your knowledge base
+            </DialogDescription>
+          </DialogHeader>
+          <div className='space-y-4 py-4'>
+            <div>
+              <label className='mb-2 block text-sm font-medium'>Question</label>
+              <Input
+                value={faqData.question}
+                onChange={(e) =>
+                  setFaqData({ ...faqData, question: e.target.value })
+                }
+                placeholder='Enter the FAQ question'
+              />
+            </div>
+            <div>
+              <label className='mb-2 block text-sm font-medium'>Answer</label>
+              <Textarea
+                value={faqData.answer}
+                onChange={(e) =>
+                  setFaqData({ ...faqData, answer: e.target.value })
+                }
+                placeholder='Enter the FAQ answer'
+                rows={8}
+                className='resize-none'
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant='outline'
+              onClick={() => setFaqDialogOpen(false)}
+              disabled={savingFaq}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleSaveFaq} disabled={savingFaq}>
+              {savingFaq ? (
+                <>
+                  <LoadingSpinner size='xs' />
+                  <span className='ml-2'>Saving...</span>
+                </>
+              ) : (
+                'Save as FAQ'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
@@ -213,6 +405,7 @@ interface SuggestionCardProps {
   suggestion: FAQSuggestion
   index: number
   onCopy: (suggestion: FAQSuggestion, index: number) => void
+  onAddToFaq: (suggestion: FAQSuggestion, index: number) => void
   isCopied: boolean
   getPriorityColor: (priority: string) => string
 }
@@ -221,6 +414,7 @@ function SuggestionCard({
   suggestion,
   index,
   onCopy,
+  onAddToFaq,
   isCopied,
   getPriorityColor,
 }: SuggestionCardProps) {
@@ -291,7 +485,11 @@ function SuggestionCard({
                 </>
               )}
             </Button>
-            <Button size='sm' variant='default'>
+            <Button
+              size='sm'
+              variant='default'
+              onClick={() => onAddToFaq(suggestion, index)}
+            >
               <Plus className='mr-1 h-4 w-4' />
               Add FAQ
             </Button>
