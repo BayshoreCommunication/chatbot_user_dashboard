@@ -1,6 +1,7 @@
 import {
   IconAdjustments,
   IconBoxSeam,
+  IconBrain,
   IconBulb,
   IconCalendar,
   IconCode,
@@ -109,6 +110,12 @@ export const sidelinks: SideLink[] = [
         label: '',
         href: '/dashboard/unknown-questions',
         icon: <IconQuestionMark size={18} />,
+      },
+      {
+        title: 'AI Intelligence',
+        label: '',
+        href: '/dashboard/ai-intelligence',
+        icon: <IconBrain size={18} />,
       },
     ],
   },
