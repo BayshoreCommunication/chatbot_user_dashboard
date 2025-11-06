@@ -9,16 +9,11 @@ import { getApiUrl } from '@/lib/utils'
 import ContentSection from '@/pages/settings/components/content-section'
 import axios from 'axios'
 import { CheckIcon, Plus, X } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 interface InstantMessage {
   id: string
-  message: string
-  order: number
-}
-
-interface ApiResponseMessage {
   message: string
   order: number
 }
@@ -35,7 +30,6 @@ export default function InstantReply() {
   ])
   const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
   const navigate = useNavigate()
   const { data: settings, isLoading: isSettingsLoading } =
     useChatWidgetSettings()
@@ -68,40 +62,40 @@ export default function InstantReply() {
     )
   }
 
-  useEffect(() => {
-    const loadInstantReply = async () => {
-      try {
-        const response = await axios.get(`${getApiUrl()}/api/instant-reply`, {
-          headers: {
-            'X-API-Key': apiKey,
-          },
-        })
+  // useEffect(() => {
+  //   const loadInstantReply = async () => {
+  //     try {
+  //       const response = await axios.get(`${getApiUrl()}/api/instant-reply`, {
+  //         headers: {
+  //           'X-API-Key': apiKey,
+  //         },
+  //       })
 
-        if (response.data.status === 'success' && response.data.data) {
-          const responseMessages = response.data.data.messages || []
-          if (responseMessages.length > 0) {
-            const formattedMessages = responseMessages.map(
-              (msg: ApiResponseMessage, index: number) => ({
-                id: `${index + 1}`,
-                message: msg.message,
-                order: msg.order || index + 1,
-              })
-            )
-            setMessages(formattedMessages)
-          }
-          setIsEnabled(response.data.data.isActive)
-        }
-      } catch (error) {
-        console.error('Error loading instant reply:', error)
-      } finally {
-        setIsLoading(false)
-      }
-    }
+  //       if (response.data.status === 'success' && response.data.data) {
+  //         const responseMessages = response.data.data.messages || []
+  //         if (responseMessages.length > 0) {
+  //           const formattedMessages = responseMessages.map(
+  //             (msg: ApiResponseMessage, index: number) => ({
+  //               id: `${index + 1}`,
+  //               message: msg.message,
+  //               order: msg.order || index + 1,
+  //             })
+  //           )
+  //           setMessages(formattedMessages)
+  //         }
+  //         setIsEnabled(response.data.data.isActive)
+  //       }
+  //     } catch (error) {
+  //       console.error('Error loading instant reply:', error)
+  //     } finally {
+  //       setIsLoading(false)
+  //     }
+  //   }
 
-    if (apiKey) {
-      loadInstantReply()
-    }
-  }, [apiKey])
+  //   if (apiKey) {
+  //     loadInstantReply()
+  //   }
+  // }, [apiKey])
 
   const handleSave = async () => {
     try {
@@ -140,8 +134,8 @@ export default function InstantReply() {
     }
   }
 
-  // Show loading spinner while settings or instant reply are loading
-  if (isSettingsLoading || isLoading) {
+  // Show loading spinner while settings are loading
+  if (isSettingsLoading) {
     return (
       <div className='flex h-[calc(100vh-120px)] w-full items-center justify-center'>
         <LoadingSpinner size='lg' text='Loading preview...' />

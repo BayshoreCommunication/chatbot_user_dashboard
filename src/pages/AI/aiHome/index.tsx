@@ -110,7 +110,7 @@ export default function AutomationSMS() {
         try {
           console.log('Fetching Instant Reply data...')
           const instantReplyResponse =
-            await axiosPublic.get<InstantReplyResponse>('/api/instant-reply', {
+            await axiosPublic.get<InstantReplyResponse>('/api/instant-reply/', {
               headers: {
                 'X-API-Key': apiKey,
               },
@@ -244,7 +244,7 @@ export default function AutomationSMS() {
       } else if (type === 'instant-reply') {
         // For instant reply, we need to get the current messages and update the isActive status
         const instantReplyResponse = await axiosPublic.get(
-          '/api/instant-reply',
+          '/api/instant-reply/',
           {
             headers: {
               'X-API-Key': apiKey,
@@ -256,7 +256,7 @@ export default function AutomationSMS() {
         const currentMessages = currentData.messages || []
 
         await axiosPublic.post(
-          '/api/instant-reply',
+          '/api/instant-reply/',
           {
             messages: currentMessages,
             isActive: !currentStatus,
