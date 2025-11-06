@@ -62,40 +62,40 @@ export default function InstantReply() {
     )
   }
 
-  // useEffect(() => {
-  //   const loadInstantReply = async () => {
-  //     try {
-  //       const response = await axios.get(`${getApiUrl()}/api/instant-reply`, {
-  //         headers: {
-  //           'X-API-Key': apiKey,
-  //         },
-  //       })
+  useEffect(() => {
+    const loadInstantReply = async () => {
+      try {
+        const response = await axios.get(`${getApiUrl()}/api/instant-reply/`, {
+          headers: {
+            'X-API-Key': apiKey,
+          },
+        })
 
-  //       if (response.data.status === 'success' && response.data.data) {
-  //         const responseMessages = response.data.data.messages || []
-  //         if (responseMessages.length > 0) {
-  //           const formattedMessages = responseMessages.map(
-  //             (msg: ApiResponseMessage, index: number) => ({
-  //               id: `${index + 1}`,
-  //               message: msg.message,
-  //               order: msg.order || index + 1,
-  //             })
-  //           )
-  //           setMessages(formattedMessages)
-  //         }
-  //         setIsEnabled(response.data.data.isActive)
-  //       }
-  //     } catch (error) {
-  //       console.error('Error loading instant reply:', error)
-  //     } finally {
-  //       setIsLoading(false)
-  //     }
-  //   }
+        if (response.data.status === 'success' && response.data.data) {
+          const responseMessages = response.data.data.messages || []
+          if (responseMessages.length > 0) {
+            const formattedMessages = responseMessages.map(
+              (msg: ApiResponseMessage, index: number) => ({
+                id: `${index + 1}`,
+                message: msg.message,
+                order: msg.order || index + 1,
+              })
+            )
+            setMessages(formattedMessages)
+          }
+          setIsEnabled(response.data.data.isActive)
+        }
+      } catch (error) {
+        console.error('Error loading instant reply:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
 
-  //   if (apiKey) {
-  //     loadInstantReply()
-  //   }
-  // }, [apiKey])
+    if (apiKey) {
+      loadInstantReply()
+    }
+  }, [apiKey])
 
   const handleSave = async () => {
     try {
