@@ -9,11 +9,16 @@ import { getApiUrl } from '@/lib/utils'
 import ContentSection from '@/pages/settings/components/content-section'
 import axios from 'axios'
 import { CheckIcon, Plus, X } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 interface InstantMessage {
   id: string
+  message: string
+  order: number
+}
+
+interface ApiResponseMessage {
   message: string
   order: number
 }
@@ -87,8 +92,6 @@ export default function InstantReply() {
         }
       } catch (error) {
         console.error('Error loading instant reply:', error)
-      } finally {
-        setIsLoading(false)
       }
     }
 
