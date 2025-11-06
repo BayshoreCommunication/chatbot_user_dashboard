@@ -5,6 +5,7 @@ import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { useApiKey } from '@/hooks/useApiKey'
 import { useChatWidgetSettings } from '@/hooks/useChatWidgetSettings'
+import { getApiUrl } from '@/lib/utils'
 import ContentSection from '@/pages/settings/components/content-section'
 import axios from 'axios'
 import { CheckIcon, Plus, X } from 'lucide-react'
@@ -70,14 +71,11 @@ export default function InstantReply() {
   useEffect(() => {
     const loadInstantReply = async () => {
       try {
-        const response = await axios.get(
-          `${import.meta.env.VITE_API_URL}/api/instant-reply/`,
-          {
-            headers: {
-              'X-API-Key': apiKey,
-            },
-          }
-        )
+        const response = await axios.get(`${getApiUrl()}/api/instant-reply`, {
+          headers: {
+            'X-API-Key': apiKey,
+          },
+        })
 
         if (response.data.status === 'success' && response.data.data) {
           const responseMessages = response.data.data.messages || []
@@ -114,7 +112,7 @@ export default function InstantReply() {
       )
 
       await axios.post(
-        `${import.meta.env.VITE_API_URL}/api/instant-reply/`,
+        `${getApiUrl()}/api/instant-reply/`,
         {
           messages: filteredMessages.map((msg) => ({
             message: msg.message,
