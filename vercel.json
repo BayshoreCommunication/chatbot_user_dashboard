@@ -1,9 +1,8 @@
 {
-  "routes": [
+  "rewrites": [
     {
-      "src": "/[^.]+",
-      "dest": "/",
-      "status": 200
+      "source": "/((?!.*\\.).*)",
+      "destination": "/index.html"
     }
   ],
   "headers": [
@@ -23,15 +22,5 @@
   ],
   "github": {
     "silent": true
-  },
-  "env": {
-    "VITE_API_URL": "https://api.bayshorecommunication.org",
-    "VITE_BOT_URL": "https://aibotwidget.bayshorecommunication.org/chatbot-widget.min.js"
-  },
-  "build": {
-    "env": {
-      "VITE_API_URL": "https://api.bayshorecommunication.org",
-      "VITE_BOT_URL": "https://aibotwidget.bayshorecommunication.org/chatbot-widget.min.js"
-    }
   }
 }
