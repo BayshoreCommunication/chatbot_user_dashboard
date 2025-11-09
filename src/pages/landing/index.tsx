@@ -31,7 +31,7 @@ import {
   Users,
   Zap,
 } from 'lucide-react'
-import { lazy, memo, Suspense, useState } from 'react'
+import { lazy, memo, Suspense, useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
 // Lazy load components that are below the fold
@@ -351,7 +351,24 @@ export default function LandingPage() {
   const navigate = useNavigate()
   const [loading, setLoading] = useState<string | null>(null)
   const [isYearly, setIsYearly] = useState(false)
+  const [showSubscriptionAlert, setShowSubscriptionAlert] = useState(false)
   const prefersReducedMotion = useReducedMotion()
+
+  // Check if user was redirected due to missing subscription
+  useEffect(() => {
+    const subscriptionRequired = localStorage.getItem('subscription_required')
+    if (subscriptionRequired === 'true') {
+      setShowSubscriptionAlert(true)
+      localStorage.removeItem('subscription_required')
+      
+      // Auto-hide alert after 10 seconds
+      const timer = setTimeout(() => {
+        setShowSubscriptionAlert(false)
+      }, 10000)
+      
+      return () => clearTimeout(timer)
+    }
+  }, [])
 
   const { scrollY } = useScroll()
   const y1 = useTransform(
@@ -519,6 +536,37 @@ export default function LandingPage() {
       fallback={<div className='min-h-screen bg-white dark:bg-black' />}
     >
       <div className='relative min-h-screen overflow-hidden bg-white dark:bg-black'>
+        {/* Subscription Required Alert */}
+        {showSubscriptionAlert && (
+          <motion.div
+            initial={{ opacity: 0, y: -50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -50 }}
+            className='fixed top-20 left-1/2 transform -translate-x-1/2 z-50 max-w-lg w-full mx-4'
+          >
+            <div className='bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 shadow-lg'>
+              <div className='flex items-start'>
+                <Shield className='h-5 w-5 text-yellow-600 dark:text-yellow-400 mt-0.5 mr-3' />
+                <div className='flex-1'>
+                  <h3 className='text-sm font-semibold text-yellow-800 dark:text-yellow-200'>
+                    Subscription Required
+                  </h3>
+                  <p className='mt-1 text-sm text-yellow-700 dark:text-yellow-300'>
+                    You need an active subscription to access the dashboard. Please choose a plan below to continue.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowSubscriptionAlert(false)}
+                  className='ml-3 text-yellow-600 dark:text-yellow-400 hover:text-yellow-800 dark:hover:text-yellow-200'
+                >
+                  <span className='sr-only'>Close</span>
+                  ✕
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
         {/* Optimized background with reduced layers */}
         <div
           className='fixed inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-gray-100 via-white to-gray-50 opacity-50 dark:from-gray-900 dark:via-black dark:to-black'

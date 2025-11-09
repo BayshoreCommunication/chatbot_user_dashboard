@@ -6,6 +6,7 @@ import GeneralError from './pages/errors/general-error'
 import MaintenanceError from './pages/errors/maintenance-error'
 import NotFoundError from './pages/errors/not-found-error'
 import UnauthorisedError from './pages/errors/unauthorised-error.tsx'
+import ProtectedRoute from './components/ProtectedRoute'
 
 const router = createBrowserRouter([
   {
@@ -54,21 +55,25 @@ const router = createBrowserRouter([
     }),
   },
 
-  // Main routes
+  // Main routes - Protected by subscription check
   {
     path: '/dashboard',
-    lazy: async () => {
-      const AppShell = await import('./components/app-shell')
-      return { Component: AppShell.default }
-    },
+    element: <ProtectedRoute />,
     errorElement: <GeneralError />,
     children: [
       {
-        index: true,
-        lazy: async () => ({
-          Component: (await import('./pages/dashboard')).default,
-        }),
-      },
+        path: '',
+        lazy: async () => {
+          const AppShell = await import('./components/app-shell')
+          return { Component: AppShell.default }
+        },
+        children: [
+          {
+            index: true,
+            lazy: async () => ({
+              Component: (await import('./pages/dashboard')).default,
+            }),
+          },
       {
         path: 'chats',
         lazy: async () => ({
@@ -307,6 +312,8 @@ const router = createBrowserRouter([
         lazy: async () => ({
           Component: (await import('@/pages/leads/index.tsx')).default,
         }),
+      },
+        ],
       },
     ],
   },
