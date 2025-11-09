@@ -72,8 +72,8 @@ const pricingPlans: PricingPlan[] = [
       'Multi-channel integration',
       'No credit card required',
     ],
-    stripePriceIdMonthly: 'price_1SRPeQFS3P7wS29bX1eKX4qD',
-    stripePriceIdYearly: 'price_1SRPeQFS3P7wS29bX1eKX4qD',
+    stripePriceIdMonthly: 'price_1RyxWWFS3P7wS29bZsXvMCOR',
+    stripePriceIdYearly: 'price_1RyxWWFS3P7wS29bZsXvMCOR',
   },
   {
     id: 'professional',
@@ -90,7 +90,7 @@ const pricingPlans: PricingPlan[] = [
       'Custom branding & themes',
     ],
     recommended: true,
-    stripePriceIdMonthly: 'price_1RyxWWFS3P7wS29bZsXvMCOR',
+    stripePriceIdMonthly: 'price_1RyxVtFS3P7wS29b940JDA7E',
     stripePriceIdYearly: 'price_1SRPfGFS3P7wS29b1LEGA6HR',
   },
   {
@@ -465,7 +465,19 @@ export default function LandingPage() {
 
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.detail || 'Failed to create checkout session')
+        const errorMessage =
+          errorData.detail || 'Failed to create checkout session'
+
+        // Show user-friendly error message
+        if (errorMessage.includes('already used your free trial')) {
+          alert(
+            'You have already used your free trial. Please select a paid plan to continue.'
+          )
+        } else {
+          alert(errorMessage)
+        }
+
+        throw new Error(errorMessage)
       }
 
       const { sessionId } = await response.json()
@@ -485,6 +497,16 @@ export default function LandingPage() {
       }
     } catch (error) {
       console.error('Payment error:', error)
+
+      // Show user-friendly error message
+      if (error instanceof Error) {
+        if (!error.message.includes('already used your free trial')) {
+          alert(`Error: ${error.message}`)
+        }
+      } else {
+        alert('An unexpected error occurred. Please try again.')
+      }
+
       // Remove organization data if payment fails
       localStorage.removeItem('organization')
     } finally {

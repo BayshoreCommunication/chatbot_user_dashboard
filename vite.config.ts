@@ -13,10 +13,14 @@ export default defineConfig({
   server: {
     port: 5173, // Changed from 3000 to 5173 for Google OAuth
     host: true,
+    cors: true, // Enable CORS
     headers: {
       'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
       'Cross-Origin-Embedder-Policy': 'unsafe-none',
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers':
+        'Origin, X-Requested-With, Content-Type, Accept',
     },
-    // Remove proxy for local development - use direct API calls
   },
 })

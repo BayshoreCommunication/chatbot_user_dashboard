@@ -9,6 +9,13 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { useUser } from '@/context/UserContext'
 import { cn } from '@/lib/utils'
@@ -24,6 +31,20 @@ interface UserAuthFormProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+
+const companyTypes = [
+  { label: 'Law Firm', value: 'law-firm' },
+  { label: 'Tech Company', value: 'tech-company' },
+  { label: 'Healthcare Provider', value: 'healthcare' },
+  { label: 'Consulting', value: 'consulting' },
+  { label: 'Non-profit', value: 'non-profit' },
+  { label: 'Restaurant', value: 'restaurant' },
+  { label: 'Real Estate', value: 'real-estate' },
+  { label: 'Education', value: 'education' },
+  { label: 'Financial Services', value: 'financial' },
+  { label: 'Manufacturing', value: 'manufacturing' },
+  { label: 'Other', value: 'other' },
+] as const
 
 const formSchema = z
   .object({
@@ -221,6 +242,78 @@ export function UserAuthForm({
               </FormItem>
             )}
           />
+
+          {isSignUp && (
+            <>
+              <FormField
+                control={form.control}
+                name='company_organization_type'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className='text-gray-900 dark:text-white'>
+                      Company Type
+                    </FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger className='border-gray-300 bg-white text-gray-900 dark:border-gray-800 dark:bg-gray-900/50 dark:text-white'>
+                          <SelectValue placeholder='Select company type' />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {companyTypes.map((type) => (
+                          <SelectItem key={type.value} value={type.value}>
+                            {type.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name='organization_name'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className='text-gray-900 dark:text-white'>
+                      Organization Name
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder='Your company name'
+                        {...field}
+                        className='border-gray-300 bg-white text-gray-900 placeholder:text-gray-500 dark:border-gray-800 dark:bg-gray-900/50 dark:text-white dark:placeholder:text-gray-400'
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name='website'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className='text-gray-900 dark:text-white'>
+                      Website
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder='https://example.com'
+                        {...field}
+                        className='border-gray-300 bg-white text-gray-900 placeholder:text-gray-500 dark:border-gray-800 dark:bg-gray-900/50 dark:text-white dark:placeholder:text-gray-400'
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </>
+          )}
+
           <FormField
             control={form.control}
             name='password'
