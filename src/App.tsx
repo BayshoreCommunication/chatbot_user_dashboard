@@ -11,7 +11,7 @@ import { UserProvider } from './context/UserContext'
 
 const GOOGLE_CLIENT_ID =
   import.meta.env.VITE_GOOGLE_CLIENT_ID ||
-  '580986048415-qpgtv2kvij47ae4if8ep47jjq8o2qtmj.apps.googleusercontent.com'
+  '29570795006-hidgjb0mu747knbjok10fs9v3r876ude.apps.googleusercontent.com'
 
 // Create a client
 const queryClient = new QueryClient({
