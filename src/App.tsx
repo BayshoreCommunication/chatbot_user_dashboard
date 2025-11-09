@@ -31,7 +31,7 @@ export default function App() {
           <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
             <UserProvider>
               <ThemeColorProvider>
-                <ThemeProvider defaultTheme='dark' storageKey='vite-ui-theme'>
+                <ThemeProvider defaultTheme='light' storageKey='vite-ui-theme'>
                   <RouterProvider router={router} />
                   <Toaster />
                 </ThemeProvider>
@@ -42,4 +42,5 @@ export default function App() {
       </AuthProvider>
     </QueryClientProvider>
   )
-}0
+}
+0

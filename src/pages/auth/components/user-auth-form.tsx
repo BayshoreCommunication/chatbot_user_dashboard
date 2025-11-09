@@ -196,7 +196,7 @@ export function UserAuthForm({
   return (
     <div className={cn('grid gap-6', className)} {...props}>
       {error && (
-        <div className='rounded border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-500'>
+        <div className='rounded border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-400 dark:text-red-500'>
           {error}
         </div>
       )}
@@ -207,12 +207,14 @@ export function UserAuthForm({
             name='email'
             render={({ field }) => (
               <FormItem>
-                <FormLabel className='text-white'>Email</FormLabel>
+                <FormLabel className='text-gray-900 dark:text-white'>
+                  Email
+                </FormLabel>
                 <FormControl>
                   <Input
                     placeholder='name@example.com'
                     {...field}
-                    className='border-gray-800 bg-gray-900/50 text-white'
+                    className='border-gray-300 bg-white text-gray-900 placeholder:text-gray-500 dark:border-gray-800 dark:bg-gray-900/50 dark:text-white dark:placeholder:text-gray-400'
                   />
                 </FormControl>
                 <FormMessage />
@@ -225,11 +227,13 @@ export function UserAuthForm({
             render={({ field }) => (
               <FormItem>
                 <div className='flex items-center justify-between'>
-                  <FormLabel className='text-white'>Password</FormLabel>
+                  <FormLabel className='text-gray-900 dark:text-white'>
+                    Password
+                  </FormLabel>
                   {!isSignUp && (
                     <Link
                       to='/forgot-password'
-                      className='text-sm font-medium text-blue-400 hover:text-blue-300'
+                      className='text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300'
                     >
                       Forgot password?
                     </Link>
@@ -239,7 +243,7 @@ export function UserAuthForm({
                   <PasswordInput
                     placeholder='********'
                     {...field}
-                    className='border-gray-800 bg-gray-900/50 text-white'
+                    className='border-gray-300 bg-white text-gray-900 placeholder:text-gray-500 dark:border-gray-800 dark:bg-gray-900/50 dark:text-white dark:placeholder:text-gray-400'
                   />
                 </FormControl>
                 <FormMessage />
@@ -252,12 +256,14 @@ export function UserAuthForm({
               name='confirmPassword'
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className='text-white'>Confirm Password</FormLabel>
+                  <FormLabel className='text-gray-900 dark:text-white'>
+                    Confirm Password
+                  </FormLabel>
                   <FormControl>
                     <PasswordInput
                       placeholder='********'
                       {...field}
-                      className='border-gray-800 bg-gray-900/50 text-white'
+                      className='border-gray-300 bg-white text-gray-900 placeholder:text-gray-500 dark:border-gray-800 dark:bg-gray-900/50 dark:text-white dark:placeholder:text-gray-400'
                     />
                   </FormControl>
                   <FormMessage />
@@ -274,10 +280,10 @@ export function UserAuthForm({
 
           <div className='relative my-4'>
             <div className='absolute inset-0 flex items-center'>
-              <Separator className='w-full border-gray-800' />
+              <Separator className='w-full border-gray-300 dark:border-gray-800' />
             </div>
             <div className='relative flex justify-center text-xs uppercase'>
-              <span className='bg-black px-2 text-gray-500'>
+              <span className='bg-white px-2 text-gray-500 dark:bg-black dark:text-gray-500'>
                 Or continue with
               </span>
             </div>
