@@ -2,11 +2,11 @@ import SignIn from '@/pages/auth/sign-in'
 import SignUp from '@/pages/auth/sign-up'
 import LandingPage from '@/pages/landing'
 import { createBrowserRouter } from 'react-router-dom'
+import ProtectedRoute from './components/ProtectedRoute'
 import GeneralError from './pages/errors/general-error'
 import MaintenanceError from './pages/errors/maintenance-error'
 import NotFoundError from './pages/errors/not-found-error'
 import UnauthorisedError from './pages/errors/unauthorised-error.tsx'
-import ProtectedRoute from './components/ProtectedRoute'
 
 const router = createBrowserRouter([
   {
@@ -74,245 +74,253 @@ const router = createBrowserRouter([
               Component: (await import('./pages/dashboard')).default,
             }),
           },
-      {
-        path: 'chats',
-        lazy: async () => ({
-          Component: (await import('@/pages/chats/index.tsx')).default,
-        }),
-      },
-      {
-        path: 'apps',
-        lazy: async () => ({
-          Component: (await import('@/pages/apps')).default,
-        }),
-      },
-      {
-        path: 'users',
-        lazy: async () => ({
-          Component: (await import('@/components/coming-soon')).default,
-        }),
-      },
-      {
-        path: 'analysis',
-        lazy: async () => ({
-          Component: (await import('@/components/coming-soon')).default,
-        }),
-      },
-      {
-        path: 'extra-components',
-        lazy: async () => ({
-          Component: (await import('@/pages/extra-components')).default,
-        }),
-      },
-      {
-        path: 'user-profile',
-        lazy: async () => ({
-          Component: (await import('@/pages/settings/account/index.tsx'))
-            .default,
-        }),
-      },
-      {
-        path: 'user-settings',
-        lazy: async () => ({
-          Component: (await import('@/pages/settings/accountSetting/index.tsx'))
-            .default,
-        }),
-      },
-      {
-        path: 'system-settings',
-        lazy: async () => ({
-          Component: (await import('./pages/settings/systemSetting/index.tsx'))
-            .default,
-        }),
-        errorElement: <GeneralError />,
-        children: [
           {
-            index: true,
+            path: 'chats',
             lazy: async () => ({
-              Component: (await import('./pages/settings/profile')).default,
+              Component: (await import('@/pages/chats/index.tsx')).default,
             }),
           },
           {
-            path: 'account',
+            path: 'apps',
             lazy: async () => ({
-              Component: (await import('./pages/settings/account')).default,
+              Component: (await import('@/pages/apps')).default,
             }),
           },
           {
-            path: 'appearance',
+            path: 'users',
             lazy: async () => ({
-              Component: (await import('./pages/settings/appearance')).default,
+              Component: (await import('@/components/coming-soon')).default,
             }),
           },
           {
-            path: 'notifications',
+            path: 'analysis',
             lazy: async () => ({
-              Component: (await import('./pages/settings/notifications'))
+              Component: (await import('@/components/coming-soon')).default,
+            }),
+          },
+          {
+            path: 'extra-components',
+            lazy: async () => ({
+              Component: (await import('@/pages/extra-components')).default,
+            }),
+          },
+          {
+            path: 'user-profile',
+            lazy: async () => ({
+              Component: (await import('@/pages/settings/account/index.tsx'))
                 .default,
             }),
           },
           {
-            path: 'display',
+            path: 'user-settings',
             lazy: async () => ({
-              Component: (await import('./pages/settings/display')).default,
+              Component: (
+                await import('@/pages/settings/accountSetting/index.tsx')
+              ).default,
             }),
           },
           {
-            path: 'error-example',
+            path: 'system-settings',
             lazy: async () => ({
-              Component: (await import('./pages/settings/error-example'))
+              Component: (
+                await import('./pages/settings/systemSetting/index.tsx')
+              ).default,
+            }),
+            errorElement: <GeneralError />,
+            children: [
+              {
+                index: true,
+                lazy: async () => ({
+                  Component: (await import('./pages/settings/profile')).default,
+                }),
+              },
+              {
+                path: 'account',
+                lazy: async () => ({
+                  Component: (await import('./pages/settings/account')).default,
+                }),
+              },
+              {
+                path: 'appearance',
+                lazy: async () => ({
+                  Component: (await import('./pages/settings/appearance'))
+                    .default,
+                }),
+              },
+              {
+                path: 'notifications',
+                lazy: async () => ({
+                  Component: (await import('./pages/settings/notifications'))
+                    .default,
+                }),
+              },
+              {
+                path: 'display',
+                lazy: async () => ({
+                  Component: (await import('./pages/settings/display')).default,
+                }),
+              },
+              {
+                path: 'error-example',
+                lazy: async () => ({
+                  Component: (await import('./pages/settings/error-example'))
+                    .default,
+                }),
+                errorElement: <GeneralError className='h-[50svh]' minimal />,
+              },
+            ],
+          },
+          {
+            path: 'chat-widget-update',
+            lazy: async () => ({
+              Component: (
+                await import(
+                  './pages/settings/systemSetting/chatWidgetUpdateLayout'
+                )
+              ).default,
+            }),
+          },
+          {
+            path: 'create-chat-widget',
+            lazy: async () => ({
+              Component: (
+                await import(
+                  './pages/settings/systemSetting/ChatWidgetCreateLayout'
+                )
+              ).default,
+            }),
+          },
+          {
+            path: 'chat-widget-install',
+            lazy: async () => ({
+              Component: (
+                await import(
+                  './pages/settings/systemSetting/chatWidgetInstallPage'
+                )
+              ).default,
+            }),
+          },
+          // {
+          //   path: 'settings',
+          //   lazy: async () => ({
+          //     Component: (await import('./pages/settings')).default,
+          //   }),
+          //   errorElement: <GeneralError />,
+          //   children: [
+          //     {
+          //       index: true,
+          //       lazy: async () => ({
+          //         Component: (await import('./pages/settings/profile')).default,
+          //       }),
+          //     },
+          //     {
+          //       path: 'account',
+          //       lazy: async () => ({
+          //         Component: (await import('./pages/settings/account')).default,
+          //       }),
+          //     },
+          //     {
+          //       path: 'appearance',
+          //       lazy: async () => ({
+          //         Component: (await import('./pages/settings/appearance')).default,
+          //       }),
+          //     },
+          //     {
+          //       path: 'notifications',
+          //       lazy: async () => ({
+          //         Component: (await import('./pages/settings/notifications'))
+          //           .default,
+          //       }),
+          //     },
+          //     {
+          //       path: 'display',
+          //       lazy: async () => ({
+          //         Component: (await import('./pages/settings/display')).default,
+          //       }),
+          //     },
+          //     {
+          //       path: 'error-example',
+          //       lazy: async () => ({
+          //         Component: (await import('./pages/settings/error-example'))
+          //           .default,
+          //       }),
+          //       errorElement: <GeneralError className='h-[50svh]' minimal />,
+          //     },
+          //   ],
+          // },
+          {
+            path: 'train-ai',
+            lazy: async () => ({
+              Component: (await import('@/pages/AI/aiHome/index.tsx')).default,
+            }),
+          },
+          {
+            path: 'train-ai-page',
+            lazy: async () => ({
+              Component: (await import('@/pages/AI/trainAi/index.tsx')).default,
+            }),
+          },
+          {
+            path: 'ai-behavior',
+            lazy: async () => ({
+              Component: (await import('@/pages/AI/aiBehavior/index.tsx'))
                 .default,
             }),
-            errorElement: <GeneralError className='h-[50svh]' minimal />,
           },
-        ],
-      },
-      {
-        path: 'chat-widget-update',
-        lazy: async () => ({
-          Component: (
-            await import(
-              './pages/settings/systemSetting/chatWidgetUpdateLayout'
-            )
-          ).default,
-        }),
-      },
-      {
-        path: 'create-chat-widget',
-        lazy: async () => ({
-          Component: (
-            await import(
-              './pages/settings/systemSetting/ChatWidgetCreateLayout'
-            )
-          ).default,
-        }),
-      },
-      {
-        path: 'chat-widget-install',
-        lazy: async () => ({
-          Component: (
-            await import('./pages/settings/systemSetting/chatWidgetInstallPage')
-          ).default,
-        }),
-      },
-      // {
-      //   path: 'settings',
-      //   lazy: async () => ({
-      //     Component: (await import('./pages/settings')).default,
-      //   }),
-      //   errorElement: <GeneralError />,
-      //   children: [
-      //     {
-      //       index: true,
-      //       lazy: async () => ({
-      //         Component: (await import('./pages/settings/profile')).default,
-      //       }),
-      //     },
-      //     {
-      //       path: 'account',
-      //       lazy: async () => ({
-      //         Component: (await import('./pages/settings/account')).default,
-      //       }),
-      //     },
-      //     {
-      //       path: 'appearance',
-      //       lazy: async () => ({
-      //         Component: (await import('./pages/settings/appearance')).default,
-      //       }),
-      //     },
-      //     {
-      //       path: 'notifications',
-      //       lazy: async () => ({
-      //         Component: (await import('./pages/settings/notifications'))
-      //           .default,
-      //       }),
-      //     },
-      //     {
-      //       path: 'display',
-      //       lazy: async () => ({
-      //         Component: (await import('./pages/settings/display')).default,
-      //       }),
-      //     },
-      //     {
-      //       path: 'error-example',
-      //       lazy: async () => ({
-      //         Component: (await import('./pages/settings/error-example'))
-      //           .default,
-      //       }),
-      //       errorElement: <GeneralError className='h-[50svh]' minimal />,
-      //     },
-      //   ],
-      // },
-      {
-        path: 'train-ai',
-        lazy: async () => ({
-          Component: (await import('@/pages/AI/aiHome/index.tsx')).default,
-        }),
-      },
-      {
-        path: 'train-ai-page',
-        lazy: async () => ({
-          Component: (await import('@/pages/AI/trainAi/index.tsx')).default,
-        }),
-      },
-      {
-        path: 'ai-behavior',
-        lazy: async () => ({
-          Component: (await import('@/pages/AI/aiBehavior/index.tsx')).default,
-        }),
-      },
-      {
-        path: 'ai-training',
-        lazy: async () => ({
-          Component: (await import('@/pages/AI/aiTraining/index.tsx')).default,
-        }),
-      },
-      {
-        path: 'instant-reply',
-        lazy: async () => ({
-          Component: (await import('@/pages/AI/instantReply/index.tsx'))
-            .default,
-        }),
-      },
-      {
-        path: 'faq',
-        lazy: async () => ({
-          Component: (await import('@/pages/AI/faq/index.tsx')).default,
-        }),
-      },
-      {
-        path: 'document-upload',
-        lazy: async () => ({
-          Component: (await import('@/pages/AI/documentUpload/index.tsx'))
-            .default,
-        }),
-      },
-      {
-        path: 'unknown-questions',
-        lazy: async () => ({
-          Component: (await import('@/pages/AI/unknownQuestions/index.tsx'))
-            .default,
-        }),
-      },
-      {
-        path: 'ai-intelligence',
-        lazy: async () => ({
-          Component: (await import('@/pages/AI/aiIntelligence/index.tsx'))
-            .default,
-        }),
-      },
-      {
-        path: 'appointments',
-        lazy: async () => ({
-          Component: (await import('@/pages/appointments/index.tsx')).default,
-        }),
-      },
-      {
-        path: 'leads',
-        lazy: async () => ({
-          Component: (await import('@/pages/leads/index.tsx')).default,
-        }),
-      },
+          {
+            path: 'ai-training',
+            lazy: async () => ({
+              Component: (await import('@/pages/AI/aiTraining/index.tsx'))
+                .default,
+            }),
+          },
+          {
+            path: 'instant-reply',
+            lazy: async () => ({
+              Component: (await import('@/pages/AI/instantReply/index.tsx'))
+                .default,
+            }),
+          },
+          {
+            path: 'faq',
+            lazy: async () => ({
+              Component: (await import('@/pages/AI/faq/index.tsx')).default,
+            }),
+          },
+          {
+            path: 'document-upload',
+            lazy: async () => ({
+              Component: (await import('@/pages/AI/documentUpload/index.tsx'))
+                .default,
+            }),
+          },
+          {
+            path: 'unknown-questions',
+            lazy: async () => ({
+              Component: (await import('@/pages/AI/unknownQuestions/index.tsx'))
+                .default,
+            }),
+          },
+          {
+            path: 'ai-intelligence',
+            lazy: async () => ({
+              Component: (await import('@/pages/AI/aiIntelligence/index.tsx'))
+                .default,
+            }),
+          },
+          {
+            path: 'appointments',
+            lazy: async () => ({
+              Component: (await import('@/pages/appointments/index.tsx'))
+                .default,
+            }),
+          },
+          {
+            path: 'leads',
+            lazy: async () => ({
+              Component: (await import('@/pages/leads/index.tsx')).default,
+            }),
+          },
         ],
       },
     ],

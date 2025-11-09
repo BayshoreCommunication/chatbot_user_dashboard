@@ -31,7 +31,7 @@ import {
   Users,
   Zap,
 } from 'lucide-react'
-import { lazy, memo, Suspense, useState, useEffect } from 'react'
+import { lazy, memo, Suspense, useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
 // Lazy load components that are below the fold
@@ -360,12 +360,12 @@ export default function LandingPage() {
     if (subscriptionRequired === 'true') {
       setShowSubscriptionAlert(true)
       localStorage.removeItem('subscription_required')
-      
+
       // Auto-hide alert after 10 seconds
       const timer = setTimeout(() => {
         setShowSubscriptionAlert(false)
       }, 10000)
-      
+
       return () => clearTimeout(timer)
     }
   }, [])
@@ -542,25 +542,25 @@ export default function LandingPage() {
             initial={{ opacity: 0, y: -50 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -50 }}
-            className='fixed top-20 left-1/2 transform -translate-x-1/2 z-50 max-w-lg w-full mx-4'
+            className='fixed left-1/2 top-20 z-50 mx-4 w-full max-w-lg -translate-x-1/2 transform'
           >
-            <div className='bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 shadow-lg'>
+            <div className='rounded-lg border border-yellow-200 bg-yellow-50 p-4 shadow-lg dark:border-yellow-800 dark:bg-yellow-900/20'>
               <div className='flex items-start'>
-                <Shield className='h-5 w-5 text-yellow-600 dark:text-yellow-400 mt-0.5 mr-3' />
+                <Shield className='mr-3 mt-0.5 h-5 w-5 text-yellow-600 dark:text-yellow-400' />
                 <div className='flex-1'>
                   <h3 className='text-sm font-semibold text-yellow-800 dark:text-yellow-200'>
                     Subscription Required
                   </h3>
                   <p className='mt-1 text-sm text-yellow-700 dark:text-yellow-300'>
-                    You need an active subscription to access the dashboard. Please choose a plan below to continue.
+                    You need an active subscription to access the dashboard.
+                    Please choose a plan below to continue.
                   </p>
                 </div>
                 <button
                   onClick={() => setShowSubscriptionAlert(false)}
-                  className='ml-3 text-yellow-600 dark:text-yellow-400 hover:text-yellow-800 dark:hover:text-yellow-200'
+                  className='ml-3 text-yellow-600 hover:text-yellow-800 dark:text-yellow-400 dark:hover:text-yellow-200'
                 >
-                  <span className='sr-only'>Close</span>
-                  ✕
+                  <span className='sr-only'>Close</span>✕
                 </button>
               </div>
             </div>

@@ -1,11 +1,13 @@
 # Subscription-Based Dashboard Access Protection
 
 ## Overview
+
 Implemented protection to prevent users without an active paid subscription (`has_paid_subscription: false`) from accessing the dashboard. Users without a subscription are automatically redirected to the landing page with a clear message to purchase a subscription.
 
 ## Implementation Details
 
 ### 1. Protected Route Component
+
 **File:** `src/components/ProtectedRoute.tsx`
 
 - Checks if user is authenticated (has auth token)
@@ -15,6 +17,7 @@ Implemented protection to prevent users without an active paid subscription (`ha
 - Sets a flag in localStorage to show alert message on landing page
 
 ### 2. Router Configuration
+
 **File:** `src/router.tsx`
 
 - Wrapped all `/dashboard/*` routes with `ProtectedRoute` component
@@ -22,6 +25,7 @@ Implemented protection to prevent users without an active paid subscription (`ha
 - Any attempt to access dashboard routes requires paid subscription
 
 ### 3. Landing Page Alert
+
 **File:** `src/pages/landing/index.tsx`
 
 - Displays prominent alert when user is redirected due to missing subscription
@@ -32,6 +36,7 @@ Implemented protection to prevent users without an active paid subscription (`ha
 ## How It Works
 
 ### Flow for Users WITHOUT Subscription:
+
 1. User tries to access `/dashboard` or any dashboard route
 2. `ProtectedRoute` checks `user.has_paid_subscription`
 3. If `false`, sets `subscription_required` flag in localStorage
@@ -40,6 +45,7 @@ Implemented protection to prevent users without an active paid subscription (`ha
 6. User sees pricing plans and can purchase subscription
 
 ### Flow for Users WITH Subscription:
+
 1. User accesses `/dashboard` or any dashboard route
 2. `ProtectedRoute` checks `user.has_paid_subscription`
 3. If `true`, renders dashboard normally
@@ -48,6 +54,7 @@ Implemented protection to prevent users without an active paid subscription (`ha
 ## Testing
 
 ### Test Case 1: No Subscription
+
 ```javascript
 // User data in localStorage
 {
@@ -59,6 +66,7 @@ Implemented protection to prevent users without an active paid subscription (`ha
 ```
 
 ### Test Case 2: Active Subscription
+
 ```javascript
 // User data in localStorage
 {
@@ -70,6 +78,7 @@ Implemented protection to prevent users without an active paid subscription (`ha
 ```
 
 ### Test Case 3: Not Logged In
+
 ```javascript
 // No auth token in localStorage
 
@@ -79,6 +88,7 @@ Implemented protection to prevent users without an active paid subscription (`ha
 ## Backend Integration
 
 ### User Model Fields
+
 The protection relies on the `has_paid_subscription` boolean field in the user model:
 
 ```python
@@ -90,9 +100,11 @@ class User(BaseModel):
 ```
 
 ### Automatic Updates
+
 The subscription status is automatically updated by:
 
 1. **Stripe Webhooks** (Real-time):
+
    - `checkout.session.completed` → Sets `has_paid_subscription = True`
    - `customer.subscription.deleted` → Sets `has_paid_subscription = False`
 
@@ -120,11 +132,12 @@ The subscription status is automatically updated by:
 No additional configuration needed. The protection is automatically active for all dashboard routes.
 
 ### To bypass protection (for testing):
+
 ```javascript
 // In browser console or localStorage
-const user = JSON.parse(localStorage.getItem('user'));
-user.has_paid_subscription = true;
-localStorage.setItem('user', JSON.stringify(user));
+const user = JSON.parse(localStorage.getItem('user'))
+user.has_paid_subscription = true
+localStorage.setItem('user', JSON.stringify(user))
 // Refresh page
 ```
 

@@ -24,8 +24,31 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         // Check if user is stored in localStorage
         const storedUser = localStorage.getItem('user');
         if (storedUser) {
-            setUser(JSON.parse(storedUser));
+            try {
+                setUser(JSON.parse(storedUser));
+            } catch (error) {
+                console.error('Failed to parse stored user:', error);
+                localStorage.removeItem('user');
+            }
         }
+
+        // Listen for storage changes (for multi-tab sync)
+        const handleStorageChange = (e: StorageEvent) => {
+            if (e.key === 'user') {
+                if (e.newValue) {
+                    try {
+                        setUser(JSON.parse(e.newValue));
+                    } catch (error) {
+                        console.error('Failed to parse user from storage event:', error);
+                    }
+                } else {
+                    setUser(null);
+                }
+            }
+        };
+
+        window.addEventListener('storage', handleStorageChange);
+        return () => window.removeEventListener('storage', handleStorageChange);
     }, []);
 
     const setUserWithStorage = (newUser: User | null) => {
