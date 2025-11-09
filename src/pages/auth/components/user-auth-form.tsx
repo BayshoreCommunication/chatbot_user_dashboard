@@ -136,11 +136,25 @@ export function UserAuthForm({
       }
     } catch (error) {
       console.error('Google login error:', error)
-      setError(
-        error instanceof Error
-          ? error.message
-          : 'Failed to authenticate with Google'
-      )
+      
+      let errorMessage = 'Failed to authenticate with Google'
+      
+      if (error instanceof Error) {
+        // Check for network errors
+        if (error.message === 'Failed to fetch') {
+          errorMessage = 'Network error. Please check your internet connection and try again.'
+        } 
+        // Check for CORS/COOP errors
+        else if (error.message.includes('postMessage') || error.message.includes('COOP')) {
+          errorMessage = 'Browser security settings are blocking Google sign-in. Please try again or use email sign-in instead.'
+        }
+        // Use the original error message if available
+        else if (error.message) {
+          errorMessage = error.message
+        }
+      }
+      
+      setError(errorMessage)
     }
   }
 
@@ -188,10 +202,21 @@ export function UserAuthForm({
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
-        throw new Error(
-          errorData.detail ||
-            (isSignUp ? 'Failed to register' : 'Failed to login')
-        )
+        
+        // Provide more user-friendly error messages
+        let errorMessage = errorData.detail || ''
+        
+        if (errorMessage.includes('Email not registered')) {
+          errorMessage = 'This email is not registered. Please sign up first.'
+        } else if (errorMessage.includes('Email already registered')) {
+          errorMessage = 'This email is already registered. Please sign in instead.'
+        } else if (errorMessage.includes('Invalid credentials') || errorMessage.includes('Incorrect password')) {
+          errorMessage = 'Invalid email or password. Please try again.'
+        } else if (!errorMessage) {
+          errorMessage = isSignUp ? 'Failed to register. Please try again.' : 'Failed to login. Please try again.'
+        }
+        
+        throw new Error(errorMessage)
       }
 
       const { user, access_token } = await response.json()
