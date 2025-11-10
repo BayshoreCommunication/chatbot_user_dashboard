@@ -15,7 +15,10 @@ const GOOGLE_CLIENT_ID =
 
 // Debug: Log the client ID being used
 console.log('=== Google OAuth Configuration ===')
-console.log('VITE_GOOGLE_CLIENT_ID from env:', import.meta.env.VITE_GOOGLE_CLIENT_ID)
+console.log(
+  'VITE_GOOGLE_CLIENT_ID from env:',
+  import.meta.env.VITE_GOOGLE_CLIENT_ID
+)
 console.log('Using Client ID:', GOOGLE_CLIENT_ID)
 console.log('Current URL:', window.location.origin)
 console.log('===================================')

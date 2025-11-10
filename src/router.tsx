@@ -21,6 +21,13 @@ const router = createBrowserRouter([
     path: '/sign-up',
     element: <SignUp />,
   },
+  // OAuth Test Page
+  {
+    path: '/oauth-test',
+    lazy: async () => ({
+      Component: (await import('./pages/oauth-test')).default,
+    }),
+  },
   // Landing page
   {
     path: '/landing',

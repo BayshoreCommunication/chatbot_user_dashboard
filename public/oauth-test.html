@@ -1,225 +1,245 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Google OAuth Configuration Test</title>
     <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            max-width: 800px;
-            margin: 50px auto;
-            padding: 20px;
-            background: #f5f5f5;
-        }
-        .section {
-            background: white;
-            padding: 20px;
-            margin: 20px 0;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        h1 {
-            color: #333;
-        }
-        h2 {
-            color: #4285f4;
-            border-bottom: 2px solid #4285f4;
-            padding-bottom: 10px;
-        }
-        .status {
-            padding: 10px;
-            border-radius: 4px;
-            margin: 10px 0;
-        }
-        .success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-        .error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-        .warning {
-            background: #fff3cd;
-            color: #856404;
-            border: 1px solid #ffeaa7;
-        }
-        code {
-            background: #f4f4f4;
-            padding: 2px 6px;
-            border-radius: 3px;
-            font-family: 'Courier New', monospace;
-        }
-        pre {
-            background: #f4f4f4;
-            padding: 15px;
-            border-radius: 4px;
-            overflow-x: auto;
-        }
-        button {
-            background: #4285f4;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-        }
-        button:hover {
-            background: #357ae8;
-        }
-        .checklist {
-            list-style: none;
-            padding: 0;
-        }
-        .checklist li {
-            padding: 8px 0;
-            border-bottom: 1px solid #eee;
-        }
-        .checklist li:before {
-            content: "☐ ";
-            font-size: 20px;
-            margin-right: 10px;
-        }
-        .checklist li.done:before {
-            content: "✓ ";
-            color: #28a745;
-        }
+      body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        max-width: 800px;
+        margin: 50px auto;
+        padding: 20px;
+        background: #f5f5f5;
+      }
+      .section {
+        background: white;
+        padding: 20px;
+        margin: 20px 0;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      h1 {
+        color: #333;
+      }
+      h2 {
+        color: #4285f4;
+        border-bottom: 2px solid #4285f4;
+        padding-bottom: 10px;
+      }
+      .status {
+        padding: 10px;
+        border-radius: 4px;
+        margin: 10px 0;
+      }
+      .success {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+      }
+      .error {
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+      }
+      .warning {
+        background: #fff3cd;
+        color: #856404;
+        border: 1px solid #ffeaa7;
+      }
+      code {
+        background: #f4f4f4;
+        padding: 2px 6px;
+        border-radius: 3px;
+        font-family: 'Courier New', monospace;
+      }
+      pre {
+        background: #f4f4f4;
+        padding: 15px;
+        border-radius: 4px;
+        overflow-x: auto;
+      }
+      button {
+        background: #4285f4;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+      }
+      button:hover {
+        background: #357ae8;
+      }
+      .checklist {
+        list-style: none;
+        padding: 0;
+      }
+      .checklist li {
+        padding: 8px 0;
+        border-bottom: 1px solid #eee;
+      }
+      .checklist li:before {
+        content: '☐ ';
+        font-size: 20px;
+        margin-right: 10px;
+      }
+      .checklist li.done:before {
+        content: '✓ ';
+        color: #28a745;
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <h1>🔍 Google OAuth Configuration Checker</h1>
-    
+
     <div class="section">
-        <h2>Step 1: Environment Variables</h2>
-        <div id="envCheck"></div>
-        <button onclick="checkEnvironment()">Check Environment Variables</button>
+      <h2>Step 1: Environment Variables</h2>
+      <div id="envCheck"></div>
+      <button onclick="checkEnvironment()">Check Environment Variables</button>
     </div>
 
     <div class="section">
-        <h2>Step 2: Vercel Configuration</h2>
-        <ul class="checklist">
-            <li>Go to <a href="https://vercel.com/dashboard" target="_blank">Vercel Dashboard</a></li>
-            <li>Select project: <code>chatbot_user_dashboard</code></li>
-            <li>Go to: Settings → Environment Variables</li>
-            <li>Verify <code>VITE_GOOGLE_CLIENT_ID</code> is set</li>
-            <li>Verify <code>VITE_GOOGLE_CLIENT_SECRET</code> is set</li>
-            <li>Both should be in: Production, Preview, Development</li>
-            <li>Redeploy if variables were just added</li>
-        </ul>
+      <h2>Step 2: Vercel Configuration</h2>
+      <ul class="checklist">
+        <li>
+          Go to
+          <a href="https://vercel.com/dashboard" target="_blank"
+            >Vercel Dashboard</a
+          >
+        </li>
+        <li>Select project: <code>chatbot_user_dashboard</code></li>
+        <li>Go to: Settings → Environment Variables</li>
+        <li>Verify <code>VITE_GOOGLE_CLIENT_ID</code> is set</li>
+        <li>Verify <code>VITE_GOOGLE_CLIENT_SECRET</code> is set</li>
+        <li>Both should be in: Production, Preview, Development</li>
+        <li>Redeploy if variables were just added</li>
+      </ul>
     </div>
 
     <div class="section">
-        <h2>Step 3: Google Cloud Console</h2>
-        <div id="googleCheck"></div>
-        <button onclick="checkGoogleConfig()">Check Current Origin</button>
-        
-        <h3 style="margin-top: 20px;">Required Configuration:</h3>
-        <ol>
-            <li>Go to: <a href="https://console.cloud.google.com/apis/credentials" target="_blank">Google Cloud Console</a></li>
-            <li>Find your OAuth 2.0 Client ID</li>
-            <li>Click to edit</li>
-            <li>Under "Authorized JavaScript origins", add:
-                <pre>https://chatbot-user-dashboard.vercel.app</pre>
-            </li>
-            <li>Click SAVE</li>
-            <li>Wait 5-10 minutes for propagation</li>
-        </ol>
+      <h2>Step 3: Google Cloud Console</h2>
+      <div id="googleCheck"></div>
+      <button onclick="checkGoogleConfig()">Check Current Origin</button>
+
+      <h3 style="margin-top: 20px">Required Configuration:</h3>
+      <ol>
+        <li>
+          Go to:
+          <a
+            href="https://console.cloud.google.com/apis/credentials"
+            target="_blank"
+            >Google Cloud Console</a
+          >
+        </li>
+        <li>Find your OAuth 2.0 Client ID</li>
+        <li>Click to edit</li>
+        <li>
+          Under "Authorized JavaScript origins", add:
+          <pre>https://chatbot-user-dashboard.vercel.app</pre>
+        </li>
+        <li>Click SAVE</li>
+        <li>Wait 5-10 minutes for propagation</li>
+      </ol>
     </div>
 
     <div class="section">
-        <h2>Step 4: Test Google OAuth</h2>
-        <div id="oauthTest"></div>
-        <p>After completing steps 1-3, click the button below:</p>
-        <button onclick="testOAuth()">Test Google Sign-In</button>
+      <h2>Step 4: Test Google OAuth</h2>
+      <div id="oauthTest"></div>
+      <p>After completing steps 1-3, click the button below:</p>
+      <button onclick="testOAuth()">Test Google Sign-In</button>
     </div>
 
     <div class="section">
-        <h2>Common 400 Errors</h2>
-        <h3>Error: "The server cannot process the request because it is malformed"</h3>
-        
-        <h4>Cause 1: Client ID Not Loaded</h4>
-        <div class="warning">
-            <strong>Check:</strong> Is <code>import.meta.env.VITE_GOOGLE_CLIENT_ID</code> undefined?
-            <br><strong>Fix:</strong> Set env vars in Vercel dashboard and redeploy
-        </div>
+      <h2>Common 400 Errors</h2>
+      <h3>
+        Error: "The server cannot process the request because it is malformed"
+      </h3>
 
-        <h4>Cause 2: Origin Not Authorized</h4>
-        <div class="warning">
-            <strong>Check:</strong> Is current domain in Google Console authorized origins?
-            <br><strong>Fix:</strong> Add <code>https://chatbot-user-dashboard.vercel.app</code> to Google Console
-        </div>
+      <h4>Cause 1: Client ID Not Loaded</h4>
+      <div class="warning">
+        <strong>Check:</strong> Is
+        <code>import.meta.env.VITE_GOOGLE_CLIENT_ID</code> undefined?
+        <br /><strong>Fix:</strong> Set env vars in Vercel dashboard and
+        redeploy
+      </div>
 
-        <h4>Cause 3: Wrong Client Type</h4>
-        <div class="warning">
-            <strong>Check:</strong> Is OAuth client type "Web application"?
-            <br><strong>Fix:</strong> Create new OAuth client with type "Web application"
-        </div>
+      <h4>Cause 2: Origin Not Authorized</h4>
+      <div class="warning">
+        <strong>Check:</strong> Is current domain in Google Console authorized
+        origins? <br /><strong>Fix:</strong> Add
+        <code>https://chatbot-user-dashboard.vercel.app</code> to Google Console
+      </div>
 
-        <h4>Cause 4: Client Secret in Frontend</h4>
-        <div class="error">
-            <strong>Important:</strong> Client Secret should NEVER be used in frontend!
-            <br>Only Client ID is needed for <code>@react-oauth/google</code>
-        </div>
+      <h4>Cause 3: Wrong Client Type</h4>
+      <div class="warning">
+        <strong>Check:</strong> Is OAuth client type "Web application"?
+        <br /><strong>Fix:</strong> Create new OAuth client with type "Web
+        application"
+      </div>
+
+      <h4>Cause 4: Client Secret in Frontend</h4>
+      <div class="error">
+        <strong>Important:</strong> Client Secret should NEVER be used in
+        frontend! <br />Only Client ID is needed for
+        <code>@react-oauth/google</code>
+      </div>
     </div>
 
     <script>
-        function checkEnvironment() {
-            const envCheck = document.getElementById('envCheck');
-            const clientId = 'VITE_GOOGLE_CLIENT_ID' in import.meta.env 
-                ? import.meta.env.VITE_GOOGLE_CLIENT_ID 
-                : 'NOT SET';
-            
-            let html = '<h3>Environment Check:</h3>';
-            
-            if (clientId === 'NOT SET' || clientId === undefined) {
-                html += '<div class="error">';
-                html += '<strong>❌ VITE_GOOGLE_CLIENT_ID:</strong> NOT SET<br>';
-                html += '<strong>Action Required:</strong> Set this in Vercel Dashboard → Settings → Environment Variables';
-                html += '</div>';
-            } else {
-                html += '<div class="success">';
-                html += '<strong>✓ VITE_GOOGLE_CLIENT_ID:</strong> ' + clientId;
-                html += '</div>';
-            }
-            
-            html += '<p><strong>Current Origin:</strong> ' + window.location.origin + '</p>';
-            
-            envCheck.innerHTML = html;
-        }
+      function checkEnvironment() {
+          const envCheck = document.getElementById('envCheck');
+          const clientId = 'VITE_GOOGLE_CLIENT_ID' in import.meta.env
+              ? import.meta.env.VITE_GOOGLE_CLIENT_ID
+              : 'NOT SET';
 
-        function checkGoogleConfig() {
-            const googleCheck = document.getElementById('googleCheck');
-            const origin = window.location.origin;
-            
-            let html = '<div class="warning">';
-            html += '<strong>Your Current Origin:</strong> <code>' + origin + '</code><br><br>';
-            html += '<strong>This origin MUST be added to Google Console:</strong><br>';
-            html += '1. Go to Google Cloud Console<br>';
-            html += '2. Edit your OAuth Client ID<br>';
-            html += '3. Add <code>' + origin + '</code> to Authorized JavaScript origins<br>';
-            html += '4. Save and wait 10 minutes';
-            html += '</div>';
-            
-            googleCheck.innerHTML = html;
-        }
+          let html = '<h3>Environment Check:</h3>';
 
-        function testOAuth() {
-            const oauthTest = document.getElementById('oauthTest');
-            oauthTest.innerHTML = '<div class="warning">Redirecting to main app for OAuth test...</div>';
-            setTimeout(() => {
-                window.location.href = '/sign-up';
-            }, 1000);
-        }
+          if (clientId === 'NOT SET' || clientId === undefined) {
+              html += '<div class="error">';
+              html += '<strong>❌ VITE_GOOGLE_CLIENT_ID:</strong> NOT SET<br>';
+              html += '<strong>Action Required:</strong> Set this in Vercel Dashboard → Settings → Environment Variables';
+              html += '</div>';
+          } else {
+              html += '<div class="success">';
+              html += '<strong>✓ VITE_GOOGLE_CLIENT_ID:</strong> ' + clientId;
+              html += '</div>';
+          }
 
-        // Auto-run checks on page load
-        window.addEventListener('load', () => {
-            checkEnvironment();
-            checkGoogleConfig();
-        });
+          html += '<p><strong>Current Origin:</strong> ' + window.location.origin + '</p>';
+
+          envCheck.innerHTML = html;
+      }
+
+      function checkGoogleConfig() {
+          const googleCheck = document.getElementById('googleCheck');
+          const origin = window.location.origin;
+
+          let html = '<div class="warning">';
+          html += '<strong>Your Current Origin:</strong> <code>' + origin + '</code><br><br>';
+          html += '<strong>This origin MUST be added to Google Console:</strong><br>';
+          html += '1. Go to Google Cloud Console<br>';
+          html += '2. Edit your OAuth Client ID<br>';
+          html += '3. Add <code>' + origin + '</code> to Authorized JavaScript origins<br>';
+          html += '4. Save and wait 10 minutes';
+          html += '</div>';
+
+          googleCheck.innerHTML = html;
+      }
+
+      function testOAuth() {
+          const oauthTest = document.getElementById('oauthTest');
+          oauthTest.innerHTML = '<div class="warning">Redirecting to main app for OAuth test...</div>';
+          setTimeout(() => {
+              window.location.href = '/sign-up';
+          }, 1000);
+      }
+
+      // Auto-run checks on page load
+      window.addEventListener('load', () => {
+          checkEnvironment();
+          checkGoogleConfig();
+      });
     </script>
-</body>
+  </body>
 </html>
