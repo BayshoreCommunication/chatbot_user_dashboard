@@ -443,19 +443,18 @@ export function UserAuthForm({
           <div className='flex justify-center'>
             <GoogleLogin
               onSuccess={handleGoogleSuccess}
-              onError={() => {
-                console.error(
-                  'Google OAuth Error - Button clicked but authentication failed'
-                )
-                console.error('Possible causes:')
-                console.error(
-                  '1. Client ID not loaded:',
-                  import.meta.env.VITE_GOOGLE_CLIENT_ID
-                )
-                console.error('2. Current origin:', window.location.origin)
-                console.error(
-                  '3. Check if this origin is in Google Console authorized origins'
-                )
+              onError={(error) => {
+                console.error('=== GOOGLE OAUTH ERROR DETAILS ===')
+                console.error('Full error object:', error)
+                console.error('Error type:', typeof error)
+                console.error('Error keys:', error ? Object.keys(error) : 'null')
+                console.error('Client ID being used:', import.meta.env.VITE_GOOGLE_CLIENT_ID)
+                console.error('Current origin:', window.location.origin)
+                console.error('Expected origins in Google Console:')
+                console.error('  1. http://localhost:5173')
+                console.error('  2. https://chatbot-user-dashboard.vercel.app')
+                console.error('=================================')
+                
                 setError(
                   'Failed to authenticate with Google. Check browser console for details.'
                 )

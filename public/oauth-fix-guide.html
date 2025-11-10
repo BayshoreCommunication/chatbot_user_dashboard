@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google OAuth 400 Error - Step-by-Step Fix</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+        .content {
+            padding: 30px;
+        }
+        .step {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+        .step.error {
+            border-left-color: #f5576c;
+            background: #fff5f5;
+        }
+        .step.success {
+            border-left-color: #51cf66;
+            background: #f0fff4;
+        }
+        .step h2 {
+            color: #333;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .step-number {
+            background: #667eea;
+            color: white;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+        .code {
+            background: #2d3748;
+            color: #68d391;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            margin: 10px 0;
+            overflow-x: auto;
+            white-space: pre-wrap;
+        }
+        .warning {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            color: #856404;
+        }
+        .info {
+            background: #d1ecf1;
+            border: 1px solid #17a2b8;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            color: #0c5460;
+        }
+        .success-box {
+            background: #d4edda;
+            border: 1px solid #28a745;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            color: #155724;
+        }
+        .error-box {
+            background: #f8d7da;
+            border: 1px solid #dc3545;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            color: #721c24;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            margin: 5px;
+            transition: all 0.3s;
+        }
+        button:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        .check-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 10px 0;
+            padding: 10px;
+            background: white;
+            border-radius: 5px;
+        }
+        .check-item input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+        ul, ol {
+            margin-left: 20px;
+            margin-top: 10px;
+        }
+        li {
+            margin: 5px 0;
+        }
+        .highlight {
+            background: yellow;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-weight: bold;
+        }
+        #results {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔧 Google OAuth 400 Error Fix</h1>
+            <p>Step-by-Step Troubleshooting Guide</p>
+        </div>
+        
+        <div class="content">
+            <div class="warning">
+                <strong>⚠️ About the Console Warning:</strong><br>
+                The message "WARNING! Using this console may allow attackers..." is a <strong>NORMAL security warning</strong> from your browser. It appears in all Chrome/Edge browsers and is NOT related to your OAuth error. You can safely ignore it.
+            </div>
+
+            <div class="error-box">
+                <strong>🔴 Your Error:</strong><br>
+                "400. That's an error. The server cannot process the request because it is malformed."<br><br>
+                This means <strong>Google is rejecting your request</strong> before it reaches your application. The issue is 99% certain to be in your Google Cloud Console configuration.
+            </div>
+
+            <div class="step">
+                <h2><span class="step-number">1</span> Check Your Current Configuration</h2>
+                <p>Click the button below to see your current setup:</p>
+                <button onclick="checkCurrentConfig()">🔍 Check My Configuration</button>
+                <div id="configResults"></div>
+            </div>
+
+            <div class="step">
+                <h2><span class="step-number">2</span> Verify Client ID Format</h2>
+                <p>Your Client ID should look exactly like this:</p>
+                <div class="code">410846066995-sdnso7dkpoh083akfk4k790dig56d0jn.apps.googleusercontent.com</div>
+                <div class="info">
+                    <strong>✓ Correct format:</strong> Numbers-letters.apps.googleusercontent.com<br>
+                    <strong>✗ Wrong:</strong> Just numbers, or missing .apps.googleusercontent.com
+                </div>
+            </div>
+
+            <div class="step">
+                <h2><span class="step-number">3</span> Fix Google Cloud Console</h2>
+                <p>This is where 99% of 400 errors come from. Follow these EXACT steps:</p>
+                
+                <h3>Step 3.1: Go to Google Cloud Console</h3>
+                <ol>
+                    <li>Open: <a href="https://console.cloud.google.com/apis/credentials" target="_blank">https://console.cloud.google.com/apis/credentials</a></li>
+                    <li>Find your OAuth 2.0 Client ID: <code>410846066995-sdnso7dkpoh083akfk4k790dig56d0jn</code></li>
+                    <li>Click on it to open the edit page</li>
+                </ol>
+
+                <h3>Step 3.2: Check "Authorized JavaScript origins"</h3>
+                <div class="warning">
+                    <strong>⚠️ CRITICAL - Most Common Mistake:</strong><br>
+                    Make sure you have the EXACT URLs below. Even a small difference will cause 400 error.
+                </div>
+                
+                <p>You should see EXACTLY these two entries (copy-paste them):</p>
+                <div class="code">http://localhost:5173
+https://chatbot-user-dashboard.vercel.app</div>
+
+                <div class="error-box">
+                    <strong>❌ Common Mistakes:</strong>
+                    <ul>
+                        <li><strong>Trailing slash:</strong> https://chatbot-user-dashboard.vercel.app<span class="highlight">/</span> ← WRONG!</li>
+                        <li><strong>Wrong domain:</strong> Check if your Vercel URL is different</li>
+                        <li><strong>Path added:</strong> https://chatbot-user-dashboard.vercel.app<span class="highlight">/sign-up</span> ← WRONG!</li>
+                        <li><strong>http instead of https:</strong> http://chatbot-user-dashboard.vercel.app ← WRONG!</li>
+                    </ul>
+                </div>
+
+                <h3>Step 3.3: Check "Authorized redirect URIs"</h3>
+                <div class="success-box">
+                    <strong>✅ THIS SECTION MUST BE COMPLETELY EMPTY!</strong><br>
+                    For popup-based OAuth (which you're using), you should have ZERO redirect URIs.
+                </div>
+
+                <div class="error-box">
+                    <strong>❌ If you see anything here, DELETE IT ALL:</strong>
+                    <ul>
+                        <li>https://chatbot-user-dashboard.vercel.app/auth/callback ← DELETE</li>
+                        <li>http://localhost:5173/auth/callback ← DELETE</li>
+                        <li>Any other URL ← DELETE</li>
+                    </ul>
+                </div>
+
+                <button onclick="window.open('https://console.cloud.google.com/apis/credentials', '_blank')">🔑 Open Google Cloud Console</button>
+            </div>
+
+            <div class="step">
+                <h2><span class="step-number">4</span> Check OAuth Consent Screen</h2>
+                <ol>
+                    <li>In Google Console, click "OAuth consent screen" (left sidebar)</li>
+                    <li>Verify:
+                        <ul>
+                            <li><strong>Publishing status:</strong> Must be "Testing" or "In production"</li>
+                            <li><strong>User type:</strong> Should be "External"</li>
+                        </ul>
+                    </li>
+                    <li>If status is "Testing", scroll down to "Test users"</li>
+                    <li>Click "ADD USERS" and add your email address</li>
+                    <li>Click "SAVE"</li>
+                </ol>
+                <button onclick="window.open('https://console.cloud.google.com/apis/credentials/consent', '_blank')">✅ Open OAuth Consent Screen</button>
+            </div>
+
+            <div class="step">
+                <h2><span class="step-number">5</span> Verification Checklist</h2>
+                <p>Check off each item as you verify it:</p>
+                <div class="check-item">
+                    <input type="checkbox" id="check1">
+                    <label for="check1">I went to Google Cloud Console credentials page</label>
+                </div>
+                <div class="check-item">
+                    <input type="checkbox" id="check2">
+                    <label for="check2">I found my OAuth 2.0 Client ID and clicked on it</label>
+                </div>
+                <div class="check-item">
+                    <input type="checkbox" id="check3">
+                    <label for="check3">"Authorized JavaScript origins" has exactly 2 entries (localhost and vercel)</label>
+                </div>
+                <div class="check-item">
+                    <input type="checkbox" id="check4">
+                    <label for="check4">No trailing slashes in the URLs (/ at the end)</label>
+                </div>
+                <div class="check-item">
+                    <input type="checkbox" id="check5">
+                    <label for="check5">"Authorized redirect URIs" section is COMPLETELY EMPTY</label>
+                </div>
+                <div class="check-item">
+                    <input type="checkbox" id="check6">
+                    <label for="check6">I clicked SAVE button in Google Console</label>
+                </div>
+                <div class="check-item">
+                    <input type="checkbox" id="check7">
+                    <label for="check7">OAuth consent screen is set to "Testing" or "In production"</label>
+                </div>
+                <div class="check-item">
+                    <input type="checkbox" id="check8">
+                    <label for="check8">My email is added as a test user</label>
+                </div>
+                <div class="check-item">
+                    <input type="checkbox" id="check9">
+                    <label for="check9">I waited 5-10 minutes after saving changes</label>
+                </div>
+            </div>
+
+            <div class="step">
+                <h2><span class="step-number">6</span> Wait and Clear Cache</h2>
+                <div class="warning">
+                    <strong>⏰ IMPORTANT:</strong> After saving changes in Google Console, you MUST wait 5-10 minutes for changes to propagate globally.
+                </div>
+                <p>Then, clear your browser cache:</p>
+                <ul>
+                    <li><strong>Option 1:</strong> Use Incognito/Private mode</li>
+                    <li><strong>Option 2:</strong> Clear browser cache (Ctrl+Shift+Delete)</li>
+                    <li><strong>Option 3:</strong> Try a different browser</li>
+                </ul>
+            </div>
+
+            <div class="step success">
+                <h2><span class="step-number">7</span> Test Your Fix</h2>
+                <p>After waiting 5-10 minutes and clearing cache:</p>
+                <button onclick="testConfig()">🧪 Test Configuration</button>
+                <button onclick="window.open('/sign-up', '_blank')">🔐 Test Google Sign-In</button>
+                <div id="testResults"></div>
+            </div>
+
+            <div class="step">
+                <h2>🆘 Still Not Working?</h2>
+                <p>If you've done everything above and it still shows 400 error:</p>
+                <ol>
+                    <li><strong>Double-check Vercel URL:</strong> Your actual deployment URL might be slightly different. Go to Vercel dashboard and copy the EXACT production URL.</li>
+                    <li><strong>Create new credentials:</strong> Sometimes Google Console has caching issues. Create a brand new OAuth 2.0 Client ID and update your .env files.</li>
+                    <li><strong>Check for typos:</strong> Even one wrong character in the Client ID will cause 400 error.</li>
+                    <li><strong>Verify domain ownership:</strong> In OAuth consent screen, add your domain (vercel.app and bayshorecommunication.org) to authorized domains.</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function checkCurrentConfig() {
+            const clientId = 'VITE_GOOGLE_CLIENT_ID not accessible from static HTML';
+            const origin = window.location.origin;
+            
+            const resultsDiv = document.getElementById('configResults');
+            resultsDiv.innerHTML = `
+                <div style="margin-top: 20px;">
+                    <div class="info">
+                        <strong>📍 Current Origin (where you're running this from):</strong><br>
+                        <div class="code">${origin}</div>
+                        <p>This URL must be EXACTLY in Google Console "Authorized JavaScript origins"</p>
+                    </div>
+                    
+                    <div class="warning">
+                        <strong>🔑 Expected Client ID:</strong><br>
+                        <div class="code">410846066995-sdnso7dkpoh083akfk4k790dig56d0jn.apps.googleusercontent.com</div>
+                    </div>
+
+                    <div class="success-box">
+                        <strong>✅ What Google Console Should Have:</strong><br>
+                        <strong>Authorized JavaScript origins:</strong><br>
+                        <div class="code">http://localhost:5173
+https://chatbot-user-dashboard.vercel.app</div>
+                        <br>
+                        <strong>Authorized redirect URIs:</strong><br>
+                        <div class="code">[EMPTY - Nothing here]</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function testConfig() {
+            const resultsDiv = document.getElementById('testResults');
+            resultsDiv.innerHTML = `
+                <div style="margin-top: 20px;">
+                    <div class="info">
+                        <strong>📝 Testing Instructions:</strong>
+                        <ol>
+                            <li>Open your browser's Developer Tools (Press F12)</li>
+                            <li>Go to the Console tab</li>
+                            <li>Click "Test Google Sign-In" button above</li>
+                            <li>Click "Continue with Google" button</li>
+                            <li>Check console for any error messages</li>
+                        </ol>
+                    </div>
+                    
+                    <div class="success-box">
+                        <strong>✅ If working correctly, you should see:</strong>
+                        <ul>
+                            <li>Google popup opens</li>
+                            <li>No 400 error</li>
+                            <li>Console shows: "=== Google OAuth Configuration ==="</li>
+                            <li>Console shows your full client ID (not "undefined")</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="error-box">
+                        <strong>❌ If still showing 400 error:</strong>
+                        <ul>
+                            <li>Wait longer (full 10 minutes after saving in Google Console)</li>
+                            <li>Try Incognito mode</li>
+                            <li>Verify EXACT URLs in Google Console (no trailing slashes!)</li>
+                            <li>Check redirect URIs section is truly empty</li>
+                        </ul>
+                    </div>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>
