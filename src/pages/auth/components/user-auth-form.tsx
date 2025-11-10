@@ -125,10 +125,16 @@ export function UserAuthForm({
       })
 
       console.log('Response status:', authResponse.status)
-      console.log('Response headers:', Object.fromEntries(authResponse.headers.entries()))
+      console.log(
+        'Response headers:',
+        Object.fromEntries(authResponse.headers.entries())
+      )
 
       console.log('Response status:', authResponse.status)
-      console.log('Response headers:', Object.fromEntries(authResponse.headers.entries()))
+      console.log(
+        'Response headers:',
+        Object.fromEntries(authResponse.headers.entries())
+      )
 
       if (!authResponse.ok) {
         const errorData = await authResponse.json().catch(() => ({}))
@@ -438,7 +444,12 @@ export function UserAuthForm({
             <GoogleLogin
               onSuccess={handleGoogleSuccess}
               onError={() => {
-                setError('Failed to authenticate with Google')
+                console.error('Google OAuth Error - Button clicked but authentication failed')
+                console.error('Possible causes:')
+                console.error('1. Client ID not loaded:', import.meta.env.VITE_GOOGLE_CLIENT_ID)
+                console.error('2. Current origin:', window.location.origin)
+                console.error('3. Check if this origin is in Google Console authorized origins')
+                setError('Failed to authenticate with Google. Check browser console for details.')
               }}
               useOneTap={false}
               theme='filled_black'
