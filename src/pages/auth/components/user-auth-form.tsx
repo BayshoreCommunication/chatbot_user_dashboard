@@ -443,18 +443,24 @@ export function UserAuthForm({
           <div className='flex justify-center'>
             <GoogleLogin
               onSuccess={handleGoogleSuccess}
-              onError={(error) => {
+              onError={() => {
                 console.error('=== GOOGLE OAUTH ERROR DETAILS ===')
-                console.error('Full error object:', error)
-                console.error('Error type:', typeof error)
-                console.error('Error keys:', error ? Object.keys(error) : 'null')
-                console.error('Client ID being used:', import.meta.env.VITE_GOOGLE_CLIENT_ID)
+                console.error('Google OAuth authentication failed')
+                console.error(
+                  'Client ID being used:',
+                  import.meta.env.VITE_GOOGLE_CLIENT_ID
+                )
                 console.error('Current origin:', window.location.origin)
                 console.error('Expected origins in Google Console:')
                 console.error('  1. http://localhost:5173')
                 console.error('  2. https://chatbot-user-dashboard.vercel.app')
+                console.error('Common causes of 400 error:')
+                console.error('  - Trailing slash in authorized origins')
+                console.error('  - Redirect URIs section not empty')
+                console.error('  - Wrong origin in Google Console')
+                console.error('  - Client ID mismatch')
                 console.error('=================================')
-                
+
                 setError(
                   'Failed to authenticate with Google. Check browser console for details.'
                 )
