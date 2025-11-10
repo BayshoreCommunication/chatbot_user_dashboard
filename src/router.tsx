@@ -28,6 +28,13 @@ const router = createBrowserRouter([
       Component: (await import('./pages/oauth-test')).default,
     }),
   },
+  // Google Debug Page
+  {
+    path: '/google-debug',
+    lazy: async () => ({
+      Component: (await import('./pages/google-debug')).default,
+    }),
+  },
   // Landing page
   {
     path: '/landing',
