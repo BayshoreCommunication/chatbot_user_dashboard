@@ -1,5 +1,4 @@
 import { Button } from '@/components/custom/button'
-import { Alert, AlertDescription } from '@/components/ui/alert'
 import {
   Card,
   CardContent,
@@ -101,21 +100,25 @@ export default function OAuthTest() {
             </div>
 
             {checks.clientId.status === 'error' && (
-              <Alert className='mt-4 border-red-500 bg-red-50 dark:bg-red-950'>
-                <AlertCircle className='h-4 w-4' />
-                <AlertDescription>
-                  <strong>Action Required:</strong> Go to Vercel Dashboard →
-                  Settings → Environment Variables
-                  <br />
-                  Add:{' '}
-                  <code className='rounded bg-red-100 px-1 dark:bg-red-900'>
-                    VITE_GOOGLE_CLIENT_ID
-                  </code>{' '}
-                  with your Google Client ID
-                  <br />
-                  Then redeploy the application.
-                </AlertDescription>
-              </Alert>
+              <div className='mt-4 flex gap-3 rounded-lg border border-red-500 bg-red-50 p-4 dark:bg-red-950'>
+                <AlertCircle className='h-5 w-5 text-red-500' />
+                <div className='flex-1'>
+                  <p className='font-semibold text-red-900 dark:text-red-100'>
+                    Action Required
+                  </p>
+                  <p className='mt-1 text-sm text-red-800 dark:text-red-200'>
+                    Go to Vercel Dashboard → Settings → Environment Variables
+                    <br />
+                    Add:{' '}
+                    <code className='rounded bg-red-100 px-1 dark:bg-red-900'>
+                      VITE_GOOGLE_CLIENT_ID
+                    </code>{' '}
+                    with your Google Client ID
+                    <br />
+                    Then redeploy the application.
+                  </p>
+                </div>
+              </div>
             )}
           </div>
 
@@ -124,16 +127,16 @@ export default function OAuthTest() {
             <h3 className='mb-4 text-lg font-semibold'>
               2. Google Cloud Console
             </h3>
-            <Alert className='border-yellow-500 bg-yellow-50 dark:bg-yellow-950'>
-              <AlertCircle className='h-4 w-4' />
-              <AlertDescription>
-                <p className='mb-2 font-semibold'>
+            <div className='flex gap-3 rounded-lg border border-yellow-500 bg-yellow-50 p-4 dark:bg-yellow-950'>
+              <AlertCircle className='h-5 w-5 text-yellow-600' />
+              <div className='flex-1'>
+                <p className='mb-2 font-semibold text-yellow-900 dark:text-yellow-100'>
                   Verify this origin is authorized:
                 </p>
-                <code className='mb-3 block rounded bg-yellow-100 px-2 py-1 dark:bg-yellow-900'>
+                <code className='mb-3 block rounded bg-yellow-100 px-2 py-1 text-yellow-900 dark:bg-yellow-900 dark:text-yellow-100'>
                   {window.location.origin}
                 </code>
-                <ol className='list-inside list-decimal space-y-2 text-sm'>
+                <ol className='list-inside list-decimal space-y-2 text-sm text-yellow-800 dark:text-yellow-200'>
                   <li>
                     Go to{' '}
                     <a
@@ -153,8 +156,8 @@ export default function OAuthTest() {
                     Click SAVE and wait 5-10 minutes for changes to propagate
                   </li>
                 </ol>
-              </AlertDescription>
-            </Alert>
+              </div>
+            </div>
           </div>
 
           {/* Common Errors */}
@@ -218,18 +221,19 @@ export default function OAuthTest() {
           </div>
 
           {/* Console Instructions */}
-          <Alert>
-            <AlertDescription>
+          <div className='flex gap-3 rounded-lg border bg-gray-50 p-4 dark:bg-gray-900'>
+            <AlertCircle className='h-5 w-5 text-gray-600' />
+            <div className='flex-1'>
               <p className='mb-2 font-semibold'>Debug in Browser Console:</p>
-              <ol className='list-inside list-decimal space-y-1 text-sm'>
+              <ol className='list-inside list-decimal space-y-1 text-sm text-gray-600 dark:text-gray-400'>
                 <li>Press F12 to open Developer Tools</li>
                 <li>Go to Console tab</li>
                 <li>Click "Test Sign Up" or "Test Sign In" above</li>
                 <li>Click "Continue with Google"</li>
                 <li>Check console for detailed error messages</li>
               </ol>
-            </AlertDescription>
-          </Alert>
+            </div>
+          </div>
         </CardContent>
       </Card>
     </div>
