@@ -20,6 +20,20 @@
       ]
     }
   ],
+  "env": {
+    "VITE_API_URL": "https://api.bayshorecommunication.org",
+    "VITE_BOT_URL": "https://aibotwidget.bayshorecommunication.org/chatbot-widget.min.js",
+    "VITE_GOOGLE_CLIENT_ID": "YOUR_GOOGLE_CLIENT_ID_HERE",
+    "VITE_GOOGLE_CLIENT_SECRET": "YOUR_GOOGLE_CLIENT_SECRET_HERE"
+  },
+  "build": {
+    "env": {
+      "VITE_API_URL": "https://api.bayshorecommunication.org",
+      "VITE_BOT_URL": "https://aibotwidget.bayshorecommunication.org/chatbot-widget.min.js",
+      "VITE_GOOGLE_CLIENT_ID": "YOUR_GOOGLE_CLIENT_ID_HERE",
+      "VITE_GOOGLE_CLIENT_SECRET": "YOUR_GOOGLE_CLIENT_SECRET_HERE"
+    }
+  },
   "github": {
     "silent": true
   }

@@ -101,22 +101,38 @@ export function UserAuthForm({
         atob(credentialResponse.credential.split('.')[1])
       )
 
+      console.log('Google OAuth - Decoded JWT:', decoded)
+      console.log('API URL:', API_URL)
+
+      const requestBody = {
+        email: decoded.email,
+        organization_name: decoded.name || decoded.email.split('@')[0],
+        google_id: decoded.sub,
+        website: '', // Add missing field
+        company_organization_type: '', // Add missing field
+        has_paid_subscription: false,
+      }
+
+      console.log('Sending to /auth/google:', requestBody)
+
       const authResponse = await fetch(`${API_URL}/auth/google`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         credentials: 'include',
-        body: JSON.stringify({
-          email: decoded.email,
-          organization_name: decoded.name || decoded.email.split('@')[0],
-          google_id: decoded.sub,
-          has_paid_subscription: false,
-        }),
+        body: JSON.stringify(requestBody),
       })
+
+      console.log('Response status:', authResponse.status)
+      console.log('Response headers:', Object.fromEntries(authResponse.headers.entries()))
+
+      console.log('Response status:', authResponse.status)
+      console.log('Response headers:', Object.fromEntries(authResponse.headers.entries()))
 
       if (!authResponse.ok) {
         const errorData = await authResponse.json().catch(() => ({}))
+        console.error('Backend error response:', errorData)
         throw new Error(
           errorData.detail || 'Failed to authenticate with Google'
         )
@@ -136,24 +152,29 @@ export function UserAuthForm({
       }
     } catch (error) {
       console.error('Google login error:', error)
-      
+
       let errorMessage = 'Failed to authenticate with Google'
-      
+
       if (error instanceof Error) {
         // Check for network errors
         if (error.message === 'Failed to fetch') {
-          errorMessage = 'Network error. Please check your internet connection and try again.'
-        } 
+          errorMessage =
+            'Network error. Please check your internet connection and try again.'
+        }
         // Check for CORS/COOP errors
-        else if (error.message.includes('postMessage') || error.message.includes('COOP')) {
-          errorMessage = 'Browser security settings are blocking Google sign-in. Please try again or use email sign-in instead.'
+        else if (
+          error.message.includes('postMessage') ||
+          error.message.includes('COOP')
+        ) {
+          errorMessage =
+            'Browser security settings are blocking Google sign-in. Please try again or use email sign-in instead.'
         }
         // Use the original error message if available
         else if (error.message) {
           errorMessage = error.message
         }
       }
-      
+
       setError(errorMessage)
     }
   }
@@ -202,20 +223,26 @@ export function UserAuthForm({
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
-        
+
         // Provide more user-friendly error messages
         let errorMessage = errorData.detail || ''
-        
+
         if (errorMessage.includes('Email not registered')) {
           errorMessage = 'This email is not registered. Please sign up first.'
         } else if (errorMessage.includes('Email already registered')) {
-          errorMessage = 'This email is already registered. Please sign in instead.'
-        } else if (errorMessage.includes('Invalid credentials') || errorMessage.includes('Incorrect password')) {
+          errorMessage =
+            'This email is already registered. Please sign in instead.'
+        } else if (
+          errorMessage.includes('Invalid credentials') ||
+          errorMessage.includes('Incorrect password')
+        ) {
           errorMessage = 'Invalid email or password. Please try again.'
         } else if (!errorMessage) {
-          errorMessage = isSignUp ? 'Failed to register. Please try again.' : 'Failed to login. Please try again.'
+          errorMessage = isSignUp
+            ? 'Failed to register. Please try again.'
+            : 'Failed to login. Please try again.'
         }
-        
+
         throw new Error(errorMessage)
       }
 
