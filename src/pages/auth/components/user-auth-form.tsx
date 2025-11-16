@@ -227,8 +227,17 @@ export function UserAuthForm({
         body: JSON.stringify(requestBody),
       })
 
+      console.log(
+        `${isSignUp ? 'Registration' : 'Login'} response status:`,
+        response.status
+      )
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
+        console.error(
+          `${isSignUp ? 'Registration' : 'Login'} error:`,
+          errorData
+        )
 
         // Provide more user-friendly error messages
         let errorMessage = errorData.detail || ''
@@ -252,16 +261,31 @@ export function UserAuthForm({
         throw new Error(errorMessage)
       }
 
-      const { user, access_token } = await response.json()
+      const responseData = await response.json()
+      console.log(`${isSignUp ? 'Registration' : 'Login'} success:`, {
+        hasUser: !!responseData.user,
+        hasToken: !!responseData.access_token,
+        user: responseData.user,
+      })
+
+      const { user, access_token } = responseData
+
+      if (!user || !access_token) {
+        throw new Error('Invalid response: missing user or access token')
+      }
 
       localStorage.setItem('user', JSON.stringify(user))
       localStorage.setItem('token', access_token)
       setUser(user)
 
+      console.log('✅ Auto-login successful, redirecting...')
+
       // Redirect based on subscription status
       if (user.has_paid_subscription) {
+        console.log('→ Redirecting to /dashboard (has subscription)')
         navigate('/dashboard')
       } else {
+        console.log('→ Redirecting to /landing (no subscription)')
         navigate('/landing')
       }
     } catch (error) {
